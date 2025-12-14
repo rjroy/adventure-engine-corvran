@@ -134,7 +134,11 @@ export function AdventureMenu({ onAdventureStart }: AdventureMenuProps) {
 
         <button
           onClick={() => {
-            void handleNewAdventure();
+            handleNewAdventure().catch((err: unknown) => {
+              setError(
+                err instanceof Error ? err.message : "An unexpected error occurred"
+              );
+            });
           }}
           disabled={isLoading}
           className="adventure-menu__button adventure-menu__button--new"
