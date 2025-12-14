@@ -105,8 +105,9 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     }
 
     // Use relative URL to go through Vite proxy in dev, or construct full URL for production
+    // Token is sent via authenticate message (not URL) to avoid logging/history exposure
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const url = `${wsProtocol}//${window.location.host}/ws?token=${encodeURIComponent(sessionToken)}&adventureId=${encodeURIComponent(adventureId)}`;
+    const url = `${wsProtocol}//${window.location.host}/ws?adventureId=${encodeURIComponent(adventureId)}`;
 
     try {
       const ws = new WebSocket(url);
@@ -119,7 +120,14 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
         reconnectStartTimeRef.current = null;
         startHeartbeat();
 
-        // Send start_adventure message on reconnect to sync state
+        // Send authenticate message first (token not in URL for security)
+        const authMessage: ClientMessage = {
+          type: "authenticate",
+          payload: { token: sessionToken },
+        };
+        ws.send(JSON.stringify(authMessage));
+
+        // Send start_adventure message after auth to sync state
         const startMessage: ClientMessage = {
           type: "start_adventure",
           payload: { adventureId },
