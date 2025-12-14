@@ -117,6 +117,20 @@ describe("AdventureMenu", () => {
         expect(screen.getByText("Server error")).toBeInTheDocument();
       });
     });
+
+    test("handles promise rejections without silently swallowing them", async () => {
+      const user = userEvent.setup();
+
+      vi.mocked(fetch).mockRejectedValueOnce(new Error("Network failure"));
+
+      render(<AdventureMenu onAdventureStart={mockOnAdventureStart} />);
+
+      await user.click(screen.getByRole("button", { name: /new adventure/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Network failure")).toBeInTheDocument();
+      });
+    });
   });
 
   describe("resume adventure", () => {
