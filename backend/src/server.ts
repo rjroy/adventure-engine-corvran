@@ -84,11 +84,13 @@ const backgroundImageService = new BackgroundImageService(
   }
 );
 
-// Initialize image generator service (async)
-imageGeneratorService.initialize().catch((err) => {
+// Initialize image generator service
+try {
+  imageGeneratorService.initialize();
+} catch (err) {
   console.warn("[Server] Image generator initialization failed:", err);
   console.warn("[Server] Image generation will be unavailable, catalog/fallback only");
-});
+}
 
 // Health check (used by launch script to verify server is ready)
 app.get("/api/health", (c) => c.text("Adventure Engine Backend"));

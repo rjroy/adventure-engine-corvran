@@ -29,17 +29,18 @@ class MockImageCatalogService {
  */
 class MockImageGeneratorService {
   generateImage = mock(
-    async (_mood: ThemeMood, _genre: Genre, _region: Region, _narrativeContext?: string) => ({
-      filePath: "./data/images/generated-image.png",
-      prompt: "A test prompt",
-      model: "test-model",
-      durationMs: 1000,
-    })
+    (_mood: ThemeMood, _genre: Genre, _region: Region, _narrativeContext?: string) =>
+      Promise.resolve({
+        filePath: "./data/images/generated-image.png",
+        prompt: "A test prompt",
+        model: "test-model",
+        durationMs: 1000,
+      })
   );
   getGenerationCount = mock(() => 0);
   getRemainingGenerations = mock(() => 5);
-  initialize = mock(async (): Promise<void> => {});
-  close = mock(async (): Promise<void> => {});
+  initialize = mock((): void => {});
+  close = mock((): void => {});
 }
 
 describe("BackgroundImageService", () => {
@@ -155,14 +156,8 @@ describe("BackgroundImageService", () => {
         undefined
       );
 
-      // Verify image was stored in catalog
-      expect(catalogService.storeImage).toHaveBeenCalledWith(
-        "triumphant",
-        "steampunk",
-        "castle",
-        "./data/images/generated-image.png",
-        "A test prompt"
-      );
+      // Note: storeImage is NOT called - images are discovered by glob patterns
+      // based on naming convention (mood-genre-region-timestamp.png)
 
       // Verify result
       expect(result).toEqual({
@@ -216,8 +211,7 @@ describe("BackgroundImageService", () => {
         undefined
       );
 
-      // Verify image was stored
-      expect(catalogService.storeImage).toHaveBeenCalled();
+      // Note: storeImage is NOT called - images are discovered by glob patterns
 
       expect(result.source).toBe("generated");
     });
@@ -402,14 +396,14 @@ describe("BackgroundImageService", () => {
       expect(catalogService.getFallback).not.toHaveBeenCalled();
     });
 
-    test("catalog miss triggers generation and storage", async () => {
+    test("catalog miss triggers generation", async () => {
       catalogService.findImage.mockReturnValue(null);
 
       await orchestrator.getBackgroundImage("tense", "horror", "ruins");
 
       expect(catalogService.findImage).toHaveBeenCalled();
       expect(generatorService.generateImage).toHaveBeenCalled();
-      expect(catalogService.storeImage).toHaveBeenCalled();
+      // Note: storeImage is NOT called - images are discovered by glob patterns
       expect(catalogService.getFallback).not.toHaveBeenCalled();
     });
 
@@ -421,16 +415,15 @@ describe("BackgroundImageService", () => {
 
       expect(catalogService.findImage).toHaveBeenCalled();
       expect(generatorService.generateImage).toHaveBeenCalled();
-      expect(catalogService.storeImage).not.toHaveBeenCalled();
       expect(catalogService.getFallback).toHaveBeenCalled();
     });
 
-    test("force generation skips catalog but stores result", async () => {
+    test("force generation skips catalog lookup", async () => {
       await orchestrator.getBackgroundImage("triumphant", "modern", "city", true);
 
       expect(catalogService.findImage).not.toHaveBeenCalled();
       expect(generatorService.generateImage).toHaveBeenCalled();
-      expect(catalogService.storeImage).toHaveBeenCalled();
+      // Note: storeImage is NOT called - images are discovered by glob patterns
       expect(catalogService.getFallback).not.toHaveBeenCalled();
     });
 
@@ -441,7 +434,6 @@ describe("BackgroundImageService", () => {
 
       expect(catalogService.findImage).not.toHaveBeenCalled();
       expect(generatorService.generateImage).toHaveBeenCalled();
-      expect(catalogService.storeImage).not.toHaveBeenCalled();
       expect(catalogService.getFallback).toHaveBeenCalled();
     });
   });

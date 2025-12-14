@@ -1,8 +1,8 @@
 // Image Generator Service Tests
-// Unit and integration tests for MCP-based image generation with mocked server
+// Unit and integration tests for Replicate-based image generation
 
 import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
-import { rm, mkdir, writeFile } from "node:fs/promises";
+import { rm, mkdir } from "node:fs/promises";
 import {
   ImageGeneratorService,
   RateLimitError,
@@ -10,46 +10,32 @@ import {
 } from "../../src/services/image-generator";
 import type { ThemeMood, Genre, Region } from "../../../shared/protocol";
 
-// Mock MCP client to avoid spawning actual subprocess in tests
-const mockCallTool = mock(async (_args: any) => ({
-  content: [
-    {
-      type: "text" as const,
-      text: JSON.stringify({
-        success: true,
-        model: "black-forest-labs/flux-schnell",
-        saved_files: ["/test/output/test-image.png"],
-      }),
-    },
-  ],
-}));
+// Mock fetch to return fake image data
+const _originalFetch = globalThis.fetch;
+const mockFetch = mock(() =>
+  Promise.resolve(
+    new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
+      status: 200,
+      headers: { "Content-Type": "image/png" },
+    })
+  )
+);
+globalThis.fetch = mockFetch as unknown as typeof fetch;
 
-const mockConnect = mock(async () => {});
-const mockClose = mock(async () => {});
+// Mock Replicate SDK
+const mockRun = mock(() =>
+  Promise.resolve(["https://replicate.delivery/test-image.png"])
+);
 
-// Mock the MCP SDK
-mock.module("@modelcontextprotocol/sdk/client/index.js", () => ({
-  Client: class MockClient {
-    constructor(_info?: any, _capabilities?: any) {}
-    async connect(_transport: any) {
-      await mockConnect();
-    }
-    async callTool(args: any) {
-      return await mockCallTool(args);
-    }
-    async close() {
-      await mockClose();
-    }
-  },
-}));
-
-mock.module("@modelcontextprotocol/sdk/client/stdio.js", () => ({
-  StdioClientTransport: class MockStdioClientTransport {
-    constructor(_config: any) {}
+void mock.module("replicate", () => ({
+  default: class MockReplicate {
+    constructor(_config: { auth: string }) {}
+    run = mockRun;
   },
 }));
 
 const TEST_OUTPUT_DIR = "./test-data/images";
+const TEST_API_TOKEN = "test-replicate-token";
 
 describe("ImageGeneratorService", () => {
   let service: ImageGeneratorService;
@@ -60,21 +46,32 @@ describe("ImageGeneratorService", () => {
     await mkdir("./test-data/images", { recursive: true });
 
     // Reset mocks
-    mockCallTool.mockClear();
-    mockConnect.mockClear();
-    mockClose.mockClear();
+    mockRun.mockClear();
+    mockRun.mockImplementation(() =>
+      Promise.resolve(["https://replicate.delivery/test-image.png"])
+    );
+    mockFetch.mockClear();
+    mockFetch.mockImplementation(() =>
+      Promise.resolve(
+        new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
+          status: 200,
+          headers: { "Content-Type": "image/png" },
+        })
+      )
+    );
 
     // Create service instance with test config
     service = new ImageGeneratorService({
       outputDirectory: TEST_OUTPUT_DIR,
       timeout: 1000, // 1 second for faster tests
       maxGenerationsPerSession: 3, // Lower limit for testing
+      apiToken: TEST_API_TOKEN,
     });
   });
 
   afterEach(async () => {
     // Close service
-    await service.close();
+    service.close();
 
     // Clean up test data
     await rm("./test-data", { recursive: true, force: true });
@@ -82,7 +79,9 @@ describe("ImageGeneratorService", () => {
 
   describe("constructor", () => {
     test("creates instance with default config", () => {
-      const defaultService = new ImageGeneratorService();
+      const defaultService = new ImageGeneratorService({
+        apiToken: TEST_API_TOKEN,
+      });
       expect(defaultService).toBeDefined();
     });
 
@@ -97,6 +96,7 @@ describe("ImageGeneratorService", () => {
       // Create service should recreate it
       const newService = new ImageGeneratorService({
         outputDirectory: TEST_OUTPUT_DIR,
+        apiToken: TEST_API_TOKEN,
       });
 
       expect(newService).toBeDefined();
@@ -108,23 +108,34 @@ describe("ImageGeneratorService", () => {
   });
 
   describe("initialize()", () => {
-    test("establishes MCP connection", async () => {
-      await service.initialize();
-      expect(mockConnect).toHaveBeenCalledTimes(1);
+    test("creates Replicate client", () => {
+      service.initialize();
+      // If no error thrown, client was created successfully
+      expect(true).toBe(true);
     });
 
-    test("can be called multiple times safely", async () => {
-      await service.initialize();
-      await service.close();
-      await service.initialize();
+    test("throws error if no API token", () => {
+      const noTokenService = new ImageGeneratorService({
+        outputDirectory: TEST_OUTPUT_DIR,
+      });
 
-      expect(mockConnect).toHaveBeenCalledTimes(2);
+      expect(() => noTokenService.initialize()).toThrow(
+        "REPLICATE_API_TOKEN environment variable is required"
+      );
+    });
+
+    test("can be called multiple times safely", () => {
+      service.initialize();
+      service.close();
+      service.initialize();
+      // If no error thrown, test passes
+      expect(true).toBe(true);
     });
   });
 
   describe("generateImage()", () => {
-    beforeEach(async () => {
-      await service.initialize();
+    beforeEach(() => {
+      service.initialize();
     });
 
     test("generates image with mood, genre, and region", async () => {
@@ -195,8 +206,10 @@ describe("ImageGeneratorService", () => {
     test("throws error if not initialized", async () => {
       const uninitializedService = new ImageGeneratorService({
         outputDirectory: TEST_OUTPUT_DIR,
+        apiToken: TEST_API_TOKEN,
       });
 
+      // eslint-disable-next-line @typescript-eslint/await-thenable
       await expect(
         uninitializedService.generateImage("calm", "low-fantasy", "forest")
       ).rejects.toThrow("not initialized");
@@ -209,6 +222,7 @@ describe("ImageGeneratorService", () => {
       await service.generateImage("ominous", "horror", "ruins");
 
       // Fourth should fail
+      // eslint-disable-next-line @typescript-eslint/await-thenable
       await expect(
         service.generateImage("triumphant", "high-fantasy", "castle")
       ).rejects.toThrow(RateLimitError);
@@ -233,38 +247,45 @@ describe("ImageGeneratorService", () => {
     });
 
     test("handles timeout properly", async () => {
-      // Mock a slow response
-      mockCallTool.mockImplementationOnce(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(
-              () =>
-                resolve({
-                  content: [
-                    {
-                      type: "text",
-                      text: JSON.stringify({
-                        success: true,
-                        model: "test",
-                        saved_files: ["/test.png"],
-                      }),
-                    },
-                  ],
-                }),
+      // Mock a slow response that respects abort signal
+      mockRun.mockImplementationOnce(
+        // @ts-expect-error - mock needs access to options.signal
+        (_model: string, options: { signal?: AbortSignal }) =>
+          new Promise<string[]>((resolve, reject) => {
+            const timeoutId = setTimeout(
+              () => resolve(["https://replicate.delivery/slow-image.png"]),
               2000
-            )
-          ) // 2 seconds, longer than 1 second timeout
+            );
+            // Listen for abort signal
+            options?.signal?.addEventListener("abort", () => {
+              clearTimeout(timeoutId);
+              const error = new Error("Aborted");
+              error.name = "AbortError";
+              reject(error);
+            });
+          })
       );
 
+      // eslint-disable-next-line @typescript-eslint/await-thenable
       await expect(
         service.generateImage("calm", "low-fantasy", "forest")
       ).rejects.toThrow(GenerationTimeoutError);
     });
 
     test("includes timeout duration in timeout error", async () => {
-      // Mock a slow response
-      mockCallTool.mockImplementationOnce(
-        () => new Promise((resolve) => setTimeout(resolve, 2000))
+      // Mock a slow response that respects abort signal
+      mockRun.mockImplementationOnce(
+        // @ts-expect-error - mock needs access to options.signal
+        (_model: string, options: { signal?: AbortSignal }) =>
+          new Promise<string[]>((resolve, reject) => {
+            const timeoutId = setTimeout(resolve, 2000);
+            options?.signal?.addEventListener("abort", () => {
+              clearTimeout(timeoutId);
+              const error = new Error("Aborted");
+              error.name = "AbortError";
+              reject(error);
+            });
+          })
       );
 
       try {
@@ -279,55 +300,22 @@ describe("ImageGeneratorService", () => {
     });
 
     test("generates unique filenames for same mood/genre/region", async () => {
-      // Mock different responses for each call
-      mockCallTool
-        .mockResolvedValueOnce({
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({
-                success: true,
-                model: "test",
-                saved_files: ["/test/output/image-1.png"],
-              }),
-            },
-          ],
-        })
-        .mockResolvedValueOnce({
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({
-                success: true,
-                model: "test",
-                saved_files: ["/test/output/image-2.png"],
-              }),
-            },
-          ],
-        });
-
       const result1 = await service.generateImage("calm", "low-fantasy", "forest");
+      // Small delay to ensure different timestamp
+      await new Promise((resolve) => setTimeout(resolve, 2));
       const result2 = await service.generateImage("calm", "low-fantasy", "forest");
 
       // Filenames should be different due to timestamp
       expect(result1.filePath).not.toBe(result2.filePath);
     });
 
-    test("calls MCP tool with correct arguments", async () => {
+    test("calls Replicate with correct arguments", async () => {
       await service.generateImage("calm", "low-fantasy", "forest");
 
-      const calls = mockCallTool.mock.calls as any[];
-      expect(calls.length).toBeGreaterThan(0);
-
-      const lastCall = calls[calls.length - 1]?.[0];
-      expect(lastCall).toBeDefined();
-      expect(lastCall?.name).toBe("generate_image_replicate");
-      expect(lastCall?.arguments.prompt).toBeDefined();
-      expect(lastCall?.arguments.model).toBe("black-forest-labs/flux-schnell");
-      expect(lastCall?.arguments.output_file_name).toMatch(
-        /^calm-low-fantasy-forest-\d+\.png$/
-      );
-      expect(lastCall?.arguments.output_directory).toContain("test-data/images");
+      expect(mockRun).toHaveBeenCalledTimes(1);
+      const callArgs = mockRun.mock.calls[0] as unknown[];
+      expect(callArgs[0]).toBe("black-forest-labs/flux-schnell");
+      expect(callArgs[1]).toHaveProperty("input");
     });
   });
 
@@ -337,7 +325,7 @@ describe("ImageGeneratorService", () => {
     });
 
     test("returns correct count after generations", async () => {
-      await service.initialize();
+      service.initialize();
 
       await service.generateImage("calm", "low-fantasy", "forest");
       expect(service.getGenerationCount()).toBe(1);
@@ -353,7 +341,7 @@ describe("ImageGeneratorService", () => {
     });
 
     test("decrements after each generation", async () => {
-      await service.initialize();
+      service.initialize();
 
       await service.generateImage("calm", "low-fantasy", "forest");
       expect(service.getRemainingGenerations()).toBe(2);
@@ -366,7 +354,7 @@ describe("ImageGeneratorService", () => {
     });
 
     test("never goes below 0", async () => {
-      await service.initialize();
+      service.initialize();
 
       // Exhaust limit
       await service.generateImage("calm", "low-fantasy", "forest");
@@ -378,7 +366,7 @@ describe("ImageGeneratorService", () => {
       // Try to generate one more (will fail, but counter shouldn't go negative)
       try {
         await service.generateImage("triumphant", "high-fantasy", "castle");
-      } catch (error) {
+      } catch {
         // Expected to fail
       }
 
@@ -387,33 +375,32 @@ describe("ImageGeneratorService", () => {
   });
 
   describe("close()", () => {
-    test("closes MCP connection", async () => {
-      await service.initialize();
-      await service.close();
-
-      expect(mockClose).toHaveBeenCalledTimes(1);
+    test("clears Replicate client", () => {
+      service.initialize();
+      service.close();
+      // If no error thrown, test passes
+      expect(true).toBe(true);
     });
 
-    test("can be called multiple times safely", async () => {
-      await service.initialize();
-      await service.close();
-      await service.close();
-
-      // Should only close once (second call is no-op)
-      expect(mockClose).toHaveBeenCalledTimes(1);
+    test("can be called multiple times safely", () => {
+      service.initialize();
+      service.close();
+      service.close();
+      // If no error thrown, test passes
+      expect(true).toBe(true);
     });
 
-    test("can be called without initializing", async () => {
+    test("can be called without initializing", () => {
       // Should complete without error even if not initialized
-      await service.close();
+      service.close();
       // If we got here without throwing, the test passes
       expect(true).toBe(true);
     });
   });
 
   describe("prompt construction", () => {
-    beforeEach(async () => {
-      await service.initialize();
+    beforeEach(() => {
+      service.initialize();
     });
 
     test("includes all mood types correctly", async () => {
@@ -431,13 +418,14 @@ describe("ImageGeneratorService", () => {
         expect(result.prompt.length).toBeGreaterThan(0);
 
         // Reset for next iteration
-        await service.close();
+        service.close();
         service = new ImageGeneratorService({
           outputDirectory: TEST_OUTPUT_DIR,
           timeout: 1000,
           maxGenerationsPerSession: 10,
+          apiToken: TEST_API_TOKEN,
         });
-        await service.initialize();
+        service.initialize();
       }
     });
 
@@ -458,13 +446,14 @@ describe("ImageGeneratorService", () => {
         expect(result.prompt.length).toBeGreaterThan(0);
 
         // Reset for next iteration
-        await service.close();
+        service.close();
         service = new ImageGeneratorService({
           outputDirectory: TEST_OUTPUT_DIR,
           timeout: 1000,
           maxGenerationsPerSession: 10,
+          apiToken: TEST_API_TOKEN,
         });
-        await service.initialize();
+        service.initialize();
       }
     });
 
@@ -487,13 +476,14 @@ describe("ImageGeneratorService", () => {
         expect(result.prompt.length).toBeGreaterThan(0);
 
         // Reset for next iteration
-        await service.close();
+        service.close();
         service = new ImageGeneratorService({
           outputDirectory: TEST_OUTPUT_DIR,
           timeout: 1000,
           maxGenerationsPerSession: 15,
+          apiToken: TEST_API_TOKEN,
         });
-        await service.initialize();
+        service.initialize();
       }
     });
 

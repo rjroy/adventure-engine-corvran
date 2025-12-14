@@ -69,9 +69,9 @@ export class AdventureStateManager {
 
     this.history = { entries: [] };
 
-    // Create adventure directory
+    // Create adventure directory (mode 0o700 = owner only access)
     const adventureDir = this.getAdventureDir(adventureId);
-    await mkdir(adventureDir, { recursive: true });
+    await mkdir(adventureDir, { recursive: true, mode: 0o700 });
 
     // Save initial state
     await this.save();
@@ -196,26 +196,26 @@ export class AdventureStateManager {
     const stateTempPath = join(adventureDir, ".state.json.tmp");
     const historyTempPath = join(adventureDir, ".history.json.tmp");
 
-    // Ensure directory exists
-    await mkdir(adventureDir, { recursive: true });
+    // Ensure directory exists (mode 0o700 = owner only access)
+    await mkdir(adventureDir, { recursive: true, mode: 0o700 });
 
     // Update last active timestamp
     this.state.lastActiveAt = new Date().toISOString();
 
     try {
-      // Atomic write for state.json
+      // Atomic write for state.json (mode 0o600 = owner read/write only)
       await writeFile(
         stateTempPath,
         JSON.stringify(this.state, null, 2),
-        "utf-8"
+        { encoding: "utf-8", mode: 0o600 }
       );
       await rename(stateTempPath, statePath);
 
-      // Atomic write for history.json
+      // Atomic write for history.json (mode 0o600 = owner read/write only)
       await writeFile(
         historyTempPath,
         JSON.stringify(this.history, null, 2),
-        "utf-8"
+        { encoding: "utf-8", mode: 0o600 }
       );
       await rename(historyTempPath, historyPath);
     } catch (error) {
