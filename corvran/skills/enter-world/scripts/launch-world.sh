@@ -10,7 +10,7 @@ set -euo pipefail
 
 # Determine where the Adventure Engine code lives (relative to this script)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENGINE_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+ENGINE_DIR="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 
 PROJECT_DIR="${1:-.}"
 
