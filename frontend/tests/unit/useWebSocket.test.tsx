@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useWebSocket } from "../../src/hooks/useWebSocket";
-import type { ServerMessage } from "../../../../shared/protocol";
+import type { ServerMessage } from "../../../shared/protocol";
 import { ThemeProvider } from "../../src/contexts/ThemeContext";
 import type { ReactNode } from "react";
 
