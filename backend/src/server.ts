@@ -454,8 +454,7 @@ async function validateAndLoadAdventure(
   token: string,
   connId: string
 ): Promise<void> {
-  const manager = new AdventureStateManager();
-  const result = await manager.load(adventureId, token);
+  const result = await stateManager.load(adventureId, token);
 
   if (!result.success) {
     // Map state error to error details
@@ -489,7 +488,7 @@ async function validateAndLoadAdventure(
   const conn = connections.get(connId);
   if (conn) {
     conn.authenticated = true;
-    const gameSession = new GameSession(ws, backgroundImageService);
+    const gameSession = new GameSession(ws, stateManager, backgroundImageService);
     const initResult = await gameSession.initialize(adventureId, token);
     if (initResult.success) {
       conn.gameSession = gameSession;
