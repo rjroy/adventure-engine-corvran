@@ -46,6 +46,28 @@ const app = new Hono();
 // Adventures directory - configurable via environment for testing
 const ADVENTURES_DIR = process.env.ADVENTURES_DIR || "./adventures";
 
+// Allowed origins for WebSocket CSRF protection
+// Configurable via comma-separated ALLOWED_ORIGINS env var
+const DEFAULT_ORIGINS = ["http://localhost:5173", "http://localhost:3000"];
+const ALLOWED_ORIGINS: Set<string> = new Set(
+  process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+    : DEFAULT_ORIGINS
+);
+
+/**
+ * Validate Origin header for WebSocket CSRF protection
+ * Returns true if origin is allowed, false otherwise
+ */
+function isAllowedOrigin(origin: string | undefined): boolean {
+  // Origin header is required for browser WebSocket connections
+  // Non-browser clients (curl, etc.) may not send Origin - reject them
+  if (!origin) {
+    return false;
+  }
+  return ALLOWED_ORIGINS.has(origin);
+}
+
 // Shared AdventureStateManager instance
 // In production, this could be dependency-injected for better testability
 const stateManager = new AdventureStateManager(ADVENTURES_DIR);
@@ -175,9 +197,21 @@ app.get("/adventure/:id", async (c) => {
  * WebSocket upgrade endpoint with adventureId in query
  * Token is sent via 'authenticate' message after connection (not in URL for security)
  * Query params: adventureId
+ *
+ * CSRF Protection: Validates Origin header before upgrade to prevent
+ * cross-site WebSocket hijacking attacks.
  */
 app.get(
   "/ws",
+  // CSRF protection middleware - validates Origin before WebSocket upgrade
+  async (c, next) => {
+    const origin = c.req.header("origin");
+    if (!isAllowedOrigin(origin)) {
+      console.warn("WebSocket upgrade rejected - invalid origin:", origin);
+      return c.text("Forbidden - invalid origin", 403);
+    }
+    return next();
+  },
   upgradeWebSocket((c) => {
     // adventureId in query string (not sensitive), token sent via message
     const adventureId = c.req.query("adventureId");
@@ -510,4 +544,4 @@ export default {
 };
 
 // Export for testing
-export { app, connections };
+export { app, connections, isAllowedOrigin, ALLOWED_ORIGINS };

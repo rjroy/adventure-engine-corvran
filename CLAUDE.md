@@ -85,6 +85,7 @@ Catalog-first strategy: `ImageCatalogService` searches `/assets/backgrounds` bef
 - `ADVENTURES_DIR` (default ./adventures)
 - `REPLICATE_API_TOKEN` (required for image generation)
 - `MOCK_SDK` (set "true" for testing without Agent SDK)
+- `ALLOWED_ORIGINS` (comma-separated list, defaults to `http://localhost:5173,http://localhost:3000`)
 
 ## Code Style
 

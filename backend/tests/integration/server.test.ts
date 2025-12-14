@@ -10,7 +10,7 @@ const TEST_ADVENTURES_DIR = "./test-adventures-server";
 process.env.ADVENTURES_DIR = TEST_ADVENTURES_DIR;
 
 // Import after setting env var
-const { app } = await import("../../src/server");
+const { app, isAllowedOrigin, ALLOWED_ORIGINS } = await import("../../src/server");
 import type { ServerMessage, ClientMessage } from "../../src/types/protocol";
 
 describe("Server REST Endpoints", () => {
@@ -158,6 +158,82 @@ describe("Server REST Endpoints", () => {
       const res = await app.request("/backgrounds/mysterious.jpg");
       expect(res.status).toBe(200);
       expect(res.headers.get("content-type")).toContain("image/jpeg");
+    });
+  });
+});
+
+describe("WebSocket CSRF Protection", () => {
+  describe("isAllowedOrigin()", () => {
+    test("allows localhost:5173 (Vite dev server)", () => {
+      expect(isAllowedOrigin("http://localhost:5173")).toBe(true);
+    });
+
+    test("allows localhost:3000 (production)", () => {
+      expect(isAllowedOrigin("http://localhost:3000")).toBe(true);
+    });
+
+    test("rejects undefined origin", () => {
+      expect(isAllowedOrigin(undefined)).toBe(false);
+    });
+
+    test("rejects malicious origin", () => {
+      expect(isAllowedOrigin("https://evil-site.com")).toBe(false);
+    });
+
+    test("rejects similar but different origin", () => {
+      expect(isAllowedOrigin("http://localhost:5174")).toBe(false);
+    });
+
+    test("rejects https variant of allowed http origin", () => {
+      // Protocol matters - http://localhost:5173 is allowed, not https
+      expect(isAllowedOrigin("https://localhost:5173")).toBe(false);
+    });
+
+    test("rejects origin with path", () => {
+      expect(isAllowedOrigin("http://localhost:5173/path")).toBe(false);
+    });
+  });
+
+  describe("ALLOWED_ORIGINS configuration", () => {
+    test("contains default localhost origins", () => {
+      expect(ALLOWED_ORIGINS.has("http://localhost:5173")).toBe(true);
+      expect(ALLOWED_ORIGINS.has("http://localhost:3000")).toBe(true);
+    });
+  });
+
+  describe("WebSocket upgrade endpoint", () => {
+    test("returns 403 for missing Origin header", async () => {
+      const res = await app.request("/ws?adventureId=test-123");
+      expect(res.status).toBe(403);
+
+      const text = await res.text();
+      expect(text).toContain("Forbidden");
+    });
+
+    test("returns 403 for malicious Origin", async () => {
+      const res = await app.request("/ws?adventureId=test-123", {
+        headers: { Origin: "https://evil-site.com" },
+      });
+      expect(res.status).toBe(403);
+
+      const text = await res.text();
+      expect(text).toContain("Forbidden");
+    });
+
+    test("allows request with valid Origin header", async () => {
+      const res = await app.request("/ws?adventureId=test-123", {
+        headers: {
+          Origin: "http://localhost:5173",
+          Upgrade: "websocket",
+          Connection: "Upgrade",
+          "Sec-WebSocket-Key": "dGhlIHNhbXBsZSBub25jZQ==",
+          "Sec-WebSocket-Version": "13",
+        },
+      });
+
+      // Should not be 403 (CSRF check passed)
+      // Note: May be 101 (upgrade) or other status depending on Hono test behavior
+      expect(res.status).not.toBe(403);
     });
   });
 });
