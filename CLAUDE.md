@@ -39,10 +39,11 @@ npm run test:debug       # Debug mode
 
 Frontend and backend communicate via WebSocket. Protocol types are defined in `/shared/protocol.ts` and re-exported by both sides.
 
-**Client → Server**: `player_input`, `start_adventure`, `ping`
+**Client → Server**: `authenticate`, `player_input`, `start_adventure`, `ping`
 **Server → Client**: `gm_response_start/chunk/end` (streaming), `adventure_loaded`, `theme_change`, `error`, `pong`
 
-WebSocket URL: `ws://localhost:3000/ws?token={sessionToken}&adventureId={adventureId}`
+WebSocket URL: `ws://localhost:3000/ws?adventureId={adventureId}`
+Token: Sent via `authenticate` message after connection (not in URL for security)
 
 ### Claude Agent SDK Integration
 
@@ -126,9 +127,39 @@ Project ID: `PVT_kwHOAAM2FM4BKlWC`
 To update a field:
 ```bash
 # Get item ID for an issue
-gh project item-list 6 --owner @me --format json | jq -r '.items[] | select(.content.number == ISSUE_NUM) | .id'
+gh project item-list 6 --owner @me --format json --limit 100 | jq -r '.items[] | select(.content.number == ISSUE_NUM) | .id'
 
 # Set field value
 gh project item-edit --project-id PVT_kwHOAAM2FM4BKlWC --id ITEM_ID \
   --field-id FIELD_ID --single-select-option-id OPTION_ID
 ```
+
+### Querying Status and Iteration
+
+The `gh project item-list` command doesn't show Iteration. Use GraphQL to query both:
+
+```bash
+gh api graphql -f query='
+{
+  user(login: "rjroy") {
+    projectV2(number: 6) {
+      items(first: 100) {
+        nodes {
+          content {
+            ... on Issue { number title }
+          }
+          status: fieldValueByName(name: "Status") {
+            ... on ProjectV2ItemFieldSingleSelectValue { name }
+          }
+          iteration: fieldValueByName(name: "Iteration") {
+            ... on ProjectV2ItemFieldIterationValue { title }
+          }
+        }
+      }
+    }
+  }
+}' | jq '[.data.user.projectV2.items.nodes[] | {num: .content.number, title: .content.title, status: .status.name, iteration: .iteration.title}] | map(select(.status == "Ready" or .iteration))'
+```
+
+**Status options**: Backlog, Ready, In progress, In review, Done
+**Iterations**: 2-week sprints starting Dec 13, 2025

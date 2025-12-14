@@ -83,12 +83,24 @@ describe("useWebSocket", () => {
   });
 
   describe("connection", () => {
-    test("connects on mount", () => {
+    test("connects on mount and sends authenticate message with token", () => {
       renderHook(() => useWebSocket(defaultOptions), { wrapper: createWrapper() });
 
       expect(mockWebSocketInstance).not.toBeNull();
       expect(mockWebSocketInstance?.url).toContain("adventureId=test-adventure-id");
-      expect(mockWebSocketInstance?.url).toContain("token=test-session-token");
+      // Token should NOT be in URL (security fix)
+      expect(mockWebSocketInstance?.url).not.toContain("token=");
+
+      // Simulate connection opening to trigger authenticate message
+      act(() => {
+        mockWebSocketInstance?.simulateOpen();
+      });
+
+      // First message sent should be authenticate with token
+      const firstCall = mockWebSocketInstance?.sendMock.mock.calls[0][0] as string;
+      const authMessage = JSON.parse(firstCall) as { type: string; payload: { token: string } };
+      expect(authMessage.type).toBe("authenticate");
+      expect(authMessage.payload.token).toBe("test-session-token");
     });
 
     test("status is 'disconnected' initially", () => {
@@ -122,16 +134,19 @@ describe("useWebSocket", () => {
       expect(onStatusChange).toHaveBeenCalledWith("connected");
     });
 
-    test("sends start_adventure message on connect", () => {
+    test("sends start_adventure message after authenticate on connect", () => {
       renderHook(() => useWebSocket(defaultOptions), { wrapper: createWrapper() });
 
       act(() => {
         mockWebSocketInstance?.simulateOpen();
       });
 
-      expect(mockWebSocketInstance?.sendMock).toHaveBeenCalled();
+      // Should send two messages: authenticate first, then start_adventure
+      expect(mockWebSocketInstance?.sendMock).toHaveBeenCalledTimes(2);
+
+      // Second message should be start_adventure
       const sentMessage = JSON.parse(
-        mockWebSocketInstance?.sendMock.mock.calls[0][0] as string
+        mockWebSocketInstance?.sendMock.mock.calls[1][0] as string
       ) as { type: string; payload: { adventureId: string } };
       expect(sentMessage.type).toBe("start_adventure");
       expect(sentMessage.payload.adventureId).toBe("test-adventure-id");

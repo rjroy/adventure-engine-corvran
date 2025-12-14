@@ -21,17 +21,19 @@ import { ImageGeneratorService } from "./services/image-generator";
 interface WSConnection {
   ws: WSContext;
   adventureId: string;
-  sessionToken: string;
+  sessionToken: string | null; // null until authenticated
+  authenticated: boolean;
   lastPing: number;
   gameSession: GameSession | null;
 }
 
-// Use connection ID instead of ws object as key (ws reference may differ between callbacks)
+// Use connection ID - generated on connect, tracks pending connections
 const connections = new Map<string, WSConnection>();
 
-// Generate connection ID from adventure ID and token
-function getConnectionId(adventureId: string, token: string): string {
-  return `${adventureId}:${token}`;
+// Generate unique connection ID
+let connectionCounter = 0;
+function generateConnectionId(): string {
+  return `conn_${++connectionCounter}_${Date.now()}`;
 }
 
 // Create Bun WebSocket adapter
@@ -144,68 +146,60 @@ app.get("/adventure/:id", async (c) => {
 
 /**
  * GET /ws
- * WebSocket upgrade endpoint with token and adventureId validation
- * Query params: token, adventureId
+ * WebSocket upgrade endpoint with adventureId in query
+ * Token is sent via 'authenticate' message after connection (not in URL for security)
+ * Query params: adventureId
  */
 app.get(
   "/ws",
   upgradeWebSocket((c) => {
-    // Extract query params
-    const token = c.req.query("token");
+    // adventureId in query string (not sensitive), token sent via message
     const adventureId = c.req.query("adventureId");
+    // Generate unique connection ID for this connection
+    const connId = generateConnectionId();
 
     // Validate required params
-    if (!token || !adventureId) {
-      // Note: We can't send a proper error response here because
-      // the upgrade has already started. The connection will be closed
-      // in onOpen after validation.
-      console.warn("WebSocket upgrade missing required params:", {
-        token: !!token,
-        adventureId: !!adventureId,
-      });
+    if (!adventureId) {
+      console.warn("WebSocket upgrade missing adventureId");
     }
 
     return {
-      onOpen(event, ws) {
-        console.log("WebSocket opened:", { adventureId, hasToken: !!token });
+      onOpen(_event, ws) {
+        console.log("WebSocket opened:", { adventureId, connId });
 
-        // Validate params (deferred from upgrade handler)
-        if (!token || !adventureId) {
+        // Validate adventureId (token comes via message)
+        if (!adventureId) {
           const errorMsg: ServerMessage = {
             type: "error",
             payload: {
               code: "INVALID_TOKEN",
-              message: "Missing token or adventureId",
+              message: "Missing adventureId",
               retryable: false,
             },
           };
           ws.send(JSON.stringify(errorMsg));
-          ws.close(1008, "Missing authentication parameters");
+          ws.close(1008, "Missing adventureId parameter");
           return;
         }
 
-        // Store connection info with null game session (will be initialized after validation)
-        const connId = getConnectionId(adventureId, token);
+        // Store connection in pending state (not authenticated yet)
         connections.set(connId, {
           ws,
           adventureId,
-          sessionToken: token,
+          sessionToken: null,
+          authenticated: false,
           lastPing: Date.now(),
           gameSession: null,
         });
-
-        // Validate adventure and token asynchronously, then initialize GameSession
-        // Note: We do this in the background to avoid blocking onOpen
-        void validateAndLoadAdventure(ws, adventureId, token, connId);
       },
 
       onMessage(event, ws) {
-        // Look up connection using ID from closure (adventureId and token are captured)
-        const connId = token && adventureId ? getConnectionId(adventureId, token) : null;
-        const conn = connId ? connections.get(connId) : null;
+        // Look up connection using captured connId from closure
+        const conn = connections.get(connId);
+
         if (!conn) {
-          console.warn("Message from untracked connection", { connId, hasToken: !!token, hasAdventureId: !!adventureId });
-          ws.close(1008, "Connection not authenticated");
+          console.warn("Message from untracked connection", { connId });
+          ws.close(1008, "Connection not found");
           return;
         }
 
@@ -242,16 +236,62 @@ app.get(
 
         // Handle message types
         switch (message.type) {
+          case "authenticate": {
+            // Handle authentication (token sent via message, not URL)
+            if (conn.authenticated) {
+              console.log("Already authenticated, ignoring duplicate authenticate message");
+              break;
+            }
+
+            const token = message.payload.token;
+            if (!token) {
+              const errorMsg: ServerMessage = {
+                type: "error",
+                payload: {
+                  code: "INVALID_TOKEN",
+                  message: "Missing token in authenticate message",
+                  retryable: false,
+                },
+              };
+              ws.send(JSON.stringify(errorMsg));
+              ws.close(1008, "Missing token");
+              connections.delete(connId);
+              return;
+            }
+
+            // Store token and validate asynchronously
+            conn.sessionToken = token;
+            connections.set(connId, conn);
+
+            // Validate adventure and token, initialize GameSession
+            void validateAndLoadAdventure(ws, conn.adventureId, token, connId);
+            break;
+          }
+
           case "ping": {
             conn.lastPing = Date.now();
-            // Update in map since we modified lastPing
-            if (connId) connections.set(connId, conn);
+            connections.set(connId, conn);
             const pong: ServerMessage = { type: "pong" };
             ws.send(JSON.stringify(pong));
             break;
           }
 
           case "player_input": {
+            // Require authentication for player input
+            if (!conn.authenticated) {
+              console.warn("Player input received before authentication");
+              const errorMsg: ServerMessage = {
+                type: "error",
+                payload: {
+                  code: "INVALID_TOKEN",
+                  message: "Not authenticated. Send authenticate message first.",
+                  retryable: true,
+                },
+              };
+              ws.send(JSON.stringify(errorMsg));
+              break;
+            }
+
             // Handle player input through GameSession
             if (!conn.gameSession) {
               console.warn("Player input received before GameSession initialized");
@@ -273,9 +313,11 @@ app.get(
           }
 
           case "start_adventure":
-            // Adventure is already started via validateAndLoadAdventure
+            // Adventure is loaded via authenticate message flow
             // This message type can be used for restarting or other future functionality
-            console.log("Received start_adventure (adventure already loaded)");
+            if (conn.authenticated) {
+              console.log("Received start_adventure (adventure already loaded)");
+            }
             break;
 
           default:
@@ -284,25 +326,21 @@ app.get(
       },
 
       onClose(event, _ws) {
-        const connId = token && adventureId ? getConnectionId(adventureId, token) : null;
-        if (connId) {
-          const conn = connections.get(connId);
-          if (conn) {
-            console.log("WebSocket closed:", {
-              adventureId: conn.adventureId,
-              code: event.code,
-              reason: event.reason,
-            });
-            connections.delete(connId);
-          }
+        // Remove connection using captured connId
+        const conn = connections.get(connId);
+        if (conn) {
+          console.log("WebSocket closed:", {
+            adventureId: conn.adventureId,
+            code: event.code,
+            reason: event.reason,
+          });
+          connections.delete(connId);
         }
       },
 
       onError(event, _ws) {
-        const connId = token && adventureId ? getConnectionId(adventureId, token) : null;
-        const conn = connId ? connections.get(connId) : null;
         console.error("WebSocket error:", {
-          adventureId: conn?.adventureId ?? adventureId,
+          adventureId,
           error: event,
         });
       },
@@ -312,6 +350,7 @@ app.get(
 
 /**
  * Validate adventure and token, load state, and send confirmation to client
+ * Called when client sends authenticate message
  */
 async function validateAndLoadAdventure(
   ws: WSContext,
@@ -350,14 +389,15 @@ async function validateAndLoadAdventure(
     return;
   }
 
-  // Initialize GameSession for this connection
+  // Mark connection as authenticated and initialize GameSession
   const conn = connections.get(connId);
   if (conn) {
+    conn.authenticated = true;
     const gameSession = new GameSession(ws, backgroundImageService);
     const initResult = await gameSession.initialize(adventureId, token);
     if (initResult.success) {
       conn.gameSession = gameSession;
-      // Update connection in map with gameSession
+      // Update connection in map with authenticated status and gameSession
       connections.set(connId, conn);
       console.log("GameSession initialized for adventure:", adventureId);
     } else {

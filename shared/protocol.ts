@@ -3,6 +3,7 @@
 
 // Client → Server Messages
 export type ClientMessage =
+  | { type: "authenticate"; payload: { token: string } }
   | { type: "player_input"; payload: { text: string } }
   | { type: "start_adventure"; payload: { adventureId?: string } }
   | { type: "ping" };
