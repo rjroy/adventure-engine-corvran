@@ -1,7 +1,136 @@
 // Input validation for Adventure Engine
-// Prevents path traversal and other injection attacks
+// Prevents path traversal, prompt injection, and other attacks
 
 import { resolve, join, normalize } from "node:path";
+
+/**
+ * Input flags for detected patterns in player input
+ */
+export type InputFlag =
+  | "instruction_override"
+  | "prompt_extraction"
+  | "role_manipulation"
+  | "excessive_length";
+
+/**
+ * Result of sanitizing player input
+ */
+export interface SanitizationResult {
+  /** The sanitized input text */
+  sanitized: string;
+  /** Flags for detected suspicious patterns */
+  flags: InputFlag[];
+  /** Whether the input was blocked */
+  blocked: boolean;
+  /** Reason for blocking, if blocked */
+  blockReason?: string;
+}
+
+/** Maximum allowed length for player input */
+export const MAX_INPUT_LENGTH = 2000;
+
+/** Maximum allowed length for state values in system prompt */
+const DEFAULT_MAX_STATE_LENGTH = 500;
+
+/**
+ * Detection patterns for suspicious input
+ * These are compiled once at module load for performance
+ */
+const PATTERNS: Record<InputFlag, RegExp> = {
+  instruction_override:
+    /ignore\s+(all\s+)?(previous|prior|above)\s+(instructions?|prompts?|rules?)/i,
+  prompt_extraction:
+    /\b(reveal|show|display|output|print|tell\s+me)\s+(your\s+)?(the\s+)?(system\s+)?(prompt|instructions?|rules?)\b/i,
+  role_manipulation:
+    /\b(you\s+are\s+now|act\s+as|pretend\s+to\s+be)\b.*\b(assistant|ai|claude|gpt|chatgpt|system)\b/is,
+  excessive_length: /(?:)/, // Handled separately via length check
+};
+
+/**
+ * Detect injection patterns in input text
+ * @param input Text to analyze
+ * @returns Array of detected flags
+ */
+export function detectInjectionPatterns(input: string): InputFlag[] {
+  const flags: InputFlag[] = [];
+
+  // Check length first
+  if (input.length > MAX_INPUT_LENGTH) {
+    flags.push("excessive_length");
+  }
+
+  // Check each pattern
+  for (const [flag, pattern] of Object.entries(PATTERNS)) {
+    if (flag === "excessive_length") continue; // Already handled
+    if (pattern.test(input)) {
+      flags.push(flag as InputFlag);
+    }
+  }
+
+  return flags;
+}
+
+/**
+ * Sanitize player input for prompt injection prevention
+ *
+ * Uses a flag & allow approach:
+ * - Most suspicious patterns are flagged for logging but allowed through
+ * - Only egregious attempts (role manipulation targeting AI, excessive length) are blocked
+ *
+ * @param input Raw player input
+ * @returns Sanitization result with flags and potentially blocked status
+ */
+export function sanitizePlayerInput(input: string): SanitizationResult {
+  const flags = detectInjectionPatterns(input);
+
+  // Block only egregious attempts
+  if (flags.includes("excessive_length")) {
+    return {
+      sanitized: input.substring(0, MAX_INPUT_LENGTH),
+      flags,
+      blocked: true,
+      blockReason: "Input exceeds maximum length",
+    };
+  }
+
+  if (flags.includes("role_manipulation")) {
+    return {
+      sanitized: input,
+      flags,
+      blocked: true,
+      blockReason: "Input attempts to manipulate AI behavior",
+    };
+  }
+
+  // Flag but allow other patterns
+  return {
+    sanitized: input,
+    flags,
+    blocked: false,
+  };
+}
+
+/**
+ * Sanitize a state value before embedding in system prompt
+ *
+ * Truncates long values to prevent excessive content in system prompts
+ *
+ * @param value State value to sanitize
+ * @param maxLength Maximum allowed length (default 500)
+ * @returns Sanitized value safe for prompt embedding
+ */
+export function sanitizeStateValue(
+  value: string,
+  maxLength: number = DEFAULT_MAX_STATE_LENGTH
+): string {
+  // Truncate if too long
+  let sanitized = value;
+  if (sanitized.length > maxLength) {
+    sanitized = sanitized.substring(0, maxLength) + "...";
+  }
+
+  return sanitized;
+}
 
 /**
  * Validation result with error message if invalid

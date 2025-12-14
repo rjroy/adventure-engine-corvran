@@ -19,6 +19,7 @@ import {
 } from "./error-handler";
 import { mockQuery } from "./mock-sdk";
 import type { BackgroundImageService } from "./services/background-image";
+import { sanitizePlayerInput } from "./validation";
 
 // Check if we're in mock mode (for E2E testing)
 // Use function instead of const to check at runtime, avoiding module cache issues
@@ -86,11 +87,38 @@ export class GameSession {
   /**
    * Handle player input with queueing to prevent race conditions
    * Queues input and processes if not already busy
+   * Applies input sanitization for prompt injection prevention
    * @param text Player input text
    */
   async handleInput(text: string): Promise<void> {
-    // Add to queue
-    this.inputQueue.push(text);
+    // Sanitize input for prompt injection prevention
+    const sanitization = sanitizePlayerInput(text);
+
+    // Block egregious attempts (role manipulation targeting AI, excessive length)
+    if (sanitization.blocked) {
+      this.sendMessage({
+        type: "error",
+        payload: {
+          code: "GM_ERROR",
+          message: "Please describe your action in the game world.",
+          retryable: true,
+        },
+      });
+      console.warn(
+        "[Security] Blocked input:",
+        sanitization.blockReason,
+        sanitization.flags
+      );
+      return;
+    }
+
+    // Log flagged but allowed input for monitoring
+    if (sanitization.flags.length > 0) {
+      console.info("[Security] Flagged input:", sanitization.flags);
+    }
+
+    // Add sanitized input to queue
+    this.inputQueue.push(sanitization.sanitized);
 
     // If already processing, the current handler will pick up the next item
     if (this.isProcessing) {
