@@ -50,9 +50,13 @@ export class GameSession {
   private backgroundImageService: BackgroundImageService | null = null;
   private lastThemeChange: { mood: ThemeMood; timestamp: number } | null = null;
 
-  constructor(ws: WSContext, backgroundImageService?: BackgroundImageService) {
+  constructor(
+    ws: WSContext,
+    stateManager: AdventureStateManager,
+    backgroundImageService?: BackgroundImageService
+  ) {
     this.ws = ws;
-    this.stateManager = new AdventureStateManager();
+    this.stateManager = stateManager;
     this.backgroundImageService = backgroundImageService ?? null;
     // State will be loaded by calling initialize() with adventureId and sessionToken
   }

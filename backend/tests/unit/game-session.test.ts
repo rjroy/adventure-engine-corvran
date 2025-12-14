@@ -73,7 +73,7 @@ describe("GameSession", () => {
   describe("initialize()", () => {
     test("successfully initializes with valid credentials", async () => {
       const { ws } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
 
       const result = await session.initialize(adventureId, sessionToken);
 
@@ -84,7 +84,7 @@ describe("GameSession", () => {
 
     test("fails with invalid session token", async () => {
       const { ws } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
 
       const result = await session.initialize(adventureId, "invalid-token");
 
@@ -96,7 +96,7 @@ describe("GameSession", () => {
     test("fails with non-existent adventure ID", async () => {
       const { ws } = createMockWS();
       const fakeId = "non-existent-adventure";
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
 
       const result = await session.initialize(fakeId, sessionToken);
 
@@ -109,7 +109,7 @@ describe("GameSession", () => {
   describe("handleInput() - Queue Management", () => {
     test("processes single input correctly", async () => {
       const { ws, messages } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       await session.handleInput("Look around");
@@ -132,7 +132,7 @@ describe("GameSession", () => {
 
     test("queues multiple rapid inputs", async () => {
       const { ws } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       // Send multiple inputs rapidly without awaiting
@@ -155,7 +155,7 @@ describe("GameSession", () => {
 
     test("processes queued inputs sequentially", async () => {
       const { ws, messages } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       // Send inputs rapidly
@@ -175,7 +175,7 @@ describe("GameSession", () => {
 
     test("does not drop inputs during concurrent processing", async () => {
       const { ws } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       const inputs = Array.from({ length: 10 }, (_, i) => `Input ${i + 1}`);
@@ -198,7 +198,7 @@ describe("GameSession", () => {
   describe("Message Protocol", () => {
     test("sends gm_response_start with messageId", async () => {
       const { ws, messages } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       await session.handleInput("Test input");
@@ -210,7 +210,7 @@ describe("GameSession", () => {
 
     test("sends gm_response_chunk messages during streaming", async () => {
       const { ws, messages } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       await session.handleInput("Test input");
@@ -228,7 +228,7 @@ describe("GameSession", () => {
 
     test("sends gm_response_end with same messageId", async () => {
       const { ws, messages } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       await session.handleInput("Test input");
@@ -246,7 +246,7 @@ describe("GameSession", () => {
 
     test("chunks reconstruct full response", async () => {
       const { ws, messages } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       const inputText = "Describe the room";
@@ -272,7 +272,7 @@ describe("GameSession", () => {
   describe("State Updates", () => {
     test("appends player input to history", async () => {
       const { ws } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       const inputText = "Search the chest";
@@ -288,7 +288,7 @@ describe("GameSession", () => {
 
     test("appends GM response to history", async () => {
       const { ws } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       await session.handleInput("Test input");
@@ -303,7 +303,7 @@ describe("GameSession", () => {
 
     test("updates scene description after response", async () => {
       const { ws } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       const initialScene = session.getState()?.currentScene.description;
@@ -317,7 +317,7 @@ describe("GameSession", () => {
 
     test("maintains history order across multiple inputs", async () => {
       const { ws } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       await session.handleInput("First");
@@ -349,7 +349,7 @@ describe("GameSession", () => {
       const { ws, messages } = createMockWS();
 
       // Create session with invalid adventure to force an error
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
 
       // Try to handle input without initializing
       await session.handleInput("This should fail");
@@ -367,7 +367,7 @@ describe("GameSession", () => {
   describe("Mock Response Generation", () => {
     test("generates response containing input", async () => {
       const { ws } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       const inputText = "Examine the ancient tome";
@@ -382,7 +382,7 @@ describe("GameSession", () => {
 
     test("streams response in chunks", async () => {
       const { ws, messages } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       await session.handleInput("Test");
@@ -404,7 +404,7 @@ describe("GameSession", () => {
   describe("Theme Management", () => {
     test("derives genre from adventure state worldState", async () => {
       const { ws } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       // Update worldState with genre
@@ -420,7 +420,7 @@ describe("GameSession", () => {
 
     test("defaults to high-fantasy when no genre in worldState", async () => {
       const { ws } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       const state = session.getState();
@@ -430,7 +430,7 @@ describe("GameSession", () => {
 
     test("derives region from location keywords", async () => {
       const { ws } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       // Create a modified state with specific location
@@ -452,7 +452,7 @@ describe("GameSession", () => {
 
     test("defaults to forest when no region keywords found", async () => {
       const { ws } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       const state = session.getState();
@@ -465,7 +465,7 @@ describe("GameSession", () => {
 
     test("debounces duplicate mood changes within 1 second", async () => {
       const { ws, messages } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       // Manually call handleSetThemeTool multiple times with same mood
@@ -480,7 +480,7 @@ describe("GameSession", () => {
 
     test("allows different moods without debouncing", async () => {
       const { ws, messages } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       // Call with different moods
@@ -495,7 +495,7 @@ describe("GameSession", () => {
 
     test("emits theme_change with correct payload structure", async () => {
       const { ws, messages } = createMockWS();
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       // Call handleSetThemeTool with required mood, genre, region
@@ -523,7 +523,7 @@ describe("GameSession", () => {
     test("handles missing BackgroundImageService gracefully", async () => {
       const { ws, messages } = createMockWS();
       // Create session without BackgroundImageService
-      const session = new GameSession(ws);
+      const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       // Call handleSetThemeTool with required mood, genre, region
@@ -554,7 +554,7 @@ describe("GameSession", () => {
         })),
       };
 
-      const session = new GameSession(ws, mockBgService as any);
+      const session = new GameSession(ws, stateManager, mockBgService as any);
       await session.initialize(adventureId, sessionToken);
 
       // Call with force_generate = true and required mood, genre, region
