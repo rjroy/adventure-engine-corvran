@@ -10,6 +10,7 @@ import type {
   NarrativeHistory,
   StateLoadResult,
 } from "./types/state";
+import { validateAdventureId, safeResolvePath } from "./validation";
 
 /**
  * Manages persistence of adventure state to filesystem
@@ -29,9 +30,16 @@ export class AdventureStateManager {
    * Create a new adventure with initialized state
    * @param id Optional adventure ID (UUID will be generated if not provided)
    * @returns Created adventure state
+   * @throws Error if provided ID is invalid
    */
   async create(id?: string): Promise<AdventureState> {
     const adventureId = id ?? randomUUID();
+
+    // Validate adventure ID to prevent path traversal
+    const validation = validateAdventureId(adventureId);
+    if (!validation.valid) {
+      throw new Error(`Invalid adventure ID: ${validation.error}`);
+    }
     const sessionToken = randomUUID();
     const now = new Date().toISOString();
 
@@ -78,6 +86,18 @@ export class AdventureStateManager {
    * @returns StateLoadResult with loaded state or error details
    */
   async load(id: string, sessionToken: string): Promise<StateLoadResult> {
+    // Validate adventure ID to prevent path traversal
+    const validation = validateAdventureId(id);
+    if (!validation.valid) {
+      return {
+        success: false,
+        error: {
+          type: "NOT_FOUND",
+          message: `Invalid adventure ID: ${validation.error}`,
+        },
+      };
+    }
+
     const adventureDir = this.getAdventureDir(id);
     const statePath = join(adventureDir, "state.json");
     const historyPath = join(adventureDir, "history.json");
@@ -301,11 +321,17 @@ export class AdventureStateManager {
   }
 
   /**
-   * Get adventure directory path
+   * Get adventure directory path with path traversal protection
    * @param id Adventure ID
    * @returns Full path to adventure directory
+   * @throws Error if path would escape base directory
    */
   private getAdventureDir(id: string): string {
-    return join(this.adventuresDir, id);
+    // Defense-in-depth: verify path stays within adventures directory
+    const safePath = safeResolvePath(this.adventuresDir, id);
+    if (safePath === null) {
+      throw new Error(`Invalid adventure ID: path traversal detected`);
+    }
+    return safePath;
   }
 }
