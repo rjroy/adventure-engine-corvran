@@ -1,0 +1,20 @@
+/* NarrativeLog styles */
+
+.narrative-log {
+  flex: 1;
+  min-height: 200px;
+  overflow-y: auto;
+  padding: var(--spacing-lg);
+  /* 90% opacity to let background image show through slightly */
+  background-color: color-mix(in srgb, var(--color-surface) 50%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+  border-radius: var(--radius-md);
+  scroll-behavior: smooth;
+}
+
+.narrative-log__placeholder {
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 40px var(--spacing-xl);
+  font-size: var(--font-size-base);
+}

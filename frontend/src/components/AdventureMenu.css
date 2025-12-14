@@ -1,0 +1,69 @@
+/* AdventureMenu styles */
+
+.adventure-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: var(--spacing-xl);
+}
+
+.adventure-menu__title {
+  font-size: 2rem;
+  margin: 0 0 var(--spacing-xl) 0;
+  text-align: center;
+}
+
+.adventure-menu__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  width: 100%;
+  max-width: 300px;
+}
+
+.adventure-menu__button {
+  width: 100%;
+  padding: var(--spacing-lg);
+  font-size: var(--font-size-xl);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.adventure-menu__button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.adventure-menu__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.adventure-menu__button--new {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.adventure-menu__button--resume {
+  background-color: #4caf50;
+  color: white;
+}
+
+.adventure-menu__saved-info {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.adventure-menu__error {
+  padding: var(--spacing-md);
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  width: 100%;
+  max-width: 300px;
+}

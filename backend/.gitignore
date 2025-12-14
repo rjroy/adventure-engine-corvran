@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+adventures/
+data/
+*.lock
+package-lock.json
+bun.lockb
+.env
+.env.local
+*.log
+.DS_Store

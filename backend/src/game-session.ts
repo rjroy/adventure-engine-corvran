@@ -1,0 +1,502 @@
+// Game Session Management
+// Manages the interaction between WebSocket connections and the Claude Agent SDK
+// Implements input queuing to prevent race conditions (REQ-F-18)
+
+import type { WSContext } from "hono/ws";
+import { randomUUID } from "node:crypto";
+import { query } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKAssistantMessageError } from "@anthropic-ai/claude-agent-sdk";
+import { AdventureStateManager } from "./adventure-state";
+import type { AdventureState } from "./types/state";
+import type { ServerMessage, NarrativeEntry, ThemeMood, Genre, Region } from "./types/protocol";
+import { buildGMSystemPrompt, createThemeMcpServer } from "./gm-prompt";
+import {
+  mapSDKError,
+  mapGenericError,
+  logError,
+  createErrorPayload,
+  type ErrorDetails,
+} from "./error-handler";
+import { mockQuery } from "./mock-sdk";
+import type { BackgroundImageService } from "./services/background-image";
+
+// Check if we're in mock mode (for E2E testing)
+// Use function instead of const to check at runtime, avoiding module cache issues
+function useMockSDK(): boolean {
+  return process.env.MOCK_SDK === "true";
+}
+
+/**
+ * Custom error class for Claude Agent SDK errors
+ */
+class AgentSDKError extends Error {
+  constructor(public code: SDKAssistantMessageError) {
+    super(`Agent SDK error: ${code}`);
+    this.name = "AgentSDKError";
+  }
+}
+
+/**
+ * GameSession manages a single player's adventure session
+ * Handles input queuing, GM response streaming, and state updates
+ */
+export class GameSession {
+  private ws: WSContext;
+  private stateManager: AdventureStateManager;
+  private inputQueue: string[] = [];
+  private isProcessing = false;
+  private projectDirectory: string | null = null;
+  private backgroundImageService: BackgroundImageService | null = null;
+  private lastThemeChange: { mood: ThemeMood; timestamp: number } | null = null;
+
+  constructor(ws: WSContext, backgroundImageService?: BackgroundImageService) {
+    this.ws = ws;
+    this.stateManager = new AdventureStateManager();
+    this.backgroundImageService = backgroundImageService ?? null;
+    // State will be loaded by calling initialize() with adventureId and sessionToken
+  }
+
+  /**
+   * Initialize session by loading adventure state
+   * Must be called before using the session
+   */
+  async initialize(
+    adventureId: string,
+    sessionToken: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const result = await this.stateManager.load(adventureId, sessionToken);
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error.message,
+      };
+    }
+
+    // Use PROJECT_DIR for SDK sandbox - this is the adventure world directory
+    // where the SDK should read/write files
+    this.projectDirectory = process.env.PROJECT_DIR ?? null;
+    if (!this.projectDirectory) {
+      console.warn("PROJECT_DIR not set - SDK file operations may use wrong directory");
+    }
+
+    return { success: true };
+  }
+
+  /**
+   * Handle player input with queueing to prevent race conditions
+   * Queues input and processes if not already busy
+   * @param text Player input text
+   */
+  async handleInput(text: string): Promise<void> {
+    // Add to queue
+    this.inputQueue.push(text);
+
+    // If already processing, the current handler will pick up the next item
+    if (this.isProcessing) {
+      return;
+    }
+
+    // Start processing queue
+    await this.processQueue();
+  }
+
+  /**
+   * Process queued inputs sequentially
+   * Continues until queue is empty
+   */
+  private async processQueue(): Promise<void> {
+    this.isProcessing = true;
+
+    try {
+      while (this.inputQueue.length > 0) {
+        // Get next input from queue
+        const input = this.inputQueue.shift();
+        if (!input) {
+          break;
+        }
+
+        // Process this input
+        await this.processInput(input);
+      }
+    } finally {
+      this.isProcessing = false;
+    }
+  }
+
+  /**
+   * Process a single input: generate response and update state
+   * @param input Player input text
+   */
+  private async processInput(input: string): Promise<void> {
+    const messageId = randomUUID();
+
+    try {
+      // Log player input to history
+      const playerEntry: NarrativeEntry = {
+        id: randomUUID(),
+        timestamp: new Date().toISOString(),
+        type: "player_input",
+        content: input,
+      };
+      await this.stateManager.appendHistory(playerEntry);
+
+      // Send response start
+      this.sendMessage({
+        type: "gm_response_start",
+        payload: { messageId },
+      });
+
+      // Generate and stream GM response using Claude Agent SDK
+      let fullResponse = "";
+      const responseGenerator = this.generateGMResponse(input);
+
+      for await (const chunk of responseGenerator) {
+        fullResponse += chunk;
+
+        // Send chunk
+        this.sendMessage({
+          type: "gm_response_chunk",
+          payload: { messageId, text: chunk },
+        });
+      }
+
+      // Send response end
+      this.sendMessage({
+        type: "gm_response_end",
+        payload: { messageId },
+      });
+
+      // Log GM response to history
+      const gmEntry: NarrativeEntry = {
+        id: messageId,
+        timestamp: new Date().toISOString(),
+        type: "gm_response",
+        content: fullResponse,
+      };
+      await this.stateManager.appendHistory(gmEntry);
+
+      // Update scene description (extract from full response)
+      // Take first paragraph as scene description
+      const sceneUpdate = fullResponse.split("\n\n")[0] || fullResponse;
+      await this.stateManager.updateScene(
+        sceneUpdate.substring(0, 500)
+      );
+    } catch (error) {
+      // Map error to user-friendly details
+      let errorDetails: ErrorDetails;
+
+      if (error instanceof AgentSDKError) {
+        errorDetails = mapSDKError(error.code);
+        errorDetails.originalError = error;
+      } else {
+        errorDetails = mapGenericError(error);
+      }
+
+      // Log with context for debugging (REQ-F-28)
+      logError("processInput", errorDetails, {
+        adventureId: this.stateManager.getState()?.id,
+        projectDirectory: this.projectDirectory,
+      });
+
+      // Send user-friendly error to client
+      this.sendMessage({
+        type: "error",
+        payload: createErrorPayload(errorDetails),
+      });
+    }
+  }
+
+  /**
+   * Generate GM response using Claude Agent SDK
+   * Streams tokens as they arrive from the API
+   * @param input Player input
+   */
+  private async *generateGMResponse(
+    input: string
+  ): AsyncGenerator<string, void, unknown> {
+    const state = this.stateManager.getState();
+    if (!state) {
+      throw new Error("Adventure state not loaded");
+    }
+    if (!this.projectDirectory) {
+      throw new Error("PROJECT_DIR not set - cannot run SDK without project directory");
+    }
+
+    // Build system prompt from current adventure state
+    const systemPrompt = buildGMSystemPrompt(state);
+
+    // Use mock SDK for E2E testing
+    if (useMockSDK()) {
+      console.log("[MOCK_SDK] Using mock query for input:", input);
+      const mockQueryResult = mockQuery({
+        prompt: input,
+        options: { systemPrompt },
+      });
+
+      for await (const message of mockQueryResult) {
+        if (message.type === "stream_event") {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          if (message.event?.delta?.text) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            yield message.event.delta.text as string;
+          }
+        }
+      }
+      return;
+    }
+
+    // Create MCP server for set_theme tool with callback to handle theme changes
+    const themeMcpServer = createThemeMcpServer(
+      async (mood, genre, region, forceGenerate, imagePrompt) => {
+        console.log(`[GameSession] MCP callback invoked: mood=${mood}, genre=${genre}, region=${region}`);
+        try {
+          await this.handleSetThemeTool({
+            mood,
+            genre: genre as Genre,
+            region: region as Region,
+            image_prompt: imagePrompt,
+            force_generate: forceGenerate,
+          });
+          console.log(`[GameSession] MCP callback completed successfully`);
+        } catch (error) {
+          console.error(`[GameSession] MCP callback error:`, error);
+          throw error;
+        }
+      }
+    );
+
+    // Query Claude Agent SDK with resume for conversation continuity
+    const sdkQuery = query({
+      prompt: input,
+      options: {
+        resume: state.agentSessionId ?? undefined, // Resume conversation if available
+        systemPrompt,
+        // Use claude_code preset for Read/Write tools
+        // @ts-expect-error - SDK types don't properly support preset object
+        tools: [{ type: "preset", preset: "claude_code" }],
+        // Provide set_theme tool via MCP server (keyed by server name)
+        mcpServers: { "adventure-theme": themeMcpServer },
+        allowedTools: ["Read", "Write", "mcp__adventure-theme__set_theme"],
+        cwd: this.projectDirectory,
+        includePartialMessages: true, // Enable token streaming
+        permissionMode: "acceptEdits", // Auto-accept file edits within sandbox
+        model: "claude-sonnet-4-5", // Use latest Sonnet for quality
+        maxTurns: 15, // Allow multiple file reads/writes + response
+      },
+    });
+
+    // Process SDK messages and extract text content
+    let assistantText = "";
+    let newAgentSessionId: string | null = null;
+
+    for await (const message of sdkQuery) {
+      // DEBUG: Log all messages to find tool calls
+      console.log(`[GameSession] SDK message type: ${message.type}`, JSON.stringify(message).slice(0, 500));
+
+      // Capture session ID for conversation continuity
+      if (message.type === "system" && message.subtype === "init") {
+        newAgentSessionId = message.session_id;
+      }
+
+      // Stream partial text content
+      if (message.type === "stream_event") {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const event = message.event;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        if (event.type === "content_block_delta") {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          if (event.delta?.type === "text_delta") {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const chunk = event.delta.text as string;
+            assistantText += chunk;
+            yield chunk;
+          }
+        }
+      }
+
+      // Handle complete assistant messages (fallback if streaming fails)
+      if (message.type === "assistant") {
+        // Check for API errors
+        if (message.error) {
+          throw new AgentSDKError(message.error);
+        }
+
+        // Extract text from completed message if we haven't streamed it
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        const content = message.message.content;
+
+        for (const block of content) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          if (block.type === "text" && !assistantText) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+            assistantText = block.text;
+            yield assistantText;
+          }
+
+          // Log tool_use blocks for debugging (MCP server handles set_theme automatically)
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          if (block.type === "tool_use") {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            console.log(`[GameSession] Tool use detected: ${block.name}`, block.input);
+          }
+        }
+      }
+    }
+
+    // Store agent session ID for next query
+    if (newAgentSessionId) {
+      await this.stateManager.updateAgentSessionId(newAgentSessionId);
+    }
+  }
+
+
+  /**
+   * Handle set_theme tool call from GM
+   * Processes theme change requests with debouncing and background image generation
+   * @param input Tool input with mood, genre, region, optional image_prompt, and optional force_generate flag
+   */
+  private async handleSetThemeTool(input: {
+    mood: ThemeMood;
+    genre: Genre;
+    region: Region;
+    image_prompt?: string;
+    force_generate?: boolean;
+  }): Promise<void> {
+    const { mood, genre, region, image_prompt, force_generate = false } = input;
+    const now = Date.now();
+
+    console.log(`[GameSession] handleSetThemeTool: mood=${mood}, genre=${genre}, region=${region}, prompt=${image_prompt?.slice(0, 50) ?? 'none'}..., force=${force_generate}`);
+
+    // Debounce: ignore duplicate theme within 1 second (REQ-F-23)
+    if (
+      this.lastThemeChange &&
+      this.lastThemeChange.mood === mood &&
+      now - this.lastThemeChange.timestamp < 1000
+    ) {
+      console.log(`[GameSession] Debouncing duplicate theme change to ${mood}`);
+      return;
+    }
+
+    // Update debounce tracker
+    this.lastThemeChange = { mood, timestamp: now };
+
+    // Get background image URL using GM-provided tags for catalog lookup
+    // The catalog searches by mood+genre+region first, only generating if no match
+    let backgroundUrl: string | null = null;
+    if (this.backgroundImageService) {
+      try {
+        const result = await this.backgroundImageService.getBackgroundImage(
+          mood,
+          genre,
+          region,
+          force_generate,
+          image_prompt  // Used for generation if no cached image matches
+        );
+        backgroundUrl = result.url;
+        console.log(`[GameSession] Background image: source=${result.source}, url=${backgroundUrl}`);
+      } catch (error) {
+        console.error("[GameSession] Failed to get background image:", error);
+        // Continue with null backgroundUrl - frontend will handle fallback
+      }
+    }
+
+    // Persist theme to adventure state
+    await this.stateManager.updateTheme(mood, genre, region, backgroundUrl);
+
+    // Emit theme_change WebSocket message
+    console.log(`[GameSession] Sending theme_change: mood=${mood}, genre=${genre}, region=${region}, bg=${backgroundUrl ?? 'null'}`);
+    this.sendMessage({
+      type: "theme_change",
+      payload: {
+        mood,
+        genre,
+        region,
+        backgroundUrl,
+      },
+    });
+  }
+
+  /**
+   * Derive genre from adventure state
+   * Checks worldState for genre hints, defaults to "high-fantasy"
+   */
+  private deriveGenre(state: AdventureState | null): Genre {
+    if (!state) return "high-fantasy";
+
+    // Check worldState for genre property
+    const worldGenre = state.worldState.genre as Genre | undefined;
+    if (worldGenre) return worldGenre;
+
+    // Default to high-fantasy
+    return "high-fantasy";
+  }
+
+  /**
+   * Derive region from adventure state
+   * Checks currentScene.location for region hints, defaults to "forest"
+   */
+  private deriveRegion(state: AdventureState | null): Region {
+    if (!state) return "forest";
+
+    const location = state.currentScene.location.toLowerCase();
+
+    // Simple keyword matching for region detection
+    if (location.includes("city") || location.includes("town")) return "city";
+    if (location.includes("village") || location.includes("hamlet")) return "village";
+    if (location.includes("forest") || location.includes("woods")) return "forest";
+    if (location.includes("desert") || location.includes("sand")) return "desert";
+    if (location.includes("mountain") || location.includes("peak")) return "mountain";
+    if (location.includes("ocean") || location.includes("sea")) return "ocean";
+    if (location.includes("underground") || location.includes("cave") || location.includes("dungeon")) return "underground";
+    if (location.includes("castle") || location.includes("palace")) return "castle";
+    if (location.includes("ruins") || location.includes("ancient")) return "ruins";
+
+    // Default to forest
+    return "forest";
+  }
+
+  /**
+   * Send a message to the WebSocket client
+   * @param message Server message to send
+   */
+  private sendMessage(message: ServerMessage): void {
+    try {
+      const json = JSON.stringify(message);
+      console.log(`[GameSession] WebSocket send: ${json.slice(0, 200)}...`);
+      this.ws.send(json);
+    } catch (error) {
+      console.error("Failed to send WebSocket message:", error);
+    }
+  }
+
+  /**
+   * Get current adventure state
+   */
+  getState() {
+    return this.stateManager.getState();
+  }
+
+  /**
+   * Get current narrative history
+   */
+  getHistory() {
+    return this.stateManager.getHistory();
+  }
+
+  /**
+   * Get number of queued inputs
+   * Useful for testing queue behavior
+   */
+  getQueueLength(): number {
+    return this.inputQueue.length;
+  }
+
+  /**
+   * Check if session is currently processing
+   * Useful for testing queue behavior
+   */
+  getIsProcessing(): boolean {
+    return this.isProcessing;
+  }
+}

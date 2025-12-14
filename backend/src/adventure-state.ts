@@ -1,0 +1,311 @@
+// Adventure State Management
+// Handles loading, saving, and validating adventure state from filesystem
+
+import { mkdir, writeFile, readFile, rename, unlink } from "node:fs/promises";
+import { join } from "node:path";
+import { randomUUID } from "node:crypto";
+import type { NarrativeEntry } from "../../shared/protocol";
+import type {
+  AdventureState,
+  NarrativeHistory,
+  StateLoadResult,
+} from "./types/state";
+
+/**
+ * Manages persistence of adventure state to filesystem
+ * Each adventure has its own directory with state.json and history.json
+ */
+export class AdventureStateManager {
+  private adventuresDir: string;
+  private state: AdventureState | null = null;
+  private history: NarrativeHistory = { entries: [] };
+
+  constructor(adventuresDir?: string) {
+    // Use environment variable for consistency between server and tests
+    this.adventuresDir = adventuresDir ?? process.env.ADVENTURES_DIR ?? "./adventures";
+  }
+
+  /**
+   * Create a new adventure with initialized state
+   * @param id Optional adventure ID (UUID will be generated if not provided)
+   * @returns Created adventure state
+   */
+  async create(id?: string): Promise<AdventureState> {
+    const adventureId = id ?? randomUUID();
+    const sessionToken = randomUUID();
+    const now = new Date().toISOString();
+
+    this.state = {
+      id: adventureId,
+      sessionToken,
+      agentSessionId: null,
+      createdAt: now,
+      lastActiveAt: now,
+      currentScene: {
+        description:
+          "The adventure is just beginning. The world awaits your imagination.",
+        location: "Unknown",
+      },
+      worldState: {},
+      playerCharacter: {
+        name: null,
+        attributes: {},
+      },
+      currentTheme: {
+        mood: "calm",
+        genre: "high-fantasy",
+        region: "village",
+        backgroundUrl: null,
+      },
+    };
+
+    this.history = { entries: [] };
+
+    // Create adventure directory
+    const adventureDir = this.getAdventureDir(adventureId);
+    await mkdir(adventureDir, { recursive: true });
+
+    // Save initial state
+    await this.save();
+
+    return this.state;
+  }
+
+  /**
+   * Load existing adventure state from filesystem
+   * @param id Adventure ID
+   * @param sessionToken Session token for authentication
+   * @returns StateLoadResult with loaded state or error details
+   */
+  async load(id: string, sessionToken: string): Promise<StateLoadResult> {
+    const adventureDir = this.getAdventureDir(id);
+    const statePath = join(adventureDir, "state.json");
+    const historyPath = join(adventureDir, "history.json");
+
+    // Load state.json
+    try {
+      const stateContent = await readFile(statePath, "utf-8");
+      this.state = JSON.parse(stateContent) as AdventureState;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        return {
+          success: false,
+          error: {
+            type: "NOT_FOUND",
+            message: `Adventure ${id} not found`,
+          },
+        };
+      }
+
+      // JSON parse error or other read error
+      return {
+        success: false,
+        error: {
+          type: "CORRUPTED",
+          message: `Failed to load state: ${(error as Error).message}`,
+          path: statePath,
+        },
+      };
+    }
+
+    // Migrate old states without currentTheme
+    if (!this.state.currentTheme) {
+      this.state.currentTheme = {
+        mood: "calm",
+        genre: "high-fantasy",
+        region: "village",
+        backgroundUrl: null,
+      };
+    }
+
+    // Validate session token
+    if (this.state.sessionToken !== sessionToken) {
+      this.state = null;
+      return {
+        success: false,
+        error: {
+          type: "INVALID_TOKEN",
+          message: "Invalid session token",
+        },
+      };
+    }
+
+    // Load history.json
+    try {
+      const historyContent = await readFile(historyPath, "utf-8");
+      this.history = JSON.parse(historyContent) as NarrativeHistory;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        // History file doesn't exist yet (new adventure)
+        this.history = { entries: [] };
+      } else {
+        // Corruption in history file
+        return {
+          success: false,
+          error: {
+            type: "CORRUPTED",
+            message: `Failed to load history: ${(error as Error).message}`,
+            path: historyPath,
+          },
+        };
+      }
+    }
+
+    // Update last active timestamp
+    this.state.lastActiveAt = new Date().toISOString();
+
+    return {
+      success: true,
+      state: this.state,
+      history: this.history,
+    };
+  }
+
+  /**
+   * Save current state to filesystem using atomic write
+   * Writes to temp file first, then renames to prevent corruption
+   */
+  async save(): Promise<void> {
+    if (!this.state) {
+      throw new Error("No state to save - call create() or load() first");
+    }
+
+    const adventureDir = this.getAdventureDir(this.state.id);
+    const statePath = join(adventureDir, "state.json");
+    const historyPath = join(adventureDir, "history.json");
+    const stateTempPath = join(adventureDir, ".state.json.tmp");
+    const historyTempPath = join(adventureDir, ".history.json.tmp");
+
+    // Ensure directory exists
+    await mkdir(adventureDir, { recursive: true });
+
+    // Update last active timestamp
+    this.state.lastActiveAt = new Date().toISOString();
+
+    try {
+      // Atomic write for state.json
+      await writeFile(
+        stateTempPath,
+        JSON.stringify(this.state, null, 2),
+        "utf-8"
+      );
+      await rename(stateTempPath, statePath);
+
+      // Atomic write for history.json
+      await writeFile(
+        historyTempPath,
+        JSON.stringify(this.history, null, 2),
+        "utf-8"
+      );
+      await rename(historyTempPath, historyPath);
+    } catch (error) {
+      // Clean up temp files on error
+      try {
+        await unlink(stateTempPath);
+      } catch {
+        /* ignore */
+      }
+      try {
+        await unlink(historyTempPath);
+      } catch {
+        /* ignore */
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Append a new entry to narrative history and persist
+   * @param entry Narrative entry to add
+   */
+  async appendHistory(entry: NarrativeEntry): Promise<void> {
+    if (!this.state) {
+      throw new Error(
+        "No state loaded - call create() or load() first"
+      );
+    }
+
+    this.history.entries.push(entry);
+    await this.save();
+  }
+
+  /**
+   * Get current adventure state
+   * @returns Current state or null if not loaded
+   */
+  getState(): AdventureState | null {
+    return this.state;
+  }
+
+  /**
+   * Get current narrative history
+   * @returns Current history
+   */
+  getHistory(): NarrativeHistory {
+    return this.history;
+  }
+
+  /**
+   * Update agent session ID for conversation continuity
+   * @param sessionId Claude Agent SDK session ID
+   */
+  async updateAgentSessionId(sessionId: string): Promise<void> {
+    if (!this.state) {
+      throw new Error(
+        "No state loaded - call create() or load() first"
+      );
+    }
+
+    this.state.agentSessionId = sessionId;
+    await this.save();
+  }
+
+  /**
+   * Update current scene description
+   * @param description New scene description
+   * @param location Optional location update
+   */
+  async updateScene(description: string, location?: string): Promise<void> {
+    if (!this.state) {
+      throw new Error(
+        "No state loaded - call create() or load() first"
+      );
+    }
+
+    this.state.currentScene.description = description;
+    if (location !== undefined) {
+      this.state.currentScene.location = location;
+    }
+    await this.save();
+  }
+
+  /**
+   * Update current theme
+   * @param mood Theme mood
+   * @param genre Theme genre
+   * @param region Theme region
+   * @param backgroundUrl Optional background image URL
+   */
+  async updateTheme(
+    mood: AdventureState["currentTheme"]["mood"],
+    genre: AdventureState["currentTheme"]["genre"],
+    region: AdventureState["currentTheme"]["region"],
+    backgroundUrl: string | null
+  ): Promise<void> {
+    if (!this.state) {
+      throw new Error("No state loaded - call create() or load() first");
+    }
+
+    this.state.currentTheme = { mood, genre, region, backgroundUrl };
+    await this.save();
+  }
+
+  /**
+   * Get adventure directory path
+   * @param id Adventure ID
+   * @returns Full path to adventure directory
+   */
+  private getAdventureDir(id: string): string {
+    return join(this.adventuresDir, id);
+  }
+}

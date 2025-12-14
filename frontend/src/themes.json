@@ -1,0 +1,144 @@
+{
+  "themes": [
+    {
+      "mood": "calm",
+      "colors": {
+        "primary": "#2196f3",
+        "secondary": "#757575",
+        "background": "#ffffff",
+        "surface": "#fafafa",
+        "surfaceAlt": "#f5f5f5",
+        "border": "#e0e0e0",
+        "text": "#212121",
+        "textSecondary": "#666666",
+        "textMuted": "#737373",
+        "playerBg": "#e3f2fd",
+        "playerBorder": "#2196f3",
+        "gmBg": "#f5f5f5",
+        "gmBorder": "#757575",
+        "error": "#721c24",
+        "errorBg": "#f8d7da"
+      },
+      "fonts": {
+        "family": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+      },
+      "accents": {
+        "borderStyle": "solid",
+        "shadowColor": "rgba(33, 150, 243, 0.1)",
+        "shadowBlur": "4px"
+      }
+    },
+    {
+      "mood": "tense",
+      "colors": {
+        "primary": "#c65900",
+        "secondary": "#b33a00",
+        "background": "#fff8e1",
+        "surface": "#fff3e0",
+        "surfaceAlt": "#ffe0b2",
+        "border": "#ffb74d",
+        "text": "#1a1a1a",
+        "textSecondary": "#5d4037",
+        "textMuted": "#6d5244",
+        "playerBg": "#fff3e0",
+        "playerBorder": "#c65900",
+        "gmBg": "#ffe0b2",
+        "gmBorder": "#b33a00",
+        "error": "#8b0000",
+        "errorBg": "#ffccbc"
+      },
+      "fonts": {
+        "family": "'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif"
+      },
+      "accents": {
+        "borderStyle": "solid",
+        "shadowColor": "rgba(198, 89, 0, 0.2)",
+        "shadowBlur": "6px"
+      }
+    },
+    {
+      "mood": "ominous",
+      "colors": {
+        "primary": "#ba68c8",
+        "secondary": "#ce93d8",
+        "background": "#1a1a1a",
+        "surface": "#2d2d2d",
+        "surfaceAlt": "#3d3d3d",
+        "border": "#9c27b0",
+        "text": "#e0e0e0",
+        "textSecondary": "#b0b0b0",
+        "textMuted": "#949494",
+        "playerBg": "#2d1b33",
+        "playerBorder": "#ba68c8",
+        "gmBg": "#1f1520",
+        "gmBorder": "#9c27b0",
+        "error": "#ff6b6b",
+        "errorBg": "#4a1a1a"
+      },
+      "fonts": {
+        "family": "'Garamond', 'Georgia', serif"
+      },
+      "accents": {
+        "borderStyle": "solid",
+        "shadowColor": "rgba(186, 104, 200, 0.4)",
+        "shadowBlur": "8px"
+      }
+    },
+    {
+      "mood": "triumphant",
+      "colors": {
+        "primary": "#b8860b",
+        "secondary": "#cc7000",
+        "background": "#fffef7",
+        "surface": "#fff9e6",
+        "surfaceAlt": "#fff3cc",
+        "border": "#b8860b",
+        "text": "#1a1300",
+        "textSecondary": "#4a3800",
+        "textMuted": "#6b5200",
+        "playerBg": "#fff9e6",
+        "playerBorder": "#b8860b",
+        "gmBg": "#fffef7",
+        "gmBorder": "#cc7000",
+        "error": "#b71c1c",
+        "errorBg": "#ffebee"
+      },
+      "fonts": {
+        "family": "'Palatino Linotype', 'Book Antiqua', Palatino, serif"
+      },
+      "accents": {
+        "borderStyle": "solid",
+        "shadowColor": "rgba(184, 134, 11, 0.3)",
+        "shadowBlur": "10px"
+      }
+    },
+    {
+      "mood": "mysterious",
+      "colors": {
+        "primary": "#00bcd4",
+        "secondary": "#9c27b0",
+        "background": "#0a0e1a",
+        "surface": "#1a1f2e",
+        "surfaceAlt": "#252b3d",
+        "border": "#00bcd4",
+        "text": "#e0f7fa",
+        "textSecondary": "#80deea",
+        "textMuted": "#4dd0e1",
+        "playerBg": "#1a2533",
+        "playerBorder": "#00bcd4",
+        "gmBg": "#1a1f2e",
+        "gmBorder": "#9c27b0",
+        "error": "#ff5252",
+        "errorBg": "#3d1a1a"
+      },
+      "fonts": {
+        "family": "'Courier New', Courier, monospace"
+      },
+      "accents": {
+        "borderStyle": "dashed",
+        "shadowColor": "rgba(0, 188, 212, 0.25)",
+        "shadowBlur": "8px"
+      }
+    }
+  ]
+}

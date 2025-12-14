@@ -1,0 +1,216 @@
+import { useState, useCallback, useMemo } from "react";
+import {
+  AdventureMenu,
+  NarrativeLog,
+  InputField,
+  ConnectionStatus,
+} from "./components";
+import { BackgroundLayer } from "./components/BackgroundLayer";
+import { useWebSocket } from "./hooks/useWebSocket";
+import type { ServerMessage, NarrativeEntry } from "../../shared/protocol";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import "./App.css";
+
+interface AdventureSession {
+  adventureId: string;
+  sessionToken: string;
+}
+
+// Current streaming message state
+interface StreamingMessage {
+  messageId: string;
+  content: string;
+}
+
+function GameView({
+  session,
+  onQuit,
+}: {
+  session: AdventureSession;
+  onQuit: () => void;
+}) {
+  const [narrativeHistory, setNarrativeHistory] = useState<NarrativeEntry[]>(
+    []
+  );
+  const [streamingMessage, setStreamingMessage] =
+    useState<StreamingMessage | null>(null);
+  const [isGMResponding, setIsGMResponding] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleMessage = useCallback((message: ServerMessage) => {
+    switch (message.type) {
+      case "adventure_loaded":
+        // Set initial history from server
+        setNarrativeHistory(message.payload.history);
+        setError(null);
+        break;
+
+      case "gm_response_start":
+        // Start a new streaming response
+        setStreamingMessage({
+          messageId: message.payload.messageId,
+          content: "",
+        });
+        setIsGMResponding(true);
+        setError(null);
+        break;
+
+      case "gm_response_chunk":
+        // Append chunk to streaming response
+        setStreamingMessage((prev) => {
+          if (prev && prev.messageId === message.payload.messageId) {
+            return {
+              ...prev,
+              content: prev.content + message.payload.text,
+            };
+          }
+          return prev;
+        });
+        break;
+
+      case "gm_response_end":
+        // Complete the streaming response and add to history
+        setStreamingMessage((prev) => {
+          if (prev && prev.messageId === message.payload.messageId) {
+            // Add completed response to history
+            const newEntry: NarrativeEntry = {
+              id: message.payload.messageId,
+              timestamp: new Date().toISOString(),
+              type: "gm_response",
+              content: prev.content,
+            };
+            setNarrativeHistory((history) => [...history, newEntry]);
+          }
+          return null;
+        });
+        setIsGMResponding(false);
+        break;
+
+      case "error":
+        setError(message.payload.message);
+        setIsGMResponding(false);
+        break;
+
+      case "pong":
+        // Heartbeat response, no action needed
+        break;
+    }
+  }, []);
+
+  const { status, sendMessage } = useWebSocket({
+    adventureId: session.adventureId,
+    sessionToken: session.sessionToken,
+    onMessage: handleMessage,
+  });
+
+  const handleSubmit = useCallback(
+    (text: string) => {
+      // Add player input to history immediately
+      const playerEntry: NarrativeEntry = {
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        type: "player_input",
+        content: text,
+      };
+      setNarrativeHistory((history) => [...history, playerEntry]);
+
+      // Send to server
+      sendMessage({
+        type: "player_input",
+        payload: { text },
+      });
+    },
+    [sendMessage]
+  );
+
+  // Combine history with streaming message for display
+  const displayEntries = useMemo(() => {
+    if (streamingMessage && streamingMessage.content) {
+      const streamEntry: NarrativeEntry = {
+        id: streamingMessage.messageId,
+        timestamp: new Date().toISOString(),
+        type: "gm_response",
+        content: streamingMessage.content,
+      };
+      return [...narrativeHistory, streamEntry];
+    }
+    return narrativeHistory;
+  }, [narrativeHistory, streamingMessage]);
+
+  const isInputDisabled =
+    status !== "connected" || isGMResponding;
+
+  return (
+    <div className="game-view">
+      <header className="game-header">
+        <div>
+          <h1 className="game-header__title">Adventure Engine of Corvran</h1>
+          <p className="game-header__subtitle">
+            Adventure: {session.adventureId.slice(0, 8)}...
+          </p>
+        </div>
+        <div className="game-header__actions">
+          <ConnectionStatus status={status} />
+          <button onClick={onQuit} className="btn btn--secondary">
+            Quit
+          </button>
+        </div>
+      </header>
+
+      {error && (
+        <div className="error-alert" role="alert" data-testid="error-message">
+          {error}
+        </div>
+      )}
+
+      <main className="game-main">
+        <NarrativeLog
+          entries={displayEntries}
+          isStreaming={streamingMessage !== null}
+        />
+
+        <div className="game-input-container">
+          <InputField
+            onSubmit={handleSubmit}
+            disabled={isInputDisabled}
+            placeholder={
+              status !== "connected"
+                ? "Reconnecting..."
+                : isGMResponding
+                  ? "Waiting for response..."
+                  : "What do you do?"
+            }
+          />
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function App() {
+  const [session, setSession] = useState<AdventureSession | null>(null);
+
+  const handleAdventureStart = useCallback(
+    (adventureId: string, sessionToken: string) => {
+      setSession({ adventureId, sessionToken });
+    },
+    []
+  );
+
+  const handleQuit = useCallback(() => {
+    setSession(null);
+  }, []);
+
+  return (
+    <ThemeProvider>
+      <BackgroundLayer />
+      {!session ? (
+        <AdventureMenu onAdventureStart={handleAdventureStart} />
+      ) : (
+        <GameView session={session} onQuit={handleQuit} />
+      )}
+    </ThemeProvider>
+  );
+}
+
+export default App;

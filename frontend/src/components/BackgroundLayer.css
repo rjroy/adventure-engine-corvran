@@ -1,0 +1,48 @@
+/* BackgroundLayer styles - Two-layer crossfade with GPU acceleration */
+
+.background-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none; /* Ensure background doesn't intercept clicks */
+}
+
+.background-layer__image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0;
+  filter: blur(0px);
+
+  /* GPU acceleration hints */
+  will-change: opacity, filter;
+  transform: translate3d(0, 0, 0); /* Force GPU layer */
+
+  /* Smooth transitions - 1500ms default per REQ-F-16 */
+  transition:
+    opacity 1500ms ease-in-out,
+    filter 1500ms ease-in-out;
+}
+
+/* Active layer is visible */
+.background-layer__image--active {
+  opacity: 1;
+}
+
+/* During transition, apply blur to soften the crossfade */
+.background-layer__image--transitioning {
+  filter: blur(8px);
+}
+
+/* Remove will-change after transitions complete to free GPU resources */
+.background-layer__image:not(.background-layer__image--transitioning) {
+  will-change: auto;
+}

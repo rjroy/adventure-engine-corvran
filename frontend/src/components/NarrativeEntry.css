@@ -1,0 +1,124 @@
+/* NarrativeEntry styles */
+
+.narrative-entry {
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  border-left: 4px solid;
+}
+
+.narrative-entry--player {
+  background-color: color-mix(in srgb, var(--color-player-bg) 90%, transparent);
+  border-left-color: var(--color-player-border);
+}
+
+.narrative-entry--gm {
+  background-color: color-mix(in srgb, var(--color-gm-bg) 90%, transparent);
+  border-left-color: var(--color-gm-border);
+}
+
+.narrative-entry__header {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-xs);
+  font-weight: 500;
+}
+
+.narrative-entry__timestamp {
+  margin-left: var(--spacing-sm);
+  font-weight: normal;
+}
+
+.narrative-entry__content {
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height);
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+.narrative-entry__content--player {
+  white-space: pre-wrap;
+}
+
+/* Streaming cursor */
+.streaming-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background-color: var(--color-secondary);
+  margin-left: 2px;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Markdown content styles */
+.narrative-entry__content p {
+  margin: 0 0 0.75em 0;
+}
+
+.narrative-entry__content p:last-child {
+  margin-bottom: 0;
+}
+
+.narrative-entry__content strong {
+  font-weight: 600;
+}
+
+.narrative-entry__content em {
+  font-style: italic;
+}
+
+.narrative-entry__content ul,
+.narrative-entry__content ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.narrative-entry__content li {
+  margin: 0.25em 0;
+}
+
+.narrative-entry__content blockquote {
+  border-left: 3px solid #ccc;
+  margin: 0.5em 0;
+  padding-left: 1em;
+  color: #555;
+  font-style: italic;
+}
+
+.narrative-entry__content code {
+  background-color: #e8e8e8;
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.narrative-entry__content pre {
+  background-color: #2d2d2d;
+  color: #f8f8f2;
+  padding: 1em;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+}
+
+.narrative-entry__content pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+
+.narrative-entry__content h1,
+.narrative-entry__content h2,
+.narrative-entry__content h3 {
+  margin: 0.5em 0 0.25em 0;
+  font-weight: 600;
+}
+
+.narrative-entry__content h1 { font-size: 1.3em; }
+.narrative-entry__content h2 { font-size: 1.15em; }
+.narrative-entry__content h3 { font-size: 1.05em; }
