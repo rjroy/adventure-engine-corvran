@@ -16,7 +16,11 @@ import {
 import { BackgroundImageService } from "./services/background-image";
 import { ImageCatalogService } from "./services/image-catalog";
 import { ImageGeneratorService } from "./services/image-generator";
-import { validateAdventureId, safeResolvePath } from "./validation";
+import {
+  validateAdventureId,
+  safeResolvePath,
+  MAX_INPUT_LENGTH,
+} from "./validation";
 
 // WebSocket connection tracking
 interface WSConnection {
@@ -355,6 +359,20 @@ app.get(
           }
 
           case "player_input": {
+            // Early length check for defense-in-depth (fail fast)
+            if (message.payload.text.length > MAX_INPUT_LENGTH) {
+              const errorMsg: ServerMessage = {
+                type: "error",
+                payload: {
+                  code: "GM_ERROR",
+                  message: `Input too long. Please keep under ${MAX_INPUT_LENGTH} characters.`,
+                  retryable: true,
+                },
+              };
+              ws.send(JSON.stringify(errorMsg));
+              break;
+            }
+
             // Require authentication for player input
             if (!conn.authenticated) {
               console.warn("Player input received before authentication");
