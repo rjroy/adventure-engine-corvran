@@ -8,6 +8,7 @@ export default tseslint.config(
       "vite.config.ts",
       "dist/**",
       "node_modules/**",
+      "scripts/**", // Build scripts run outside frontend context
     ],
   },
   eslint.configs.recommended,
