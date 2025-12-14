@@ -149,7 +149,7 @@ export class ImageGeneratorService {
    *
    * @throws Error if API token is not set
    */
-  async initialize(): Promise<void> {
+  initialize(): void {
     if (!this.apiToken) {
       throw new Error(
         "REPLICATE_API_TOKEN environment variable is required for image generation"
@@ -262,7 +262,7 @@ export class ImageGeneratorService {
    *
    * Should be called when shutting down the service.
    */
-  async close(): Promise<void> {
+  close(): void {
     this.replicate = null;
   }
 
@@ -440,7 +440,7 @@ export class ImageGeneratorService {
    */
   private extractImageUrl(output: unknown): string | null {
     if (Array.isArray(output) && output.length > 0) {
-      const first = output[0];
+      const first: unknown = output[0];
 
       // FileOutput object with url() method
       if (typeof first === "object" && first !== null && "url" in first) {

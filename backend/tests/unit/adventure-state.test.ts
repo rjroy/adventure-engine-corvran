@@ -2,7 +2,7 @@
 // Unit tests for state persistence, loading, and corruption detection
 
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { mkdir, rm, writeFile, readFile } from "node:fs/promises";
+import { mkdir, rm, writeFile, readFile, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { AdventureStateManager } from "../../src/adventure-state";
@@ -411,6 +411,52 @@ describe("AdventureStateManager", () => {
 
       const history = manager.getHistory();
       expect(history.entries).toContain(entry);
+    });
+  });
+
+  describe("file permissions", () => {
+    test("creates adventure directory with owner-only access (0o700)", async () => {
+      const state = await manager.create();
+      const adventureDir = join(TEST_ADVENTURES_DIR, state.id);
+
+      const dirStat = await stat(adventureDir);
+      // mode includes file type bits, mask with 0o777 to get permission bits only
+      const permissions = dirStat.mode & 0o777;
+
+      expect(permissions).toBe(0o700);
+    });
+
+    test("creates state.json with owner-only read/write (0o600)", async () => {
+      const state = await manager.create();
+      const statePath = join(TEST_ADVENTURES_DIR, state.id, "state.json");
+
+      const fileStat = await stat(statePath);
+      const permissions = fileStat.mode & 0o777;
+
+      expect(permissions).toBe(0o600);
+    });
+
+    test("creates history.json with owner-only read/write (0o600)", async () => {
+      const state = await manager.create();
+      const historyPath = join(TEST_ADVENTURES_DIR, state.id, "history.json");
+
+      const fileStat = await stat(historyPath);
+      const permissions = fileStat.mode & 0o777;
+
+      expect(permissions).toBe(0o600);
+    });
+
+    test("maintains 0o600 permissions after save()", async () => {
+      const state = await manager.create();
+      const statePath = join(TEST_ADVENTURES_DIR, state.id, "state.json");
+
+      // Modify and save
+      await manager.updateScene("New scene description");
+
+      const fileStat = await stat(statePath);
+      const permissions = fileStat.mode & 0o777;
+
+      expect(permissions).toBe(0o600);
     });
   });
 });
