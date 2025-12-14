@@ -3,7 +3,7 @@
 
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { mkdir, rm, writeFile, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { AdventureStateManager } from "../../src/adventure-state";
 import type { NarrativeEntry } from "../../../shared/protocol";
@@ -140,7 +140,8 @@ describe("AdventureStateManager", () => {
       if (!result.success) {
         expect(result.error.type).toBe("CORRUPTED");
         if (result.error.type === "CORRUPTED") {
-          expect(result.error.path).toBe(statePath);
+          // Compare absolute paths since safeResolvePath returns absolute paths
+          expect(result.error.path).toBe(resolve(statePath));
         }
       }
     });
@@ -159,7 +160,8 @@ describe("AdventureStateManager", () => {
       if (!result.success) {
         expect(result.error.type).toBe("CORRUPTED");
         if (result.error.type === "CORRUPTED") {
-          expect(result.error.path).toBe(historyPath);
+          // Compare absolute paths since safeResolvePath returns absolute paths
+          expect(result.error.path).toBe(resolve(historyPath));
         }
       }
     });

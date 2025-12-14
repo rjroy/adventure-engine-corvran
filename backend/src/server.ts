@@ -16,6 +16,7 @@ import {
 import { BackgroundImageService } from "./services/background-image";
 import { ImageCatalogService } from "./services/image-catalog";
 import { ImageGeneratorService } from "./services/image-generator";
+import { validateAdventureId, safeResolvePath } from "./validation";
 
 // WebSocket connection tracking
 interface WSConnection {
@@ -103,10 +104,35 @@ app.post("/adventure/new", async (c) => {
  */
 app.get("/adventure/:id", async (c) => {
   const id = c.req.param("id");
+
+  // Validate adventure ID to prevent path traversal
+  const validation = validateAdventureId(id);
+  if (!validation.valid) {
+    return c.json(
+      {
+        error: "Invalid adventure ID",
+        message: validation.error,
+      },
+      400
+    );
+  }
+
+  // Defense-in-depth: verify path stays within adventures directory
+  const safePath = safeResolvePath(ADVENTURES_DIR, id);
+  if (safePath === null) {
+    return c.json(
+      {
+        error: "Invalid adventure ID",
+        message: "Path traversal detected",
+      },
+      400
+    );
+  }
+
   const { join } = await import("node:path");
   const { readFile } = await import("node:fs/promises");
 
-  const statePath = join(ADVENTURES_DIR, id, "state.json");
+  const statePath = join(safePath, "state.json");
 
   try {
     const stateContent = await readFile(statePath, "utf-8");
@@ -179,6 +205,22 @@ app.get(
           };
           ws.send(JSON.stringify(errorMsg));
           ws.close(1008, "Missing adventureId parameter");
+          return;
+        }
+
+        // Validate adventure ID format to prevent path traversal
+        const validation = validateAdventureId(adventureId);
+        if (!validation.valid) {
+          const errorMsg: ServerMessage = {
+            type: "error",
+            payload: {
+              code: "INVALID_TOKEN",
+              message: validation.error || "Invalid adventure ID",
+              retryable: false,
+            },
+          };
+          ws.send(JSON.stringify(errorMsg));
+          ws.close(1008, "Invalid adventureId parameter");
           return;
         }
 
