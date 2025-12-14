@@ -1,0 +1,10 @@
+{
+  "project": {
+    "owner": "rjroy",
+    "number": 6
+  },
+  "preferences": {
+    "promptForLargeItems": true,
+    "largeSizeThreshold": ["L", "XL"]
+  }
+}

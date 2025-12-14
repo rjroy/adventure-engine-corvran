@@ -96,71 +96,14 @@ Catalog-first strategy: `ImageCatalogService` searches `/assets/backgrounds` bef
 
 ## Project Management
 
-Tasks and issues are tracked in GitHub Project 6 "Adventure Engine Corvran".
+Tasks and issues are tracked in GitHub Project 6 "Adventure Engine Corvran". Use Compass Rose plugin commands for project operations:
 
-```bash
-gh project item-list 6 --owner @me              # List all items
-gh issue list --repo rjroy/adventure-engine-corvran  # List open issues
-```
+- `/compass-rose:backlog` - Review and analyze backlog items
+- `/compass-rose:next-item` - Get highest-priority ready item
+- `/compass-rose:start-work [issue]` - Begin work on an item
+- `/compass-rose:add-item` - Create new issue with project fields
+- `/compass-rose:reprioritize` - Codebase-aware priority recommendations
 
 **Labels**: security, testing, architecture, documentation, operations, performance, build, plugin, type-safety, error-handling, priority:critical, priority:medium, question
 
-### Updating Project Fields
-
-Project ID: `PVT_kwHOAAM2FM4BKlWC`
-
-**Priority** (field: `PVTSSF_lAHOAAM2FM4BKlWCzg6aG5s`):
-| Value | Option ID |
-|-------|-----------|
-| P0 | `79628723` |
-| P1 | `0a877460` |
-| P2 | `da944a9c` |
-
-**Size** (field: `PVTSSF_lAHOAAM2FM4BKlWCzg6aG5w`):
-| Value | Option ID |
-|-------|-----------|
-| XS | `911790be` |
-| S | `b277fb01` |
-| M | `86db8eb3` |
-| L | `853c8207` |
-| XL | `2d0801e2` |
-
-To update a field:
-```bash
-# Get item ID for an issue
-gh project item-list 6 --owner @me --format json --limit 100 | jq -r '.items[] | select(.content.number == ISSUE_NUM) | .id'
-
-# Set field value
-gh project item-edit --project-id PVT_kwHOAAM2FM4BKlWC --id ITEM_ID \
-  --field-id FIELD_ID --single-select-option-id OPTION_ID
-```
-
-### Querying Status and Iteration
-
-The `gh project item-list` command doesn't show Iteration. Use GraphQL to query both:
-
-```bash
-gh api graphql -f query='
-{
-  user(login: "rjroy") {
-    projectV2(number: 6) {
-      items(first: 100) {
-        nodes {
-          content {
-            ... on Issue { number title }
-          }
-          status: fieldValueByName(name: "Status") {
-            ... on ProjectV2ItemFieldSingleSelectValue { name }
-          }
-          iteration: fieldValueByName(name: "Iteration") {
-            ... on ProjectV2ItemFieldIterationValue { title }
-          }
-        }
-      }
-    }
-  }
-}' | jq '[.data.user.projectV2.items.nodes[] | {num: .content.number, title: .content.title, status: .status.name, iteration: .iteration.title}] | map(select(.status == "Ready" or .iteration))'
-```
-
 **Status options**: Backlog, Ready, In progress, In review, Done
-**Iterations**: 2-week sprints starting Dec 13, 2025
