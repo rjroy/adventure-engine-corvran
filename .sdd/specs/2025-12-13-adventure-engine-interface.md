@@ -1,8 +1,8 @@
 ---
-version: 1.0.0
+version: 1.1.0
 status: Approved
 created: 2025-12-13
-last_updated: 2025-12-13
+last_updated: 2025-12-14
 authored_by:
   - Ronald Roy <gsdwig@gmail.com>
 ---
@@ -51,7 +51,7 @@ As a player, I want to engage in an interactive text adventure through my web br
 - **REQ-F-7**: System shall maintain conversation history within the Agent SDK session for context continuity
 - **REQ-F-8**: System shall provide Claude with adventure context (world state, current scene, player history) via system prompts or tool context
 - **REQ-F-9**: System architecture shall support Claude tools; MVP requires no specific game mechanic tools (placeholder for future RPG mechanics)
-- **REQ-F-10**: Claude shall have access to read/write adventure state files for persistence
+- **REQ-F-10**: Claude shall have access to read/write adventure world files (world_state.md, locations.md, characters.md, player.md, quests.md) for narrative persistence. Note: Core state files (state.json, history.json) are managed by AdventureStateManager, not Claude directly.
 
 ### Web Application - Frontend
 
@@ -73,15 +73,21 @@ As a player, I want to engage in an interactive text adventure through my web br
 
 - **REQ-F-21**: Adventure state shall include: narrative history, current scene, world state snapshot, player character data
 - **REQ-F-22**: State shall be saved after each GM response completes
-- **REQ-F-23**: State files shall be human-readable (JSON or YAML) for debugging and manual editing
+- **REQ-F-23**: State files shall be human-readable JSON for debugging and manual editing
 - **REQ-F-24**: System shall support multiple adventures per project directory (each with unique ID)
 
 ### Error Handling
 
 - **REQ-F-25**: If Claude Agent SDK returns an error, system shall display user-friendly message and allow retry
 - **REQ-F-26**: If WebSocket disconnects, frontend shall attempt reconnection with exponential backoff
-- **REQ-F-27**: If state file is corrupted, system shall offer to start fresh or load backup
+- **REQ-F-27**: If state file is corrupted, system shall offer to start fresh (backup mechanism not implemented)
 - **REQ-F-28**: System shall log errors to server logs with sufficient detail for debugging
+
+### Security
+
+- **REQ-F-29**: System shall sanitize player input to prevent prompt injection attacks
+- **REQ-F-30**: System shall support mock SDK mode (MOCK_SDK=true environment variable) for testing without Claude API calls
+- **REQ-F-31**: Session tokens shall be transmitted via WebSocket authenticate message, not URL query parameters, to prevent token leakage in logs
 
 ## Non-Functional Requirements
 
@@ -130,7 +136,7 @@ As a player, I want to engage in an interactive text adventure through my web br
 
 6. **Error Display**: Claude API returns rate limit error, player sees "The game master needs a moment. Please try again." (not raw error)
 
-7. **State File Integrity**: After 10 exchanges, adventure state file in project directory contains complete history and is valid JSON/YAML
+7. **State File Integrity**: After 10 exchanges, adventure state file in project directory contains complete history and is valid JSON
 
 8. **Multiple Adventures**: Player creates Adventure A, then Adventure B, can switch between them without data crossover
 
@@ -152,6 +158,32 @@ As a player, I want to engage in an interactive text adventure through my web br
 - Voice input/output - text only
 - Map visualization - text descriptions only
 - Integration with virtual tabletop tools (Roll20, Foundry) - standalone system
+
+## Architectural Rationale
+
+This section documents key architectural decisions made during implementation that differ from or extend the original spec.
+
+### State Manager Pattern (REQ-F-10)
+
+Claude writes narrative data to separate world files (world_state.md, locations.md, characters.md, player.md, quests.md) while AdventureStateManager maintains canonical state.json and history.json. This separation:
+1. Prevents Claude from corrupting core state through malformed writes
+2. Enables better debugging (narrative files are human-readable markdown)
+3. Allows state recovery without losing narrative context
+
+### JSON-Only Persistence (REQ-F-23)
+
+YAML was not implemented as JSON provides sufficient human-readability and is native to JavaScript/TypeScript. This simplifies the codebase without sacrificing the requirement's intent. JSON is widely supported by editors and can be pretty-printed for debugging.
+
+### Token in Message vs URL (REQ-F-31)
+
+Session tokens are sent via WebSocket authenticate message rather than URL query parameters. This prevents:
+1. Token leakage in server access logs
+2. Token exposure in browser history
+3. Accidental sharing of URLs containing credentials
+
+### Input Sanitization (REQ-F-29)
+
+Player input is sanitized before being passed to Claude to prevent prompt injection attacks. The sanitization removes or escapes patterns that could manipulate Claude's behavior outside the game context.
 
 ---
 
