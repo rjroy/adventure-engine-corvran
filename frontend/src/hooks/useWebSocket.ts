@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { ClientMessage, ServerMessage, ThemeMood } from "../../../shared/protocol";
+import { parseServerMessage, formatValidationError, ThemeMoodSchema } from "../../../shared/protocol";
 import { useTheme } from "../contexts/ThemeContext";
 
 export type ConnectionStatus = "connected" | "disconnected" | "reconnecting";
@@ -23,15 +24,11 @@ const MAX_RETRY_DELAY = 30000; // 30 seconds
 const MAX_RECONNECT_TIME = 30000; // 30 seconds total reconnection time
 
 /**
- * Valid theme moods for validation.
- */
-const VALID_MOODS: ThemeMood[] = ["calm", "tense", "ominous", "triumphant", "mysterious"];
-
-/**
  * Type guard to check if a value is a valid ThemeMood.
+ * Uses Zod schema for validation to stay in sync with protocol definition.
  */
 function isValidMood(mood: unknown): mood is ThemeMood {
-  return typeof mood === "string" && VALID_MOODS.includes(mood as ThemeMood);
+  return ThemeMoodSchema.safeParse(mood).success;
 }
 
 /**
@@ -142,7 +139,20 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
             console.error("Received non-string WebSocket message");
             return;
           }
-          const message = JSON.parse(event.data) as ServerMessage;
+
+          // Parse JSON and validate against schema
+          const parsed: unknown = JSON.parse(event.data);
+          const result = parseServerMessage(parsed);
+
+          if (!result.success) {
+            console.error(
+              "Invalid server message:",
+              formatValidationError(result.error)
+            );
+            return;
+          }
+
+          const message = result.data;
 
           // Handle theme_change messages by applying theme
           if (message.type === "theme_change") {
