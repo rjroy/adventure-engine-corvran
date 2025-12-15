@@ -41,6 +41,45 @@ Terminal-based adventure management integrated into your development workflow:
 - Character sheet management
 - Quick session access without leaving the terminal
 
+## Environment Variables
+
+### Backend
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `REPLICATE_API_TOKEN` | No* | — | API token for image generation via Replicate |
+| `PORT` | No | `3000` | Server port |
+| `HOST` | No | `localhost` | Server hostname to bind |
+| `ADVENTURES_DIR` | No | `./adventures` | Directory for adventure state persistence |
+| `STATIC_ROOT` | No | `../frontend/dist` | Directory for serving static frontend files |
+| `ALLOWED_ORIGINS` | No | `http://localhost:5173,http://localhost:3000` | Comma-separated list of allowed CORS origins |
+| `LOG_LEVEL` | No | `info` | Log verbosity: `trace`, `debug`, `info`, `warn`, `error`, `fatal` |
+| `LOG_FILE` | No | `true` | Set to `false` to disable rotating file logs in `backend/logs/` |
+| `NODE_ENV` | No | — | Set to `production` for JSON log output |
+| `MAX_CONNECTIONS` | No | `100` | Maximum concurrent WebSocket connections |
+| `MOCK_SDK` | No | — | Set to `true` to use mock SDK (for testing without Claude Agent SDK) |
+
+\* Required only for image generation. Server runs without it using catalog/fallback images.
+
+### Example `.env` file
+
+```bash
+# Required for image generation (optional otherwise)
+REPLICATE_API_TOKEN=r8_your_token_here
+
+# Optional - uncomment to override defaults
+# PORT=3000
+# HOST=localhost
+# ADVENTURES_DIR=./adventures
+# STATIC_ROOT=../frontend/dist
+# ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+# LOG_LEVEL=info
+# LOG_FILE=true
+# NODE_ENV=production
+# MAX_CONNECTIONS=100
+# MOCK_SDK=true
+```
+
 ## Status
 
 **Active Development** — Core gameplay engine functional, expanding features.
