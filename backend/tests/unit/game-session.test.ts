@@ -104,6 +104,48 @@ describe("GameSession", () => {
       expect(result.error).toBeDefined();
       expect(result.error).toContain("not found");
     });
+
+    test("fails when PROJECT_DIR is not set", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+
+      // Temporarily unset PROJECT_DIR
+      const originalProjectDir = process.env.PROJECT_DIR;
+      delete process.env.PROJECT_DIR;
+
+      try {
+        const result = await session.initialize(adventureId, sessionToken);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBeDefined();
+        expect(result.error).toContain("PROJECT_DIR");
+        expect(result.error).toContain("not set");
+      } finally {
+        // Restore PROJECT_DIR
+        process.env.PROJECT_DIR = originalProjectDir;
+      }
+    });
+
+    test("fails when PROJECT_DIR directory does not exist", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+
+      // Temporarily set PROJECT_DIR to non-existent directory
+      const originalProjectDir = process.env.PROJECT_DIR;
+      process.env.PROJECT_DIR = "./non-existent-directory-12345";
+
+      try {
+        const result = await session.initialize(adventureId, sessionToken);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBeDefined();
+        expect(result.error).toContain("PROJECT_DIR");
+        expect(result.error).toContain("does not exist");
+      } finally {
+        // Restore PROJECT_DIR
+        process.env.PROJECT_DIR = originalProjectDir;
+      }
+    });
   });
 
   describe("handleInput() - Queue Management", () => {

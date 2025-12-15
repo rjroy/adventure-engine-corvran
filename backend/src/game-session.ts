@@ -5,6 +5,7 @@
 import type { WSContext } from "hono/ws";
 import { logger } from "./logger";
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { SDKAssistantMessageError } from "@anthropic-ai/claude-agent-sdk";
 import { AdventureStateManager } from "./adventure-state";
@@ -79,12 +80,28 @@ export class GameSession {
       };
     }
 
+    // Validate PROJECT_DIR environment variable (REQ: fail fast at startup)
+    const projectDir = process.env.PROJECT_DIR;
+    if (!projectDir) {
+      logger.error("PROJECT_DIR environment variable is not set");
+      return {
+        success: false,
+        error: "PROJECT_DIR environment variable is required but not set",
+      };
+    }
+
+    // Validate that PROJECT_DIR directory exists (REQ: fail fast at startup)
+    if (!existsSync(projectDir)) {
+      logger.error({ projectDir }, "PROJECT_DIR directory does not exist");
+      return {
+        success: false,
+        error: `PROJECT_DIR directory does not exist: ${projectDir}`,
+      };
+    }
+
     // Use PROJECT_DIR for SDK sandbox - this is the adventure world directory
     // where the SDK should read/write files
-    this.projectDirectory = process.env.PROJECT_DIR ?? null;
-    if (!this.projectDirectory) {
-      logger.warn("PROJECT_DIR not set - SDK file operations may use wrong directory");
-    }
+    this.projectDirectory = projectDir;
 
     return { success: true };
   }
