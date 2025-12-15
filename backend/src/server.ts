@@ -2,6 +2,7 @@
 // Implements REST endpoints for adventure management and WebSocket upgrade
 
 import { Hono } from "hono";
+import { logger } from "./logger";
 import { createBunWebSocket } from "hono/bun";
 import { serveStatic } from "hono/bun";
 import type { WSContext } from "hono/ws";
@@ -92,8 +93,8 @@ const backgroundImageService = new BackgroundImageService(
 try {
   imageGeneratorService.initialize();
 } catch (err) {
-  console.warn("[Server] Image generator initialization failed:", err);
-  console.warn("[Server] Image generation will be unavailable, catalog/fallback only");
+  logger.warn({ err }, "Image generator initialization failed");
+  logger.warn("Image generation will be unavailable, catalog/fallback only");
 }
 
 // Health check (used by launch script to verify server is ready)
@@ -114,7 +115,7 @@ app.post("/adventure/new", async (c) => {
       sessionToken: state.sessionToken,
     });
   } catch (error) {
-    console.error("Failed to create adventure:", error);
+    logger.error({ err: error }, "Failed to create adventure");
     return c.json(
       {
         error: "Failed to create adventure",
@@ -213,7 +214,7 @@ app.get(
   async (c, next) => {
     const origin = c.req.header("origin");
     if (!isAllowedOrigin(origin)) {
-      console.warn("WebSocket upgrade rejected - invalid origin:", origin);
+      logger.warn({ origin }, "WebSocket upgrade rejected - invalid origin");
       return c.text("Forbidden - invalid origin", 403);
     }
     return next();
@@ -226,12 +227,12 @@ app.get(
 
     // Validate required params
     if (!adventureId) {
-      console.warn("WebSocket upgrade missing adventureId");
+      logger.warn("WebSocket upgrade missing adventureId");
     }
 
     return {
       onOpen(_event, ws) {
-        console.log("WebSocket opened:", { adventureId, connId });
+        logger.info({ adventureId, connId }, "WebSocket opened");
 
         // Validate adventureId (token comes via message)
         if (!adventureId) {
@@ -280,7 +281,7 @@ app.get(
         const conn = connections.get(connId);
 
         if (!conn) {
-          console.warn("Message from untracked connection", { connId });
+          logger.warn({ connId }, "Message from untracked connection");
           ws.close(1008, "Connection not found");
           return;
         }
@@ -303,7 +304,7 @@ app.get(
           }
           message = JSON.parse(dataString) as ClientMessage;
         } catch (error) {
-          console.error("Failed to parse client message:", error);
+          logger.error({ err: error, connId }, "Failed to parse client message");
           const errorMsg: ServerMessage = {
             type: "error",
             payload: {
@@ -321,7 +322,7 @@ app.get(
           case "authenticate": {
             // Handle authentication (token sent via message, not URL)
             if (conn.authenticated) {
-              console.log("Already authenticated, ignoring duplicate authenticate message");
+              logger.debug({ connId }, "Already authenticated, ignoring duplicate authenticate message");
               break;
             }
 
@@ -375,7 +376,7 @@ app.get(
 
             // Require authentication for player input
             if (!conn.authenticated) {
-              console.warn("Player input received before authentication");
+              logger.warn({ connId }, "Player input received before authentication");
               const errorMsg: ServerMessage = {
                 type: "error",
                 payload: {
@@ -390,7 +391,7 @@ app.get(
 
             // Handle player input through GameSession
             if (!conn.gameSession) {
-              console.warn("Player input received before GameSession initialized");
+              logger.warn({ connId, adventureId: conn.adventureId }, "Player input received before GameSession initialized");
               const errorMsg: ServerMessage = {
                 type: "error",
                 payload: {
@@ -412,12 +413,12 @@ app.get(
             // Adventure is loaded via authenticate message flow
             // This message type can be used for restarting or other future functionality
             if (conn.authenticated) {
-              console.log("Received start_adventure (adventure already loaded)");
+              logger.debug({ connId, adventureId: conn.adventureId }, "Received start_adventure (adventure already loaded)");
             }
             break;
 
           default:
-            console.warn("Unknown message type:", message);
+            logger.warn({ connId, messageType: (message as { type: string }).type }, "Unknown message type");
         }
       },
 
@@ -425,20 +426,16 @@ app.get(
         // Remove connection using captured connId
         const conn = connections.get(connId);
         if (conn) {
-          console.log("WebSocket closed:", {
-            adventureId: conn.adventureId,
-            code: event.code,
-            reason: event.reason,
-          });
+          logger.info(
+            { adventureId: conn.adventureId, connId, code: event.code, reason: event.reason },
+            "WebSocket closed"
+          );
           connections.delete(connId);
         }
       },
 
       onError(event, _ws) {
-        console.error("WebSocket error:", {
-          adventureId,
-          error: event,
-        });
+        logger.error({ adventureId, connId, error: event }, "WebSocket error");
       },
     };
   })
@@ -494,9 +491,9 @@ async function validateAndLoadAdventure(
       conn.gameSession = gameSession;
       // Update connection in map with authenticated status and gameSession
       connections.set(connId, conn);
-      console.log("GameSession initialized for adventure:", adventureId);
+      logger.info({ adventureId, connId }, "GameSession initialized");
     } else {
-      console.error("Failed to initialize GameSession:", initResult.error);
+      logger.error({ adventureId, connId, error: initResult.error }, "Failed to initialize GameSession");
     }
   }
 
@@ -523,7 +520,7 @@ async function validateAndLoadAdventure(
     },
   };
   ws.send(JSON.stringify(initialTheme));
-  console.log(`[Server] Sent stored theme: ${theme.mood}`);
+  logger.debug({ adventureId, mood: theme.mood }, "Sent stored theme");
 }
 
 // Serve static frontend files from ../frontend/dist
@@ -549,7 +546,7 @@ setInterval(() => {
   const now = Date.now();
   for (const [connId, conn] of connections.entries()) {
     if (now - conn.lastPing > HEARTBEAT_TIMEOUT) {
-      console.log("Closing stale connection:", conn.adventureId);
+      logger.info({ adventureId: conn.adventureId, connId }, "Closing stale connection");
       conn.ws.close(1000, "Heartbeat timeout");
       connections.delete(connId);
     }

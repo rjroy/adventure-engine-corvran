@@ -3,6 +3,7 @@
 // Implements input queuing to prevent race conditions (REQ-F-18)
 
 import type { WSContext } from "hono/ws";
+import { logger } from "./logger";
 import { randomUUID } from "node:crypto";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { SDKAssistantMessageError } from "@anthropic-ai/claude-agent-sdk";
@@ -82,7 +83,7 @@ export class GameSession {
     // where the SDK should read/write files
     this.projectDirectory = process.env.PROJECT_DIR ?? null;
     if (!this.projectDirectory) {
-      console.warn("PROJECT_DIR not set - SDK file operations may use wrong directory");
+      logger.warn("PROJECT_DIR not set - SDK file operations may use wrong directory");
     }
 
     return { success: true };
@@ -108,17 +109,13 @@ export class GameSession {
           retryable: true,
         },
       });
-      console.warn(
-        "[Security] Blocked input:",
-        sanitization.blockReason,
-        sanitization.flags
-      );
+      logger.warn({ reason: sanitization.blockReason, flags: sanitization.flags }, "Blocked input");
       return;
     }
 
     // Log flagged but allowed input for monitoring
     if (sanitization.flags.length > 0) {
-      console.info("[Security] Flagged input:", sanitization.flags);
+      logger.info({ flags: sanitization.flags }, "Flagged input");
     }
 
     // Add sanitized input to queue
@@ -260,7 +257,7 @@ export class GameSession {
 
     // Use mock SDK for E2E testing
     if (useMockSDK()) {
-      console.log("[MOCK_SDK] Using mock query for input:", input);
+      logger.debug({ input }, "Using mock query");
       const mockQueryResult = mockQuery({
         prompt: input,
         options: { systemPrompt },
@@ -281,7 +278,7 @@ export class GameSession {
     // Create MCP server for set_theme tool with callback to handle theme changes
     const themeMcpServer = createThemeMcpServer(
       async (mood, genre, region, forceGenerate, imagePrompt) => {
-        console.log(`[GameSession] MCP callback invoked: mood=${mood}, genre=${genre}, region=${region}`);
+        logger.debug({ mood, genre, region }, "MCP callback invoked");
         try {
           await this.handleSetThemeTool({
             mood,
@@ -290,9 +287,9 @@ export class GameSession {
             image_prompt: imagePrompt,
             force_generate: forceGenerate,
           });
-          console.log(`[GameSession] MCP callback completed successfully`);
+          logger.debug({ mood }, "MCP callback completed successfully");
         } catch (error) {
-          console.error(`[GameSession] MCP callback error:`, error);
+          logger.error({ err: error, mood }, "MCP callback error");
           throw error;
         }
       }
@@ -324,7 +321,7 @@ export class GameSession {
 
     for await (const message of sdkQuery) {
       // DEBUG: Log all messages to find tool calls
-      console.log(`[GameSession] SDK message type: ${message.type}`, JSON.stringify(message).slice(0, 500));
+      logger.debug({ messageType: message.type, preview: JSON.stringify(message).slice(0, 200) }, "SDK message");
 
       // Capture session ID for conversation continuity
       if (message.type === "system" && message.subtype === "init") {
@@ -370,7 +367,7 @@ export class GameSession {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           if (block.type === "tool_use") {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            console.log(`[GameSession] Tool use detected: ${block.name}`, block.input);
+            logger.debug({ toolName: block.name, input: block.input }, "Tool use detected");
           }
         }
       }
@@ -398,7 +395,7 @@ export class GameSession {
     const { mood, genre, region, image_prompt, force_generate = false } = input;
     const now = Date.now();
 
-    console.log(`[GameSession] handleSetThemeTool: mood=${mood}, genre=${genre}, region=${region}, prompt=${image_prompt?.slice(0, 50) ?? 'none'}..., force=${force_generate}`);
+    logger.debug({ mood, genre, region, promptPreview: image_prompt?.slice(0, 50), forceGenerate: force_generate }, "handleSetThemeTool");
 
     // Debounce: ignore duplicate theme within 1 second (REQ-F-23)
     if (
@@ -406,7 +403,7 @@ export class GameSession {
       this.lastThemeChange.mood === mood &&
       now - this.lastThemeChange.timestamp < 1000
     ) {
-      console.log(`[GameSession] Debouncing duplicate theme change to ${mood}`);
+      logger.debug({ mood }, "Debouncing duplicate theme change");
       return;
     }
 
@@ -426,9 +423,9 @@ export class GameSession {
           image_prompt  // Used for generation if no cached image matches
         );
         backgroundUrl = result.url;
-        console.log(`[GameSession] Background image: source=${result.source}, url=${backgroundUrl}`);
+        logger.debug({ source: result.source, url: backgroundUrl }, "Background image retrieved");
       } catch (error) {
-        console.error("[GameSession] Failed to get background image:", error);
+        logger.error({ err: error }, "Failed to get background image");
         // Continue with null backgroundUrl - frontend will handle fallback
       }
     }
@@ -437,7 +434,7 @@ export class GameSession {
     await this.stateManager.updateTheme(mood, genre, region, backgroundUrl);
 
     // Emit theme_change WebSocket message
-    console.log(`[GameSession] Sending theme_change: mood=${mood}, genre=${genre}, region=${region}, bg=${backgroundUrl ?? 'null'}`);
+    logger.debug({ mood, genre, region, backgroundUrl }, "Sending theme_change");
     this.sendMessage({
       type: "theme_change",
       payload: {
@@ -495,10 +492,10 @@ export class GameSession {
   private sendMessage(message: ServerMessage): void {
     try {
       const json = JSON.stringify(message);
-      console.log(`[GameSession] WebSocket send: ${json.slice(0, 200)}...`);
+      logger.debug({ messageType: message.type, preview: json.slice(0, 100) }, "WebSocket send");
       this.ws.send(json);
     } catch (error) {
-      console.error("Failed to send WebSocket message:", error);
+      logger.error({ err: error }, "Failed to send WebSocket message");
     }
   }
 

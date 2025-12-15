@@ -2,11 +2,12 @@
 // Starts the Bun server with HTTP and WebSocket support
 
 import server from "./server";
+import { logger } from "./logger";
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 const HOST = process.env.HOST || "localhost";
 
-console.log(`Starting Adventure Engine Backend on ${HOST}:${PORT}`);
+logger.info({ host: HOST, port: PORT }, "Starting Adventure Engine Backend");
 
 Bun.serve({
   port: PORT,
@@ -15,5 +16,4 @@ Bun.serve({
   websocket: server.websocket,
 });
 
-console.log(`Server running at http://${HOST}:${PORT}`);
-console.log(`WebSocket endpoint: ws://${HOST}:${PORT}/ws`);
+logger.info({ url: `http://${HOST}:${PORT}`, wsEndpoint: `ws://${HOST}:${PORT}/ws` }, "Server running");

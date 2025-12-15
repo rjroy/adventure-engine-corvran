@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { AdventureState } from "./types/state";
 import type { ThemeMood } from "./types/protocol";
 import { sanitizeStateValue } from "./validation";
+import { logger } from "./logger";
 
 /**
  * Valid theme moods for the set_theme tool
@@ -127,7 +128,7 @@ Provide image_prompt only when you want specific generated imagery as fallback.`
       force_generate: z.boolean().optional().describe("Skip catalog and force new image generation"),
     },
     async (args) => {
-      console.log(`[set_theme tool] mood=${args.mood}, genre=${args.genre}, region=${args.region}, prompt=${args.image_prompt?.slice(0, 50) ?? 'none'}..., force=${args.force_generate ?? false}`);
+      logger.debug({ mood: args.mood, genre: args.genre, region: args.region, promptPreview: args.image_prompt?.slice(0, 50), forceGenerate: args.force_generate ?? false }, "set_theme tool invoked");
       await onThemeChange(
         args.mood as ThemeMood,
         args.genre,
