@@ -61,6 +61,17 @@ const ALLOWED_ORIGINS: Set<string> = new Set(
     : DEFAULT_ORIGINS
 );
 
+// Maximum concurrent WebSocket connections
+// Prevents resource exhaustion from runaway clients or malicious actors
+const DEFAULT_MAX_CONNECTIONS = 100;
+const parsedMaxConnections = process.env.MAX_CONNECTIONS
+  ? parseInt(process.env.MAX_CONNECTIONS, 10)
+  : DEFAULT_MAX_CONNECTIONS;
+const MAX_CONNECTIONS: number =
+  !isNaN(parsedMaxConnections) && parsedMaxConnections > 0
+    ? parsedMaxConnections
+    : DEFAULT_MAX_CONNECTIONS;
+
 /**
  * Validate Origin header for WebSocket CSRF protection
  * Returns true if origin is allowed, false otherwise
@@ -234,6 +245,25 @@ app.get(
     return {
       onOpen(_event, ws) {
         logger.info({ adventureId, connId }, "WebSocket opened");
+
+        // Check connection limit before accepting
+        if (connections.size >= MAX_CONNECTIONS) {
+          logger.warn(
+            { adventureId, connId, currentConnections: connections.size, maxConnections: MAX_CONNECTIONS },
+            "Connection rejected - max connections reached"
+          );
+          const errorMsg: ServerMessage = {
+            type: "error",
+            payload: {
+              code: "GM_ERROR",
+              message: "Server at capacity. Please try again later.",
+              retryable: true,
+            },
+          };
+          ws.send(JSON.stringify(errorMsg));
+          ws.close(1013, "Server at capacity");
+          return;
+        }
 
         // Validate adventureId (token comes via message)
         if (!adventureId) {
@@ -582,5 +612,19 @@ export default {
   websocket,
 };
 
+/**
+ * Get current connection count (for monitoring and testing)
+ */
+function getConnectionCount(): number {
+  return connections.size;
+}
+
 // Export for testing
-export { app, connections, isAllowedOrigin, ALLOWED_ORIGINS };
+export {
+  app,
+  connections,
+  isAllowedOrigin,
+  ALLOWED_ORIGINS,
+  MAX_CONNECTIONS,
+  getConnectionCount,
+};

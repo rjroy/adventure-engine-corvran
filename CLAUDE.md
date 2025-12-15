@@ -93,6 +93,7 @@ Catalog-first strategy: `ImageCatalogService` searches `/assets/backgrounds` bef
 - `LOG_LEVEL` (default "info") - Set log verbosity: "debug", "info", "warn", "error"
 - `LOG_FILE` (default enabled) - Set to "false" to disable rotating file logs in `backend/logs/`
 - `NODE_ENV` (default unset) - Set to "production" for JSON log output, otherwise uses pretty format
+- `MAX_CONNECTIONS` (default 100) - Maximum concurrent WebSocket connections
 
 ## Code Style
 
