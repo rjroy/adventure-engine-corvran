@@ -2,7 +2,7 @@
 // Implements REST endpoints for adventure management and WebSocket upgrade
 
 import { Hono } from "hono";
-import { logger } from "./logger";
+import { logger, createRequestLogger } from "./logger";
 import { createBunWebSocket } from "hono/bun";
 import { serveStatic } from "hono/bun";
 import type { WSContext } from "hono/ws";
@@ -457,8 +457,12 @@ app.get(
               break;
             }
 
+            // Create request-scoped logger for correlation across all logs from this input
+            const { logger: reqLogger } = createRequestLogger(connId, conn.adventureId);
+            reqLogger.info({ inputLength: message.payload.text.length }, "Processing player input");
+
             // Process input through game session (async, don't await)
-            void conn.gameSession.handleInput(message.payload.text);
+            void conn.gameSession.handleInput(message.payload.text, reqLogger);
             break;
           }
 

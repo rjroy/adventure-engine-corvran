@@ -96,3 +96,44 @@ export const logger = pino({
 });
 
 export type Logger = pino.Logger;
+
+/**
+ * Counter for generating unique request IDs within the same millisecond
+ */
+let requestCounter = 0;
+
+/**
+ * Create a request-scoped child logger with correlation IDs.
+ *
+ * All logs from this logger will include reqId, connId, and optionally adventureId,
+ * enabling correlation of all log entries from a single request.
+ *
+ * @param connId Connection ID (from WebSocket connection)
+ * @param adventureId Optional adventure ID for additional context
+ * @returns Object containing the child logger and generated request ID
+ *
+ * @example
+ * ```typescript
+ * const { logger: reqLogger, reqId } = createRequestLogger("conn_1_123", "abc-123");
+ * reqLogger.info("Processing input"); // includes reqId, connId, adventureId
+ * ```
+ */
+export function createRequestLogger(
+  connId: string,
+  adventureId?: string
+): { logger: pino.Logger; reqId: string } {
+  const reqId = `req_${connId}_${++requestCounter}_${Date.now()}`;
+  const childLogger = logger.child({
+    reqId,
+    connId,
+    ...(adventureId && { adventureId }),
+  });
+  return { logger: childLogger, reqId };
+}
+
+/**
+ * Reset request counter (for testing only)
+ */
+export function _resetRequestCounter(): void {
+  requestCounter = 0;
+}
