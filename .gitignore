@@ -1,1 +1,19 @@
+# Environment files
 .env
+.env.*
+
+# Test artifacts (created by integration tests)
+test-adventures*
+backend/test-adventures*
+
+# OS artifacts
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
+backend/logs/
