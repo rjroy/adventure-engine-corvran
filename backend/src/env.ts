@@ -27,6 +27,7 @@ export interface EnvConfig {
   adventuresDir: string;
   allowedOrigins: string[];
   maxConnections: number;
+  inputTimeout: number;
   logLevel: string;
   logFile: boolean;
   nodeEnv: string | undefined;
@@ -82,6 +83,23 @@ export function parseMaxConnections(value: string | undefined): number {
 }
 
 /**
+ * Parse and validate INPUT_TIMEOUT environment variable
+ * @returns Timeout in milliseconds (default 60000ms / 60 seconds)
+ * @throws Error if value is not a positive integer
+ */
+export function parseInputTimeout(value: string | undefined): number {
+  if (!value) return 60000;
+
+  const timeout = parseInt(value, 10);
+  if (isNaN(timeout) || timeout < 1000) {
+    throw new Error(
+      `Invalid INPUT_TIMEOUT: "${value}". Must be a positive integer >= 1000 (milliseconds).`
+    );
+  }
+  return timeout;
+}
+
+/**
  * Parse and validate LOG_LEVEL environment variable
  * @throws Error if value is not a valid log level
  */
@@ -134,6 +152,7 @@ export interface RawEnv {
   ADVENTURES_DIR?: string;
   ALLOWED_ORIGINS?: string;
   MAX_CONNECTIONS?: string;
+  INPUT_TIMEOUT?: string;
   LOG_LEVEL?: string;
   LOG_FILE?: string;
   NODE_ENV?: string;
@@ -153,6 +172,7 @@ export function validateEnvironment(rawEnv: RawEnv = process.env): ValidationRes
   // Parse values with validation
   let port = 3000;
   let maxConnections = 100;
+  let inputTimeout = 60000;
   let logLevel = "info";
 
   try {
@@ -163,6 +183,12 @@ export function validateEnvironment(rawEnv: RawEnv = process.env): ValidationRes
 
   try {
     maxConnections = parseMaxConnections(rawEnv.MAX_CONNECTIONS);
+  } catch (e) {
+    errors.push((e as Error).message);
+  }
+
+  try {
+    inputTimeout = parseInputTimeout(rawEnv.INPUT_TIMEOUT);
   } catch (e) {
     errors.push((e as Error).message);
   }
@@ -188,6 +214,7 @@ export function validateEnvironment(rawEnv: RawEnv = process.env): ValidationRes
     adventuresDir: rawEnv.ADVENTURES_DIR || "./adventures",
     allowedOrigins: parseAllowedOrigins(rawEnv.ALLOWED_ORIGINS),
     maxConnections,
+    inputTimeout,
     logLevel,
     logFile: rawEnv.LOG_FILE !== "false",
     nodeEnv: rawEnv.NODE_ENV,

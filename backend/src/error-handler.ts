@@ -7,6 +7,16 @@ import type { ErrorCode } from "./types/protocol";
 import { logger } from "./logger";
 
 /**
+ * Error thrown when input processing exceeds the configured timeout
+ */
+export class ProcessingTimeoutError extends Error {
+  constructor(public readonly timeoutMs: number) {
+    super(`Input processing timed out after ${timeoutMs}ms`);
+    this.name = "ProcessingTimeoutError";
+  }
+}
+
+/**
  * Internal error details for logging
  */
 export interface ErrorDetails {
@@ -126,6 +136,20 @@ export function mapGenericError(error: unknown): ErrorDetails {
     retryable: true,
     userMessage: "Something went wrong. Please try again.",
     technicalDetails: `Unexpected error: ${errorMessage}`,
+    originalError: error,
+  };
+}
+
+/**
+ * Create error details for processing timeout errors
+ */
+export function mapProcessingTimeoutError(error: ProcessingTimeoutError): ErrorDetails {
+  return {
+    code: "PROCESSING_TIMEOUT",
+    message: error.message,
+    retryable: true,
+    userMessage: "The game master is taking too long. Please try again.",
+    technicalDetails: `Input processing timed out after ${error.timeoutMs}ms`,
     originalError: error,
   };
 }

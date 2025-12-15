@@ -57,6 +57,7 @@ Terminal-based adventure management integrated into your development workflow:
 | `LOG_FILE` | No | `true` | Set to `false` to disable rotating file logs in `backend/logs/` |
 | `NODE_ENV` | No | — | Set to `production` for JSON log output |
 | `MAX_CONNECTIONS` | No | `100` | Maximum concurrent WebSocket connections |
+| `INPUT_TIMEOUT` | No | `60000` | Timeout in milliseconds for input processing (minimum 1000ms) |
 | `MOCK_SDK` | No | — | Set to `true` to use mock SDK (for testing without Claude Agent SDK) |
 
 \* Required only for image generation. Server runs without it using catalog/fallback images.

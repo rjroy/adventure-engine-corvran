@@ -14,6 +14,7 @@ export const ErrorCodeSchema = z.enum([
   "RATE_LIMIT",
   "GM_ERROR",
   "STATE_CORRUPTED",
+  "PROCESSING_TIMEOUT",
 ]);
 
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;

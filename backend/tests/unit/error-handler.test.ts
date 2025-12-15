@@ -6,6 +6,8 @@ import {
   mapSDKError,
   mapStateError,
   mapGenericError,
+  mapProcessingTimeoutError,
+  ProcessingTimeoutError,
   logError,
   createErrorPayload,
   isStateCorruption,
@@ -169,6 +171,45 @@ describe("Error Handler", () => {
     });
   });
 
+  describe("ProcessingTimeoutError", () => {
+    test("creates error with timeout duration", () => {
+      const error = new ProcessingTimeoutError(60000);
+
+      expect(error.name).toBe("ProcessingTimeoutError");
+      expect(error.timeoutMs).toBe(60000);
+      expect(error.message).toContain("60000ms");
+    });
+
+    test("is an Error instance", () => {
+      const error = new ProcessingTimeoutError(30000);
+
+      expect(error instanceof Error).toBe(true);
+      expect(error instanceof ProcessingTimeoutError).toBe(true);
+    });
+  });
+
+  describe("mapProcessingTimeoutError()", () => {
+    test("maps timeout error to user-friendly message", () => {
+      const error = new ProcessingTimeoutError(60000);
+      const result = mapProcessingTimeoutError(error);
+
+      expect(result.code).toBe("PROCESSING_TIMEOUT");
+      expect(result.retryable).toBe(true);
+      expect(result.userMessage).toBe(
+        "The game master is taking too long. Please try again."
+      );
+      expect(result.technicalDetails).toContain("60000ms");
+      expect(result.originalError).toBe(error);
+    });
+
+    test("includes timeout duration in technical details", () => {
+      const error = new ProcessingTimeoutError(30000);
+      const result = mapProcessingTimeoutError(error);
+
+      expect(result.technicalDetails).toContain("30000ms");
+    });
+  });
+
   describe("logError()", () => {
     test("logs error with context without throwing", () => {
       // logError now uses pino logger (tested separately in logger.test.ts)
@@ -249,6 +290,7 @@ describe("Error Handler", () => {
       expect(isStateCorruption("RATE_LIMIT")).toBe(false);
       expect(isStateCorruption("INVALID_TOKEN")).toBe(false);
       expect(isStateCorruption("ADVENTURE_NOT_FOUND")).toBe(false);
+      expect(isStateCorruption("PROCESSING_TIMEOUT")).toBe(false);
     });
   });
 
@@ -327,6 +369,25 @@ describe("Error Handler", () => {
     test("state corruption offers start fresh option", () => {
       const details = mapStateError("CORRUPTED", "Parse failed");
       expect(details.userMessage).toContain("start fresh");
+    });
+
+    test("processing timeout errors show specific message", () => {
+      const error = new ProcessingTimeoutError(60000);
+      const details = mapProcessingTimeoutError(error);
+      expect(details.userMessage).toBe(
+        "The game master is taking too long. Please try again."
+      );
+      expect(details.retryable).toBe(true);
+    });
+
+    test("processing timeout creates valid error payload", () => {
+      const error = new ProcessingTimeoutError(60000);
+      const details = mapProcessingTimeoutError(error);
+      const payload = createErrorPayload(details);
+
+      expect(payload.code).toBe("PROCESSING_TIMEOUT");
+      expect(payload.retryable).toBe(true);
+      expect(typeof payload.message).toBe("string");
     });
   });
 });

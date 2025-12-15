@@ -8,6 +8,7 @@ import { describe, expect, test } from "bun:test";
 import {
   parsePort,
   parseMaxConnections,
+  parseInputTimeout,
   parseLogLevel,
   parseAllowedOrigins,
   parseBoolean,
@@ -81,6 +82,40 @@ describe("parseMaxConnections", () => {
   test("throws for negative value", () => {
     expect(() => parseMaxConnections("-1")).toThrow("Invalid MAX_CONNECTIONS");
     expect(() => parseMaxConnections("-100")).toThrow("positive integer");
+  });
+});
+
+describe("parseInputTimeout", () => {
+  test("returns default 60000 when undefined", () => {
+    expect(parseInputTimeout(undefined)).toBe(60000);
+  });
+
+  test("returns default 60000 when empty string", () => {
+    expect(parseInputTimeout("")).toBe(60000);
+  });
+
+  test("parses valid timeout values", () => {
+    expect(parseInputTimeout("1000")).toBe(1000);
+    expect(parseInputTimeout("30000")).toBe(30000);
+    expect(parseInputTimeout("120000")).toBe(120000);
+  });
+
+  test("throws for non-numeric value", () => {
+    expect(() => parseInputTimeout("slow")).toThrow("Invalid INPUT_TIMEOUT");
+    expect(() => parseInputTimeout("abc")).toThrow("Invalid INPUT_TIMEOUT");
+  });
+
+  test("throws for value below 1000ms", () => {
+    expect(() => parseInputTimeout("999")).toThrow("Invalid INPUT_TIMEOUT");
+    expect(() => parseInputTimeout("500")).toThrow(">= 1000");
+  });
+
+  test("throws for zero", () => {
+    expect(() => parseInputTimeout("0")).toThrow("Invalid INPUT_TIMEOUT");
+  });
+
+  test("throws for negative value", () => {
+    expect(() => parseInputTimeout("-1000")).toThrow("Invalid INPUT_TIMEOUT");
   });
 });
 
@@ -205,6 +240,7 @@ describe("validateEnvironment", () => {
     expect(result.config.port).toBe(3000);
     expect(result.config.host).toBe("localhost");
     expect(result.config.maxConnections).toBe(100);
+    expect(result.config.inputTimeout).toBe(60000);
     expect(result.config.logLevel).toBe("info");
     expect(result.config.logFile).toBe(true);
     expect(result.config.mockSdk).toBe(false);
@@ -233,13 +269,15 @@ describe("validateEnvironment", () => {
     const result = validateEnvironment({
       PORT: "invalid",
       MAX_CONNECTIONS: "bad",
+      INPUT_TIMEOUT: "slow",
       LOG_LEVEL: "unknown",
     });
 
-    expect(result.errors).toHaveLength(3);
+    expect(result.errors).toHaveLength(4);
     expect(result.errors[0]).toContain("Invalid PORT");
     expect(result.errors[1]).toContain("Invalid MAX_CONNECTIONS");
-    expect(result.errors[2]).toContain("Invalid LOG_LEVEL");
+    expect(result.errors[2]).toContain("Invalid INPUT_TIMEOUT");
+    expect(result.errors[3]).toContain("Invalid LOG_LEVEL");
   });
 
   test("parses all valid values", () => {
@@ -249,6 +287,7 @@ describe("validateEnvironment", () => {
       ADVENTURES_DIR: "/data/adventures",
       ALLOWED_ORIGINS: "http://example.com,http://other.com",
       MAX_CONNECTIONS: "50",
+      INPUT_TIMEOUT: "30000",
       LOG_LEVEL: "debug",
       LOG_FILE: "false",
       NODE_ENV: "production",
@@ -265,6 +304,7 @@ describe("validateEnvironment", () => {
       adventuresDir: "/data/adventures",
       allowedOrigins: ["http://example.com", "http://other.com"],
       maxConnections: 50,
+      inputTimeout: 30000,
       logLevel: "debug",
       logFile: false,
       nodeEnv: "production",
@@ -287,6 +327,7 @@ describe("validateEnvironment", () => {
       "http://localhost:3000",
     ]);
     expect(result.config.maxConnections).toBe(100);
+    expect(result.config.inputTimeout).toBe(60000);
     expect(result.config.logLevel).toBe("info");
     expect(result.config.logFile).toBe(true);
     expect(result.config.nodeEnv).toBeUndefined();
