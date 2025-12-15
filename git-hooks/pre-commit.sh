@@ -13,61 +13,68 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${YELLOW}Running pre-commit checks...${NC}"
-
 # Track failures
 FAILED=0
 
 # Get repo root
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
+# Run a command quietly, showing output only on failure
+# Usage: run_quiet "label" command args...
+run_quiet() {
+    local label="$1"
+    shift
+    local output
+    local exit_code
+
+    printf "  %-30s" "$label"
+
+    if output=$("$@" 2>&1); then
+        echo -e "${GREEN}ok${NC}"
+        return 0
+    else
+        exit_code=$?
+        echo -e "${RED}FAILED${NC}"
+        echo "$output"
+        return $exit_code
+    fi
+}
+
 #
 # Backend checks
 #
-echo -e "\n${YELLOW}=== Backend ===${NC}"
+echo -e "${YELLOW}Backend${NC}"
 
 cd "$REPO_ROOT/backend"
 
-echo "Running typecheck..."
-if ! bun run typecheck; then
-    echo -e "${RED}Backend typecheck failed${NC}"
+if ! run_quiet "typecheck" bun run typecheck; then
     FAILED=1
 fi
 
-echo "Running lint..."
-if ! bun run lint; then
-    echo -e "${RED}Backend lint failed${NC}"
+if ! run_quiet "lint" bun run lint; then
     FAILED=1
 fi
 
-echo "Running unit tests..."
-if ! bun run test:unit; then
-    echo -e "${RED}Backend unit tests failed${NC}"
+if ! run_quiet "unit tests" bun run test:unit; then
     FAILED=1
 fi
 
 #
 # Frontend checks
 #
-echo -e "\n${YELLOW}=== Frontend ===${NC}"
+echo -e "${YELLOW}Frontend${NC}"
 
 cd "$REPO_ROOT/frontend"
 
-echo "Running typecheck..."
-if ! bun run typecheck; then
-    echo -e "${RED}Frontend typecheck failed${NC}"
+if ! run_quiet "typecheck" bun run typecheck; then
     FAILED=1
 fi
 
-echo "Running lint..."
-if ! bun run lint; then
-    echo -e "${RED}Frontend lint failed${NC}"
+if ! run_quiet "lint" bun run lint; then
     FAILED=1
 fi
 
-echo "Running unit tests..."
-if ! bun run test; then
-    echo -e "${RED}Frontend unit tests failed${NC}"
+if ! run_quiet "unit tests" bun run test; then
     FAILED=1
 fi
 
@@ -75,21 +82,17 @@ fi
 # Shared checks (if applicable)
 #
 if [ -f "$REPO_ROOT/shared/package.json" ]; then
-    echo -e "\n${YELLOW}=== Shared ===${NC}"
+    echo -e "${YELLOW}Shared${NC}"
     cd "$REPO_ROOT/shared"
 
     if grep -q '"typecheck"' package.json 2>/dev/null; then
-        echo "Running typecheck..."
-        if ! bun run typecheck; then
-            echo -e "${RED}Shared typecheck failed${NC}"
+        if ! run_quiet "typecheck" bun run typecheck; then
             FAILED=1
         fi
     fi
 
     if grep -q '"lint"' package.json 2>/dev/null; then
-        echo "Running lint..."
-        if ! bun run lint; then
-            echo -e "${RED}Shared lint failed${NC}"
+        if ! run_quiet "lint" bun run lint; then
             FAILED=1
         fi
     fi
@@ -101,9 +104,9 @@ fi
 cd "$REPO_ROOT"
 
 if [ $FAILED -ne 0 ]; then
-    echo -e "\n${RED}Pre-commit checks failed. Please fix the issues above.${NC}"
+    echo -e "${RED}Pre-commit checks failed${NC}"
     exit 1
 fi
 
-echo -e "\n${GREEN}All pre-commit checks passed!${NC}"
+echo -e "${GREEN}All checks passed${NC}"
 exit 0
