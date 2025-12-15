@@ -2,36 +2,40 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Package Manager
+
+**This project uses `bun`, not npm.** Always use `bun run`, `bun test`, `bun add`, etc.
+
 ## Build & Development Commands
 
-**Backend** (in `/backend`, uses Bun):
+**Backend** (in `/backend`):
 ```bash
-npm run dev              # Watch mode with hot reload
-npm run test             # All tests (unit + integration)
-npm run test:unit        # Unit tests only
+bun run dev              # Watch mode with hot reload
+bun run test             # All tests (unit + integration)
+bun run test:unit        # Unit tests only
 bun test tests/unit/game-session.test.ts  # Single test file
-npm run typecheck        # TypeScript validation
-npm run lint             # ESLint
+bun run typecheck        # TypeScript validation
+bun run lint             # ESLint
 ```
 
 **Frontend** (in `/frontend`, uses Vite + Vitest):
 ```bash
-npm run dev              # Vite dev server (port 5173)
-npm run test             # Run tests once
-npm run test:watch       # Watch mode
-npm run test -- useWebSocket.test.tsx  # Single test file
-npm run typecheck
-npm run lint
+bun run dev              # Vite dev server (port 5173)
+bun run test             # Run tests once
+bun run test:watch       # Watch mode
+bun run test -- useWebSocket.test.tsx  # Single test file
+bun run typecheck
+bun run lint
 ```
 
 **E2E** (in `/e2e`, uses Playwright):
 ```bash
-npm test                 # Run tests (starts backend + frontend automatically)
-npm run test:headed      # Visible browser
-npm run test:debug       # Debug mode
+bun test                 # Run tests (starts backend + frontend automatically)
+bun run test:headed      # Visible browser
+bun run test:debug       # Debug mode
 ```
 
-**Development Workflow**: Run backend (`cd backend && npm run dev`) and frontend (`cd frontend && npm run dev`) in separate terminals.
+**Development Workflow**: Run backend (`cd backend && bun run dev`) and frontend (`cd frontend && bun run dev`) in separate terminals.
 
 ## Architecture
 
