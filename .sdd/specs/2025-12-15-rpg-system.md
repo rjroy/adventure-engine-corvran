@@ -1,6 +1,6 @@
 ---
-version: 1.1.0
-status: Approved
+version: 1.2.0
+status: Under Review
 created: 2025-12-15
 last_updated: 2025-12-15
 authored_by:
@@ -78,12 +78,12 @@ As a **player**, I want guided character creation and transparent game mechanics
 - **REQ-F-14**: All dice rolls MUST be logged with timestamp, roll expression, and result
 - **REQ-F-15**: Dice roll visibility MUST be controllable (player-visible vs. GM-hidden) per system rules
 
-### Skill Checks (REQ-F-16 through REQ-F-19)
+### Resolution Mechanics (REQ-F-16 through REQ-F-19)
 
-- **REQ-F-16**: Skill check MCP tool MUST resolve checks using system-defined mechanics
-- **REQ-F-17**: Skill checks MUST support difficulty levels defined by the system
-- **REQ-F-18**: Skill check results MUST include success/failure and degree (partial success if system supports)
-- **REQ-F-19**: Skill check outcomes MUST be logged for auditability
+- **REQ-F-16**: System definitions MUST declare resolution mechanics (how to interpret dice rolls for success/failure)
+- **REQ-F-17**: GM MUST use `roll_dice` tool and interpret results according to system-defined resolution mechanics
+- **REQ-F-18**: Resolution mechanics MUST support system-specific outcomes (success/failure, partial success, degrees of success, etc.)
+- **REQ-F-19**: All resolution rolls MUST be logged via `roll_dice` for auditability
 
 ### Combat (REQ-F-20 through REQ-F-24)
 
@@ -160,12 +160,12 @@ As a **player**, I want guided character creation and transparent game mechanics
 2. **Character Creation**: Given a system with STR/DEX/CON attributes, when adventure starts, then player is guided through attribute assignment
 3. **Dice Roll (Visible)**: Given a player-visible skill check, when GM calls dice tool, then roll result appears in narrative
 4. **Dice Roll (Hidden)**: Given a GM-hidden perception check, when GM rolls, then result is logged but not shown to player
-5. **Skill Check Resolution**: Given a DC 15 Athletics check with +3 modifier, when player attempts action, then success/failure follows d20+3 vs 15
-6. **Fudge Dice**: Given a Fudge system, when GM calls 4dF roll, then result is sum of four dice each showing -1, 0, or +1
+5. **Resolution (d20)**: Given d20 system with "roll d20 + modifier vs DC" resolution, when GM rolls 1d20+3 for DC 15 check, then GM interprets result per system rules
+6. **Resolution (Fudge)**: Given Fudge system with ladder resolution, when GM calls 4dF+2 roll, then GM interprets result against difficulty ladder per system rules
 7. **Combat Initiative**: Given turn-based combat system, when combat begins, then initiative order is determined and persisted
 8. **Damage Application**: Given combat damage, when damage tool called, then character HP updates in state
 9. **No System Fallback**: Given adventure without `System.md`, when loaded, then adventure runs as pure narrative (no mechanics)
-10. **Partial Success**: Given Apocalypse World-style system, when roll is 7-9, then result indicates partial success
+10. **Resolution (PbtA)**: Given PbtA system with "2d6+stat: 6- fail, 7-9 partial, 10+ success" resolution, when GM rolls 2d6+1 and gets 8, then GM interprets as partial success per system rules
 11. **Audit Trail**: Given multiple dice rolls during adventure, when audit log inspected, then each entry includes timestamp, expression, result, and visibility flag
 12. **Invalid Dice Error**: Given dice expression "d7", when GM calls dice tool, then error response explains valid die types
 13. **Malformed System Error**: Given `System.md` missing required dice section, when adventure loads, then error message identifies missing field

@@ -1,7 +1,7 @@
 ---
 specification: [.sdd/specs/2025-12-15-rpg-system.md](./../specs/2025-12-15-rpg-system.md)
 status: Approved
-version: 1.1.0
+version: 1.2.0
 created: 2025-12-15
 last_updated: 2025-12-15
 authored_by:
@@ -16,10 +16,10 @@ This plan adds a pluggable RPG framework to Adventure Engine, enabling adventure
 
 1. **System Definition Parser**: Reads `System.md` or `System/*.md` from adventure directories, extracts RPG rules and NPC templates as narrative context for the GM
 2. **Dice MCP Tool**: Provides auditable randomization with configurable visibility
-3. **Character & NPC Management MCP Tools**: Support for PC creation, NPC creation/management, skill checks, and combat resolution
+3. **Character & NPC Management MCP Tools**: Support for PC creation, NPC creation/management, and combat resolution
 4. **Extended State Persistence**: Player character, NPCs array, dice logs, and combat state in `state.json`
 
-The design preserves backward compatibility—adventures without system definitions continue as pure narrative. The GM (Claude) interprets system rules and calls MCP tools to resolve mechanics, keeping all game logic in markdown rather than code. NPCs are managed with the same mechanical properties as the player character, enabling proper combat and skill check resolution.
+The design preserves backward compatibility—adventures without system definitions continue as pure narrative. The GM (Claude) interprets system rules and calls MCP tools to resolve mechanics, keeping all game logic in markdown rather than code. NPCs are managed with the same mechanical properties as the player character, enabling proper combat resolution.
 
 ## Architecture
 
@@ -46,9 +46,9 @@ The design preserves backward compatibility—adventures without system definiti
 │                                      ▼                               │
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │                    MCP Tools (RPG)                            │  │
-│  │  ┌─────────┐  ┌──────────┐  ┌─────────────┐  ┌────────────┐  │  │
-│  │  │roll_dice│  │skill_check│  │apply_damage │  │get_character│ │  │
-│  │  └─────────┘  └──────────┘  └─────────────┘  └────────────┘  │  │
+│  │  ┌─────────┐  ┌─────────────┐  ┌────────────┐                │  │
+│  │  │roll_dice│  │apply_damage │  │get_character│                │  │
+│  │  └─────────┘  └─────────────┘  └────────────┘                │  │
 │  │  ┌──────────┐  ┌──────────┐  ┌────────────┐  ┌─────────────┐ │  │
 │  │  │create_npc│  │update_npc│  │remove_npc  │  │manage_combat│ │  │
 │  │  └──────────┘  └──────────┘  └────────────┘  └─────────────┘ │  │
@@ -77,10 +77,9 @@ The design preserves backward compatibility—adventures without system definiti
 
 | Component | Responsibility |
 |-----------|----------------|
-| **SystemLoader** | Parse `System.md`/`System/*.md`, validate required sections, extract NPC templates, provide rules text to prompt builder |
-| **buildGMSystemPrompt** | Include system rules + NPC templates + RPG tool instructions in GM prompt |
-| **roll_dice tool** | Parse dice expressions, generate results, log with visibility flag |
-| **skill_check tool** | Resolve checks for PC or NPCs using system-defined mechanics |
+| **SystemLoader** | Parse `System.md`/`System/*.md`, validate required sections, extract NPC templates and resolution mechanics, provide rules text to prompt builder |
+| **buildGMSystemPrompt** | Include system rules + resolution mechanics + NPC templates + RPG tool instructions in GM prompt |
+| **roll_dice tool** | Parse dice expressions, generate results, log with visibility flag; GM interprets results per system rules |
 | **apply_damage tool** | Update PC or NPC HP/conditions, handle incapacitation rules |
 | **get_character tool** | Return current PC state for GM reference |
 | **create_npc tool** | Create NPC from template or ad-hoc with stats, persist to state |
@@ -89,16 +88,25 @@ The design preserves backward compatibility—adventures without system definiti
 | **manage_combat tool** | Handle initiative, turn order for both PC and NPCs |
 | **AdventureStateManager** | Persist PC data, NPCs array, dice logs, combat state |
 
-### Data Flow: Skill Check
+### Data Flow: Resolution (GM-Interpreted)
 
-1. Player describes action: "I try to pick the lock"
-2. GM reads system rules (from prompt context), decides this is a Dexterity-based Lockpicking check
-3. GM calls `skill_check` tool with `{skill: "Lockpicking", difficulty: 15, attribute: "Dexterity"}`
-4. Tool retrieves character's DEX modifier (+2), system dice type (d20), calls internal dice roller
-5. Roll: 13 + 2 = 15, meets DC 15 → success
-6. Tool logs roll `{expression: "1d20+2", result: 15, context: "Lockpicking vs DC 15", visible: true}`
-7. Tool returns `{outcome: "success", roll: 15, target: 15, message: "Success!"}`
-8. GM narrates: "The lock clicks open. Your nimble fingers make quick work of the mechanism."
+**Example 1: d20 System**
+1. Player: "I try to pick the lock"
+2. GM reads system rules: "Roll d20 + skill modifier vs DC. Lockpicking uses DEX."
+3. GM reads character's DEX modifier (+2) from state
+4. GM calls `roll_dice("1d20+2", context: "Lockpicking vs DC 15", visible: true)`
+5. Tool returns `{total: 15, individualRolls: [13], modifiers: 2}`
+6. GM interprets: 15 meets DC 15 → success
+7. GM narrates: "The lock clicks open. Your nimble fingers make quick work of the mechanism."
+
+**Example 2: PbtA System**
+1. Player: "I try to convince the guard to let us pass"
+2. GM reads system rules: "Roll 2d6 + CHA. 6- = failure, 7-9 = partial success, 10+ = full success"
+3. GM reads character's CHA modifier (+1) from state
+4. GM calls `roll_dice("2d6+1", context: "Persuade guard", visible: true)`
+5. Tool returns `{total: 8, individualRolls: [4, 3], modifiers: 1}`
+6. GM interprets: 8 is in 7-9 range → partial success
+7. GM narrates: "The guard hesitates. 'Fine, but leave your weapons here.'"
 
 ## Technical Decisions
 
@@ -113,8 +121,8 @@ The design preserves backward compatibility—adventures without system definiti
 - Alternative (JSON schema) would require code changes for each new mechanic
 
 ### TD-2: MCP Tools for Mechanical Resolution
-**Choice**: Implement dice rolling and skill checks as MCP tools (like existing `set_theme`)
-**Requirements**: REQ-F-11-15 (dice), REQ-F-16-19 (skill checks), REQ-F-14 (logging), REQ-NF-4 (auditability), REQ-NF-6 (testability)
+**Choice**: Implement dice rolling and combat tools as MCP tools (like existing `set_theme`)
+**Requirements**: REQ-F-11-15 (dice), REQ-F-14 (logging), REQ-NF-4 (auditability), REQ-NF-6 (testability)
 **Rationale**:
 - Existing `set_theme` tool pattern proves MCP tool integration works
 - Tools provide auditable, deterministic outcomes that GM cannot fabricate
@@ -201,16 +209,20 @@ The design preserves backward compatibility—adventures without system definiti
 - Returns individual die results + total for transparency
 - Alternative (separate tools per die type) clutters tool list unnecessarily
 
-### TD-11: Skill Check Tool Delegates to Dice Tool
-**Choice**: `skill_check` internally calls `roll_dice`, then applies system rules
-**Requirements**: REQ-F-16, REQ-F-17, REQ-F-18, REQ-F-19 (outcome logging)
+### TD-11: GM-Interpreted Resolution (No skill_check Tool)
+**Choice**: GM uses `roll_dice` directly and interprets results per system-defined resolution mechanics
+**Requirements**: REQ-F-16, REQ-F-17, REQ-F-18, REQ-F-19
 **Rationale**:
-- Avoids duplicate dice rolling logic
-- Skill check adds: modifier lookup, difficulty comparison, success degree
-- GM provides context (skill name, difficulty, attribute) from system rules
-- Tool returns structured result: `{outcome, roll, modifiers, target}`
-- All skill check outcomes logged via internal `roll_dice` call (satisfies REQ-F-19)
-- System-agnostic: works with d20+mod vs DC, 2d6 PbtA, 4dF Fate
+- Different systems have fundamentally different resolution mechanics:
+  - d20: roll + modifier vs DC
+  - PbtA: 2d6 + stat → 6- fail, 7-9 partial, 10+ success
+  - Fate: 4dF + skill vs ladder
+  - Storyteller: d10 pool, count 8+ as successes
+- Hardcoding any resolution logic violates constraint "Do NOT hardcode any specific RPG system's rules"
+- GM reads System.md resolution rules, calls `roll_dice`, interprets result
+- Example flow: System says "roll 2d6+stat, 7-9 partial success" → GM calls `roll_dice("2d6+2")` → gets 8 → interprets as partial success → narrates accordingly
+- All rolls logged via `roll_dice` (satisfies REQ-F-19)
+- Alternative (skill_check tool) would embed system-specific logic in code
 
 ### TD-12: Combat Damage via apply_damage Tool
 **Choice**: `apply_damage` tool handles all HP changes and condition tracking
@@ -248,7 +260,7 @@ The design preserves backward compatibility—adventures without system definiti
 **Requirements**: REQ-F-35, REQ-F-36, REQ-F-39
 **Rationale**:
 - Same properties: stats, skills, HP, conditions, inventory
-- Enables code reuse: `apply_damage`, `skill_check` work on both PC and NPCs
+- Enables code reuse: `apply_damage`, `roll_dice` work on both PC and NPCs
 - Additional NPC fields: `id` (unique identifier), `templateName` (if from template), `reward`
 - Reward property defines XP, loot, or story outcomes when NPC is overcome
 - Array storage (`npcs[]`) vs. map—simpler iteration for combat, easy serialization
@@ -397,7 +409,16 @@ interface SystemDefinition {
 # Adventure System
 
 ## Dice
-This adventure uses the d20 system. Roll 1d20 + modifiers against difficulty.
+This adventure uses the d20 system with polyhedral dice: d4, d6, d8, d10, d12, d20.
+
+## Resolution Mechanics
+Roll 1d20 + modifier against a Difficulty Class (DC):
+- Natural 20: Critical success (automatic success, bonus effect)
+- Roll ≥ DC: Success
+- Roll < DC: Failure
+- Natural 1: Critical failure (automatic failure, complication)
+
+Typical DCs: Easy 10, Medium 15, Hard 20, Very Hard 25.
 
 ## Attributes
 - Strength (STR): Physical power
@@ -499,50 +520,6 @@ interface DiceRollResult {
 - Invalid expression syntax → Error with example valid expressions
 - Negative dice count → Error
 
-### MCP Tool: skill_check
-
-```typescript
-const skillCheckTool = tool(
-  "skill_check",
-  `Resolve a skill check using the adventure's system rules.
-Automatically looks up character modifiers and applies system mechanics.
-
-For d20 systems: rolls d20 + skill modifier vs difficulty
-For 2d6 PbtA: rolls 2d6 + stat, interprets 6-/7-9/10+
-For Fate/Fudge: rolls 4dF + skill vs difficulty ladder`,
-  {
-    skill: z.string().describe("Skill name (e.g., 'Stealth', 'Persuasion')"),
-    difficulty: z.number().optional().describe("Target number (DC) if applicable"),
-    attribute: z.string().optional().describe("Override attribute (defaults to skill's linked attr)"),
-    advantage: z.boolean().optional().describe("Roll with advantage (best of 2)"),
-    disadvantage: z.boolean().optional().describe("Roll with disadvantage (worst of 2)"),
-    visible: z.boolean().default(true).describe("Whether player sees the roll"),
-  },
-  async (args) => {
-    // Look up character skill/attribute modifiers
-    // Determine roll type from system definition
-    // Call internal dice roller
-    // Compare to difficulty, determine outcome
-    // Log roll
-    // Return result with outcome
-  }
-);
-```
-
-**Response Schema**:
-```typescript
-interface SkillCheckResult {
-  skill: string;
-  attribute: string;
-  modifier: number;
-  roll: DiceRollResult;
-  difficulty?: number;
-  outcome: "critical_success" | "success" | "partial_success" | "failure" | "critical_failure";
-  margin: number;           // How much over/under difficulty
-  message: string;          // Human-readable result
-}
-```
-
 ### MCP Tool: apply_damage
 
 ```typescript
@@ -611,7 +588,7 @@ Combatants can include both player and NPCs.`,
 const createNpcTool = tool(
   "create_npc",
   `Create a new NPC, either from a system template or with custom stats.
-NPCs persist in state and can participate in combat and skill checks.`,
+NPCs persist in state and can participate in combat.`,
   {
     name: z.string().describe("Unique display name (e.g., 'Goblin Scout', 'Gruk')"),
     templateName: z.string().optional().describe("Template to base NPC on (e.g., 'Goblin')"),
@@ -742,11 +719,12 @@ interface RemoveNpcResult {
 - **Dependencies**: Node.js fs for file reading, glob for System/* pattern
 
 ### GM Prompt Integration (gm-prompt.ts)
-- **Purpose**: Include system rules, NPC templates, and RPG tool instructions in prompt
+- **Purpose**: Include system rules, resolution mechanics, NPC templates, and RPG tool instructions in prompt
 - **Changes**:
   - Add system rules section if `systemDefinition` present
+  - Include resolution mechanics (GM interprets dice results per these rules)
   - Include NPC templates (monster manual) for GM reference
-  - Add tool usage instructions for dice/check/combat/NPC tools
+  - Add tool usage instructions for dice/damage/combat/NPC tools
   - Conditional: omit RPG sections for adventures without systems
 - **Data Flow**: `buildGMSystemPrompt(state)` checks `state.systemDefinition`
 
@@ -758,7 +736,7 @@ interface RemoveNpcResult {
 ### GameSession Integration (game-session.ts)
 - **Purpose**: Handle RPG tool callbacks, update state
 - **Changes**:
-  - Add tool handlers for `roll_dice`, `skill_check`, `apply_damage`, `manage_combat`
+  - Add tool handlers for `roll_dice`, `apply_damage`, `manage_combat`
   - Add tool handlers for `create_npc`, `update_npc`, `remove_npc`
   - Update `onToolUse` callback in mock SDK to handle new tools
   - Pass state manager to tools for persistence
@@ -785,7 +763,7 @@ interface RemoveNpcResult {
 
 ### Performance Targets
 - **Dice roll resolution**: <100ms including logging (REQ-NF-1)
-- **Skill check resolution**: <200ms including dice roll (REQ-NF-2)
+- **Resolution mechanics**: <200ms for GM to interpret dice result and respond (REQ-NF-2)
 - **System loading**: One-time at adventure start, <500ms for typical System.md
 - **NPC operations**: <50ms for create/update/remove (simple state mutations)
 
@@ -799,13 +777,13 @@ interface RemoveNpcResult {
 ### Unit Tests
 - **Dice parser**: Expression parsing, edge cases (d100, dF, modifiers)
 - **Roll distribution**: Statistical validation of randomness (chi-square test)
-- **Skill check**: Modifier lookup, outcome determination, all outcome types
 - **System loader**: Valid/invalid markdown, missing sections, NPC template parsing
 - **NPC tools**: Create/update/remove operations, unique name validation, template lookup
+- **apply_damage**: HP bounds checking, condition application, incapacitation detection
 - **Coverage target**: 80% for new code
 
 ### Integration Tests
-- **Full skill check flow**: Mock SDK → tool call → state update → response
+- **Full dice roll flow**: Mock SDK → roll_dice call → log entry → response with results
 - **Combat lifecycle**: Start → turn advancement → end (with PC and NPCs)
 - **Character creation**: Narrative prompts → stat assignment → persistence
 - **NPC lifecycle**: Create from template → participate in combat → apply damage → remove on death
