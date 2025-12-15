@@ -3,7 +3,7 @@
 // Implements input queuing to prevent race conditions (REQ-F-18)
 
 import type { WSContext } from "hono/ws";
-import { logger } from "./logger";
+import { logger, type Logger } from "./logger";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { query } from "@anthropic-ai/claude-agent-sdk";
@@ -15,7 +15,6 @@ import { buildGMSystemPrompt, createThemeMcpServer } from "./gm-prompt";
 import {
   mapSDKError,
   mapGenericError,
-  logError,
   createErrorPayload,
   type ErrorDetails,
 } from "./error-handler";
@@ -40,13 +39,21 @@ class AgentSDKError extends Error {
 }
 
 /**
+ * Queued input item with optional request logger for correlation
+ */
+interface QueuedInput {
+  text: string;
+  logger?: Logger;
+}
+
+/**
  * GameSession manages a single player's adventure session
  * Handles input queuing, GM response streaming, and state updates
  */
 export class GameSession {
   private ws: WSContext;
   private stateManager: AdventureStateManager;
-  private inputQueue: string[] = [];
+  private inputQueue: QueuedInput[] = [];
   private isProcessing = false;
   private projectDirectory: string | null = null;
   private backgroundImageService: BackgroundImageService | null = null;
@@ -111,35 +118,42 @@ export class GameSession {
    * Queues input and processes if not already busy
    * Applies input sanitization for prompt injection prevention
    * @param text Player input text
+   * @param requestLogger Optional request-scoped logger for log correlation
    */
-  async handleInput(text: string): Promise<void> {
+  async handleInput(text: string, requestLogger?: Logger): Promise<void> {
+    const log = requestLogger ?? logger;
+
     // Sanitize input for prompt injection prevention
     const sanitization = sanitizePlayerInput(text);
 
     // Block egregious attempts (role manipulation targeting AI, excessive length)
     if (sanitization.blocked) {
-      this.sendMessage({
-        type: "error",
-        payload: {
-          code: "GM_ERROR",
-          message: "Please describe your action in the game world.",
-          retryable: true,
+      this.sendMessage(
+        {
+          type: "error",
+          payload: {
+            code: "GM_ERROR",
+            message: "Please describe your action in the game world.",
+            retryable: true,
+          },
         },
-      });
-      logger.warn({ reason: sanitization.blockReason, flags: sanitization.flags }, "Blocked input");
+        log
+      );
+      log.warn({ reason: sanitization.blockReason, flags: sanitization.flags }, "Blocked input");
       return;
     }
 
     // Log flagged but allowed input for monitoring
     if (sanitization.flags.length > 0) {
-      logger.info({ flags: sanitization.flags }, "Flagged input");
+      log.info({ flags: sanitization.flags }, "Flagged input");
     }
 
-    // Add sanitized input to queue
-    this.inputQueue.push(sanitization.sanitized);
+    // Add sanitized input to queue with its logger
+    this.inputQueue.push({ text: sanitization.sanitized, logger: requestLogger });
 
     // If already processing, the current handler will pick up the next item
     if (this.isProcessing) {
+      log.debug("Input queued, already processing");
       return;
     }
 
@@ -157,13 +171,13 @@ export class GameSession {
     try {
       while (this.inputQueue.length > 0) {
         // Get next input from queue
-        const input = this.inputQueue.shift();
-        if (!input) {
+        const queuedInput = this.inputQueue.shift();
+        if (!queuedInput) {
           break;
         }
 
-        // Process this input
-        await this.processInput(input);
+        // Process this input with its associated logger
+        await this.processInput(queuedInput.text, queuedInput.logger);
       }
     } finally {
       this.isProcessing = false;
@@ -173,11 +187,15 @@ export class GameSession {
   /**
    * Process a single input: generate response and update state
    * @param input Player input text
+   * @param requestLogger Optional request-scoped logger for log correlation
    */
-  private async processInput(input: string): Promise<void> {
+  private async processInput(input: string, requestLogger?: Logger): Promise<void> {
+    const log = requestLogger ?? logger;
     const messageId = randomUUID();
 
     try {
+      log.debug({ messageId }, "Starting input processing");
+
       // Log player input to history
       const playerEntry: NarrativeEntry = {
         id: randomUUID(),
@@ -188,30 +206,41 @@ export class GameSession {
       await this.stateManager.appendHistory(playerEntry);
 
       // Send response start
-      this.sendMessage({
-        type: "gm_response_start",
-        payload: { messageId },
-      });
+      this.sendMessage(
+        {
+          type: "gm_response_start",
+          payload: { messageId },
+        },
+        log
+      );
 
       // Generate and stream GM response using Claude Agent SDK
       let fullResponse = "";
-      const responseGenerator = this.generateGMResponse(input);
+      const responseGenerator = this.generateGMResponse(input, log);
 
       for await (const chunk of responseGenerator) {
         fullResponse += chunk;
 
         // Send chunk
-        this.sendMessage({
-          type: "gm_response_chunk",
-          payload: { messageId, text: chunk },
-        });
+        this.sendMessage(
+          {
+            type: "gm_response_chunk",
+            payload: { messageId, text: chunk },
+          },
+          log
+        );
       }
 
       // Send response end
-      this.sendMessage({
-        type: "gm_response_end",
-        payload: { messageId },
-      });
+      this.sendMessage(
+        {
+          type: "gm_response_end",
+          payload: { messageId },
+        },
+        log
+      );
+
+      log.debug({ messageId, responseLength: fullResponse.length }, "Response complete");
 
       // Log GM response to history
       const gmEntry: NarrativeEntry = {
@@ -240,16 +269,25 @@ export class GameSession {
       }
 
       // Log with context for debugging (REQ-F-28)
-      logError("processInput", errorDetails, {
-        adventureId: this.stateManager.getState()?.id,
-        projectDirectory: this.projectDirectory,
-      });
+      // Use request logger if available for correlation
+      log.error(
+        {
+          errorCode: errorDetails.code,
+          message: errorDetails.message,
+          adventureId: this.stateManager.getState()?.id,
+          projectDirectory: this.projectDirectory,
+        },
+        "processInput error"
+      );
 
       // Send user-friendly error to client
-      this.sendMessage({
-        type: "error",
-        payload: createErrorPayload(errorDetails),
-      });
+      this.sendMessage(
+        {
+          type: "error",
+          payload: createErrorPayload(errorDetails),
+        },
+        log
+      );
     }
   }
 
@@ -257,10 +295,13 @@ export class GameSession {
    * Generate GM response using Claude Agent SDK
    * Streams tokens as they arrive from the API
    * @param input Player input
+   * @param requestLogger Optional request-scoped logger for log correlation
    */
   private async *generateGMResponse(
-    input: string
+    input: string,
+    requestLogger?: Logger
   ): AsyncGenerator<string, void, unknown> {
+    const log = requestLogger ?? logger;
     const state = this.stateManager.getState();
     if (!state) {
       throw new Error("Adventure state not loaded");
@@ -274,7 +315,7 @@ export class GameSession {
 
     // Use mock SDK for E2E testing
     if (useMockSDK()) {
-      logger.debug({ input }, "Using mock query");
+      log.debug({ input }, "Using mock query");
       const mockQueryResult = mockQuery({
         prompt: input,
         options: { systemPrompt },
@@ -295,18 +336,21 @@ export class GameSession {
     // Create MCP server for set_theme tool with callback to handle theme changes
     const themeMcpServer = createThemeMcpServer(
       async (mood, genre, region, forceGenerate, imagePrompt) => {
-        logger.debug({ mood, genre, region }, "MCP callback invoked");
+        log.debug({ mood, genre, region }, "MCP callback invoked");
         try {
-          await this.handleSetThemeTool({
-            mood,
-            genre: genre as Genre,
-            region: region as Region,
-            image_prompt: imagePrompt,
-            force_generate: forceGenerate,
-          });
-          logger.debug({ mood }, "MCP callback completed successfully");
+          await this.handleSetThemeTool(
+            {
+              mood,
+              genre: genre as Genre,
+              region: region as Region,
+              image_prompt: imagePrompt,
+              force_generate: forceGenerate,
+            },
+            log
+          );
+          log.debug({ mood }, "MCP callback completed successfully");
         } catch (error) {
-          logger.error({ err: error, mood }, "MCP callback error");
+          log.error({ err: error, mood }, "MCP callback error");
           throw error;
         }
       }
@@ -335,8 +379,8 @@ export class GameSession {
     let newAgentSessionId: string | null = null;
 
     for await (const message of sdkQuery) {
-      // DEBUG: Log all messages to find tool calls
-      logger.debug({ messageType: message.type, preview: JSON.stringify(message).slice(0, 200) }, "SDK message");
+      // Log SDK messages for debugging
+      log.debug({ messageType: message.type, preview: JSON.stringify(message).slice(0, 200) }, "SDK message");
 
       // Capture session ID for conversation continuity
       if (message.type === "system" && message.subtype === "init") {
@@ -382,7 +426,7 @@ export class GameSession {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           if (block.type === "tool_use") {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            logger.debug({ toolName: block.name, input: block.input }, "Tool use detected");
+            log.debug({ toolName: block.name, input: block.input }, "Tool use detected");
           }
         }
       }
@@ -399,18 +443,23 @@ export class GameSession {
    * Handle set_theme tool call from GM
    * Processes theme change requests with debouncing and background image generation
    * @param input Tool input with mood, genre, region, optional image_prompt, and optional force_generate flag
+   * @param requestLogger Optional request-scoped logger for log correlation
    */
-  private async handleSetThemeTool(input: {
-    mood: ThemeMood;
-    genre: Genre;
-    region: Region;
-    image_prompt?: string;
-    force_generate?: boolean;
-  }): Promise<void> {
+  private async handleSetThemeTool(
+    input: {
+      mood: ThemeMood;
+      genre: Genre;
+      region: Region;
+      image_prompt?: string;
+      force_generate?: boolean;
+    },
+    requestLogger?: Logger
+  ): Promise<void> {
+    const log = requestLogger ?? logger;
     const { mood, genre, region, image_prompt, force_generate = false } = input;
     const now = Date.now();
 
-    logger.debug({ mood, genre, region, promptPreview: image_prompt?.slice(0, 50), forceGenerate: force_generate }, "handleSetThemeTool");
+    log.debug({ mood, genre, region, promptPreview: image_prompt?.slice(0, 50), forceGenerate: force_generate }, "handleSetThemeTool");
 
     // Debounce: ignore duplicate theme within 1 second (REQ-F-23)
     if (
@@ -418,7 +467,7 @@ export class GameSession {
       this.lastThemeChange.mood === mood &&
       now - this.lastThemeChange.timestamp < 1000
     ) {
-      logger.debug({ mood }, "Debouncing duplicate theme change");
+      log.debug({ mood }, "Debouncing duplicate theme change");
       return;
     }
 
@@ -438,9 +487,9 @@ export class GameSession {
           image_prompt  // Used for generation if no cached image matches
         );
         backgroundUrl = result.url;
-        logger.debug({ source: result.source, url: backgroundUrl }, "Background image retrieved");
+        log.debug({ source: result.source, url: backgroundUrl }, "Background image retrieved");
       } catch (error) {
-        logger.error({ err: error }, "Failed to get background image");
+        log.error({ err: error }, "Failed to get background image");
         // Continue with null backgroundUrl - frontend will handle fallback
       }
     }
@@ -449,16 +498,19 @@ export class GameSession {
     await this.stateManager.updateTheme(mood, genre, region, backgroundUrl);
 
     // Emit theme_change WebSocket message
-    logger.debug({ mood, genre, region, backgroundUrl }, "Sending theme_change");
-    this.sendMessage({
-      type: "theme_change",
-      payload: {
-        mood,
-        genre,
-        region,
-        backgroundUrl,
+    log.debug({ mood, genre, region, backgroundUrl }, "Sending theme_change");
+    this.sendMessage(
+      {
+        type: "theme_change",
+        payload: {
+          mood,
+          genre,
+          region,
+          backgroundUrl,
+        },
       },
-    });
+      log
+    );
   }
 
   /**
@@ -503,14 +555,16 @@ export class GameSession {
   /**
    * Send a message to the WebSocket client
    * @param message Server message to send
+   * @param requestLogger Optional request-scoped logger for log correlation
    */
-  private sendMessage(message: ServerMessage): void {
+  private sendMessage(message: ServerMessage, requestLogger?: Logger): void {
+    const log = requestLogger ?? logger;
     try {
       const json = JSON.stringify(message);
-      logger.debug({ messageType: message.type, preview: json.slice(0, 100) }, "WebSocket send");
+      log.debug({ messageType: message.type, preview: json.slice(0, 100) }, "WebSocket send");
       this.ws.send(json);
     } catch (error) {
-      logger.error({ err: error }, "Failed to send WebSocket message");
+      log.error({ err: error }, "Failed to send WebSocket message");
     }
   }
 
