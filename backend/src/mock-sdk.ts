@@ -1,19 +1,119 @@
 // Mock Claude Agent SDK for E2E Testing
 // Provides deterministic responses without hitting the real API
 
+import type { ThemeMood, Genre, Region } from "./types/protocol";
+
 /**
- * Mock query function that simulates Claude Agent SDK responses
- * Used when MOCK_SDK=true environment variable is set
+ * Tool use callback for simulating MCP tool invocations
+ * @param toolName - Name of the tool being invoked (e.g., "set_theme")
+ * @param input - Tool input parameters
  */
-export async function* mockQuery(options: {
+export type OnToolUseCallback = (
+  toolName: string,
+  input: Record<string, unknown>
+) => Promise<void>;
+
+/**
+ * Options for mock query
+ */
+export interface MockQueryOptions {
   prompt: string;
   options?: {
     resume?: string;
     systemPrompt?: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: any;
+    /** Callback invoked when a tool_use would be triggered */
+    onToolUse?: OnToolUseCallback;
   };
-}): AsyncGenerator<MockSDKMessage, void, unknown> {
+}
+
+/**
+ * Theme tool call detected from input
+ */
+interface ThemeToolCall {
+  name: "set_theme";
+  input: {
+    mood: ThemeMood;
+    genre: Genre;
+    region: Region;
+  };
+}
+
+/**
+ * Theme trigger rules - maps keywords to theme parameters
+ */
+const THEME_TRIGGERS: Array<{
+  keywords: string[];
+  mood: ThemeMood;
+  genre: Genre;
+  region: Region;
+}> = [
+  // Ominous/danger triggers
+  {
+    keywords: ["dark forest", "ominous", "danger", "threatening", "menacing"],
+    mood: "ominous",
+    genre: "high-fantasy",
+    region: "forest",
+  },
+  // Calm/peaceful triggers
+  {
+    keywords: ["village", "tavern", "rest", "inn", "peaceful", "safe"],
+    mood: "calm",
+    genre: "high-fantasy",
+    region: "village",
+  },
+  // Tense/combat triggers
+  {
+    keywords: ["battle", "combat", "fight", "attack", "enemy", "sword"],
+    mood: "tense",
+    genre: "high-fantasy",
+    region: "forest",
+  },
+  // Mysterious/exploration triggers
+  {
+    keywords: ["ruins", "ancient", "mystery", "discover", "explore", "hidden"],
+    mood: "mysterious",
+    genre: "high-fantasy",
+    region: "ruins",
+  },
+  // Triumphant/victory triggers
+  {
+    keywords: ["victory", "win", "triumph", "celebrate", "success"],
+    mood: "triumphant",
+    genre: "high-fantasy",
+    region: "castle",
+  },
+];
+
+/**
+ * Detect if input should trigger a theme tool call
+ * @param prompt - Player input (lowercase)
+ * @returns Theme tool call or null
+ */
+export function detectThemeTool(prompt: string): ThemeToolCall | null {
+  for (const trigger of THEME_TRIGGERS) {
+    if (trigger.keywords.some((keyword) => prompt.includes(keyword))) {
+      return {
+        name: "set_theme",
+        input: {
+          mood: trigger.mood,
+          genre: trigger.genre,
+          region: trigger.region,
+        },
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Mock query function that simulates Claude Agent SDK responses
+ * Used when MOCK_SDK=true environment variable is set
+ *
+ * Now supports onToolUse callback for simulating MCP tool invocations
+ */
+export async function* mockQuery(
+  options: MockQueryOptions
+): AsyncGenerator<MockSDKMessage, void, unknown> {
   const prompt = options.prompt.toLowerCase();
 
   // Emit system init message
@@ -22,6 +122,14 @@ export async function* mockQuery(options: {
     subtype: "init",
     session_id: `mock-session-${Date.now()}`,
   };
+
+  // Check for theme tool trigger and invoke callback if provided
+  if (options.options?.onToolUse) {
+    const toolCall = detectThemeTool(prompt);
+    if (toolCall) {
+      await options.options.onToolUse(toolCall.name, toolCall.input);
+    }
+  }
 
   // Determine response based on input
   let response: string;

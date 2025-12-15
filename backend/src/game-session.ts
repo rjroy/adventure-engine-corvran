@@ -393,7 +393,23 @@ export class GameSession {
       log.debug({ input }, "Using mock query");
       const mockQueryResult = mockQuery({
         prompt: input,
-        options: { systemPrompt },
+        options: {
+          systemPrompt,
+          // Hook into tool_use simulation - invoke handleSetThemeTool when theme triggers detected
+          onToolUse: async (toolName, toolInput) => {
+            if (toolName === "set_theme") {
+              log.debug({ toolName, toolInput }, "Mock SDK tool_use triggered");
+              await this.handleSetThemeTool(
+                {
+                  mood: toolInput.mood as ThemeMood,
+                  genre: toolInput.genre as Genre,
+                  region: toolInput.region as Region,
+                },
+                log
+              );
+            }
+          },
+        },
       });
 
       for await (const message of mockQueryResult) {
