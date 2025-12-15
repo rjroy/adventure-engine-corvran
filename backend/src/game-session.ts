@@ -29,6 +29,24 @@ function useMockSDK(): boolean {
 }
 
 /**
+ * Region detection keyword mappings.
+ * Order matters: first match wins when multiple keywords could match.
+ */
+const REGION_KEYWORDS: [Region, string[]][] = [
+  ["city", ["city", "town"]],
+  ["village", ["village", "hamlet"]],
+  ["forest", ["forest", "woods"]],
+  ["desert", ["desert", "sand"]],
+  ["mountain", ["mountain", "peak"]],
+  ["ocean", ["ocean", "sea"]],
+  ["underground", ["underground", "cave", "dungeon"]],
+  ["castle", ["castle", "palace"]],
+  ["ruins", ["ruins", "ancient"]],
+];
+
+const DEFAULT_REGION: Region = "forest";
+
+/**
  * Custom error class for Claude Agent SDK errors
  */
 class AgentSDKError extends Error {
@@ -529,27 +547,21 @@ export class GameSession {
   }
 
   /**
-   * Derive region from adventure state
-   * Checks currentScene.location for region hints, defaults to "forest"
+   * Derive region from adventure state.
+   * Checks currentScene.location for region hints using REGION_KEYWORDS mapping.
    */
   private deriveRegion(state: AdventureState | null): Region {
-    if (!state) return "forest";
+    if (!state) return DEFAULT_REGION;
 
     const location = state.currentScene.location.toLowerCase();
 
-    // Simple keyword matching for region detection
-    if (location.includes("city") || location.includes("town")) return "city";
-    if (location.includes("village") || location.includes("hamlet")) return "village";
-    if (location.includes("forest") || location.includes("woods")) return "forest";
-    if (location.includes("desert") || location.includes("sand")) return "desert";
-    if (location.includes("mountain") || location.includes("peak")) return "mountain";
-    if (location.includes("ocean") || location.includes("sea")) return "ocean";
-    if (location.includes("underground") || location.includes("cave") || location.includes("dungeon")) return "underground";
-    if (location.includes("castle") || location.includes("palace")) return "castle";
-    if (location.includes("ruins") || location.includes("ancient")) return "ruins";
+    for (const [region, keywords] of REGION_KEYWORDS) {
+      if (keywords.some((keyword) => location.includes(keyword))) {
+        return region;
+      }
+    }
 
-    // Default to forest
-    return "forest";
+    return DEFAULT_REGION;
   }
 
   /**
