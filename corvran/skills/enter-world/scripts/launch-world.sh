@@ -59,6 +59,55 @@ BACKEND_DIR="$ENGINE_DIR/backend"
 FRONTEND_DIR="$ENGINE_DIR/frontend"
 PID_FILE="$PROJECT_DIR/.adventure-engine.pid"
 
+# Track whether cleanup should kill the server
+# In fire-and-forget mode, normal exit should leave server running
+SHOULD_CLEANUP_SERVER=true
+
+# Cleanup function for shutdown
+cleanup() {
+    local exit_code=$?
+
+    # Only cleanup server on error or explicit signal
+    if [[ "$SHOULD_CLEANUP_SERVER" == "true" ]]; then
+        echo "Shutting down Adventure Engine..." >> "$LOG_FILE" 2>/dev/null || echo "Shutting down Adventure Engine..."
+
+        # Kill the server process if running
+        # Verify PID is set and is a bun/node process (guard against PID reuse)
+        if [[ -n "${SERVER_PID:-}" ]] && kill -0 "$SERVER_PID" 2>/dev/null && \
+           ps -p "$SERVER_PID" -o comm= 2>/dev/null | grep -qE '^(bun|node)$'; then
+            echo "Stopping server (PID: $SERVER_PID)..." >> "$LOG_FILE" 2>/dev/null || true
+            kill "$SERVER_PID" 2>/dev/null || true
+            # Give it a moment to shut down gracefully
+            sleep 1
+            # Force kill if still running
+            if kill -0 "$SERVER_PID" 2>/dev/null; then
+                echo "Force killing server..." >> "$LOG_FILE" 2>/dev/null || true
+                kill -9 "$SERVER_PID" 2>/dev/null || true
+            fi
+        fi
+
+        # Clean up PID file
+        if [[ -f "$PID_FILE" ]]; then
+            rm -f "$PID_FILE"
+            echo "Removed PID file: $PID_FILE" >> "$LOG_FILE" 2>/dev/null || true
+        fi
+
+        echo "Adventure Engine stopped" >> "$LOG_FILE" 2>/dev/null || echo "Adventure Engine stopped"
+    fi
+
+    exit "$exit_code"
+}
+
+# Signal handler that ensures cleanup happens
+handle_signal() {
+    SHOULD_CLEANUP_SERVER=true
+    cleanup
+}
+
+# Set up signal traps for cleanup
+trap handle_signal INT TERM
+trap cleanup EXIT
+
 # Validate directories exist
 if [[ ! -d "$BACKEND_DIR" ]]; then
     echo "Error: Backend directory does not exist: $BACKEND_DIR" >&2
@@ -119,9 +168,7 @@ for i in $(seq 1 $MAX_RETRIES); do
             echo "Error: Server failed to start within ${MAX_RETRIES} seconds"
             echo "Server PID: $SERVER_PID"
         } >> "$LOG_FILE"
-        # Kill the server process and clean up PID file
-        kill $SERVER_PID 2>/dev/null || true
-        rm -f "$PID_FILE"
+        # Exit with error - cleanup trap will handle killing server and removing PID file
         exit 1
     fi
 
@@ -148,5 +195,10 @@ fi
     echo "Adventure Engine is running"
     echo "Server PID: $SERVER_PID"
     echo "Access at: $SERVER_URL"
+    echo "To stop: kill $SERVER_PID (or use the stop-world script)"
     echo ""
 } >> "$LOG_FILE"
+
+# Successful launch - disable cleanup to leave server running (fire-and-forget mode)
+# Server will continue in background; use stop-world.sh or kill PID to stop
+SHOULD_CLEANUP_SERVER=false
