@@ -4,6 +4,7 @@
 
 import type { SDKAssistantMessageError } from "@anthropic-ai/claude-agent-sdk";
 import type { ErrorCode } from "./types/protocol";
+import { logger } from "./logger";
 
 /**
  * Internal error details for logging
@@ -151,12 +152,16 @@ export function logError(
     ...additionalContext,
   };
 
-  // Log to console (in production, send to logging service)
-  console.error(`[ERROR] ${context}:`, JSON.stringify(logData, null, 2));
+  // Log structured error data
+  const errorLogger = logger.child({ component: "ErrorHandler" });
 
-  // If we have an original error, log its stack trace
   if (details.originalError instanceof Error && details.originalError.stack) {
-    console.error(`Stack trace:`, details.originalError.stack);
+    errorLogger.error(
+      { ...logData, stack: details.originalError.stack },
+      `[ERROR] ${context}`
+    );
+  } else {
+    errorLogger.error(logData, `[ERROR] ${context}`);
   }
 }
 

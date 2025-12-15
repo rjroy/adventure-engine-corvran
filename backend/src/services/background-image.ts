@@ -25,6 +25,7 @@ import {
   ReplicateAPIError,
 } from "./image-generator";
 import type { ThemeMood, Genre, Region } from "../../../shared/protocol";
+import { logger } from "../logger";
 
 /**
  * Configuration for BackgroundImageService
@@ -262,16 +263,16 @@ export class BackgroundImageService {
   private log(message: string, level: "info" | "warn" | "error" = "info"): void {
     if (!this.verbose) return;
 
-    const prefix = "[BackgroundImageService]";
+    const bgLogger = logger.child({ component: "BackgroundImageService" });
     switch (level) {
       case "info":
-        console.log(`${prefix} ${message}`);
+        bgLogger.debug(message);
         break;
       case "warn":
-        console.warn(`${prefix} ${message}`);
+        bgLogger.warn(message);
         break;
       case "error":
-        console.error(`${prefix} ${message}`);
+        bgLogger.error(message);
         break;
     }
   }

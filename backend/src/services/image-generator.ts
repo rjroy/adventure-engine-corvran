@@ -20,6 +20,7 @@ import Replicate from "replicate";
 import { resolve } from "path";
 import { existsSync, mkdirSync } from "fs";
 import type { ThemeMood, Genre, Region } from "../../../shared/protocol";
+import { logger } from "../logger";
 
 /**
  * Default configuration for image generation
@@ -134,10 +135,7 @@ export class ImageGeneratorService {
 
     // Warn early if API token is missing
     if (!this.apiToken) {
-      console.warn(
-        "[ImageGeneratorService] REPLICATE_API_TOKEN not set. " +
-          "Image generation will fail until token is provided."
-      );
+      logger.warn("REPLICATE_API_TOKEN not set - image generation will fail until token is provided");
     }
 
     // Ensure output directory exists
