@@ -95,6 +95,10 @@ Catalog-first strategy: `ImageCatalogService` searches `/assets/backgrounds` bef
 - `NODE_ENV` (default unset) - Set to "production" for JSON log output, otherwise uses pretty format
 - `MAX_CONNECTIONS` (default 100) - Maximum concurrent WebSocket connections
 
+## Critical Dependencies
+
+**Zod must stay at version 3.x** - The Claude Agent SDK requires Zod 3.24.x. Zod 4.x has breaking API changes that cause MCP tools to fail with `keyValidator._parse is not a function`. All three packages (backend, frontend, shared) are pinned to `zod: 3.24.1`. Do NOT upgrade Zod without verifying SDK compatibility.
+
 ## Code Style
 
 - TypeScript strict mode enabled

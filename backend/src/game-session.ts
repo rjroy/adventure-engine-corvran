@@ -318,12 +318,10 @@ export class GameSession {
       options: {
         resume: state.agentSessionId ?? undefined, // Resume conversation if available
         systemPrompt,
-        // Use claude_code preset for Read/Write tools
-        // @ts-expect-error - SDK types don't properly support preset object
-        tools: [{ type: "preset", preset: "claude_code" }],
         // Provide set_theme tool via MCP server (keyed by server name)
         mcpServers: { "adventure-theme": themeMcpServer },
-        allowedTools: ["Read", "Write", "mcp__adventure-theme__set_theme"],
+        // SDK provides tools by default; allowedTools filters to what we need
+        allowedTools: ["Read", "Write", "Glob", "Grep", "mcp__adventure-theme__set_theme"],
         cwd: this.projectDirectory,
         includePartialMessages: true, // Enable token streaming
         permissionMode: "acceptEdits", // Auto-accept file edits within sandbox
