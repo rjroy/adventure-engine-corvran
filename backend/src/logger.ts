@@ -5,7 +5,7 @@
  * Features:
  * - JSON output in production, pretty output in development
  * - Log level filtering via LOG_LEVEL environment variable
- * - Optional rotating file logs via LOG_FILE environment variable
+ * - Rotating file logs enabled by default (disable with LOG_FILE=false)
  * - Child loggers for request context propagation
  * - Consistent format across all backend modules
  */
@@ -14,14 +14,13 @@ import pino from "pino";
 
 const level = process.env.LOG_LEVEL || "info";
 const isProduction = process.env.NODE_ENV === "production";
-const enableFileLogging = process.env.LOG_FILE === "true";
+const enableFileLogging = process.env.LOG_FILE !== "false";
 
 /**
  * Build pino transport configuration.
  *
- * - Development: JSON to stdout
- * - Production: JSON to stdout
- * - LOG_FILE=true: Also write to rotating log files in ./logs/
+ * - Default: stdout + rotating file logs in ./logs/
+ * - LOG_FILE=false: stdout only (no file logs)
  */
 function buildTransport(): pino.TransportSingleOptions | pino.TransportMultiOptions | undefined {
   if (enableFileLogging) {
@@ -67,7 +66,7 @@ function buildTransport(): pino.TransportSingleOptions | pino.TransportMultiOpti
  * Configuration:
  * - LOG_LEVEL: Set to "debug", "info", "warn", or "error" (default: "info")
  * - NODE_ENV: Set to "production" for JSON output, otherwise pretty output
- * - LOG_FILE: Set to "true" to enable rotating file logs in ./logs/
+ * - LOG_FILE: Set to "false" to disable rotating file logs (default: enabled)
  *
  * Usage:
  * ```typescript
@@ -87,11 +86,13 @@ function buildTransport(): pino.TransportSingleOptions | pino.TransportMultiOpti
 export const logger = pino({
   level,
   transport: buildTransport(),
-  formatters: !isProduction
-    ? {
-        level: (label: string) => ({ level: label }),
-      }
-    : undefined,
+  // Custom formatters not allowed with multi-target transport
+  formatters:
+    !isProduction && !enableFileLogging
+      ? {
+          level: (label: string) => ({ level: label }),
+        }
+      : undefined,
 });
 
 export type Logger = pino.Logger;

@@ -87,7 +87,7 @@ Catalog-first strategy: `ImageCatalogService` searches `/assets/backgrounds` bef
 - `MOCK_SDK` (set "true" for testing without Agent SDK)
 - `ALLOWED_ORIGINS` (comma-separated list, defaults to `http://localhost:5173,http://localhost:3000`)
 - `LOG_LEVEL` (default "info") - Set log verbosity: "debug", "info", "warn", "error"
-- `LOG_FILE` (default unset) - Set to "true" to enable rotating file logs in `backend/logs/`
+- `LOG_FILE` (default enabled) - Set to "false" to disable rotating file logs in `backend/logs/`
 - `NODE_ENV` (default unset) - Set to "production" for JSON log output, otherwise uses pretty format
 
 ## Code Style
