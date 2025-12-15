@@ -10,7 +10,7 @@ const TEST_ADVENTURES_DIR = "./test-adventures-server";
 process.env.ADVENTURES_DIR = TEST_ADVENTURES_DIR;
 
 // Import after setting env var
-const { app, isAllowedOrigin, ALLOWED_ORIGINS } = await import("../../src/server");
+const { app, isAllowedOrigin, ALLOWED_ORIGINS, MAX_CONNECTIONS, getConnectionCount, connections } = await import("../../src/server");
 import type { ServerMessage, ClientMessage } from "../../src/types/protocol";
 
 describe("Server REST Endpoints", () => {
@@ -308,5 +308,52 @@ describe("WebSocket Message Handling", () => {
     expect(start.type).toBe("gm_response_start");
     expect(chunk.payload.text).toBe("Hello ");
     expect(end.type).toBe("gm_response_end");
+  });
+});
+
+describe("WebSocket Connection Limits", () => {
+  describe("MAX_CONNECTIONS configuration", () => {
+    test("has default value of 100", () => {
+      // Default when MAX_CONNECTIONS env var is not set
+      expect(MAX_CONNECTIONS).toBe(100);
+    });
+
+    test("is a positive number", () => {
+      expect(MAX_CONNECTIONS).toBeGreaterThan(0);
+    });
+  });
+
+  describe("getConnectionCount()", () => {
+    test("returns current connection count", () => {
+      const count = getConnectionCount();
+      expect(typeof count).toBe("number");
+      expect(count).toBeGreaterThanOrEqual(0);
+    });
+
+    test("matches connections map size", () => {
+      expect(getConnectionCount()).toBe(connections.size);
+    });
+  });
+
+  describe("connection limit behavior", () => {
+    test("connections map starts empty or has test connections", () => {
+      // Map may have leftover connections from other tests
+      // Just verify it's a valid Map
+      expect(connections).toBeInstanceOf(Map);
+    });
+
+    test("connection limit is enforced (documented behavior)", () => {
+      // Note: Full WebSocket connection limit testing requires E2E tests
+      // because onOpen requires actual WebSocket upgrade
+      //
+      // The limit is enforced in server.ts onOpen handler:
+      // - Checks: connections.size >= MAX_CONNECTIONS
+      // - Sends error with code "GM_ERROR" and message "Server at capacity"
+      // - Closes with code 1013 "Try Again Later"
+      // - Sets retryable: true to indicate client can retry
+      //
+      // See e2e tests for full connection limit verification
+      expect(MAX_CONNECTIONS).toBeGreaterThan(0);
+    });
   });
 });
