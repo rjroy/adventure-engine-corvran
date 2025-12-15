@@ -23,11 +23,29 @@ fi
 # Convert to absolute path (required for SDK cwd)
 PROJECT_DIR="$(cd "$PROJECT_DIR" && pwd)"
 
-# Source .env file from project directory if it exists
+# Source .env files (engine defaults first, then project overrides)
+DEBUG="${DEBUG:-}"
+set -a  # Export all variables
+# Engine backend .env (development defaults)
+if [[ -f "$ENGINE_DIR/backend/.env" ]]; then
+    source "$ENGINE_DIR/backend/.env"
+    [[ -n "$DEBUG" ]] && echo "[env] Sourced: $ENGINE_DIR/backend/.env" >&2
+fi
+# Engine root .env
+if [[ -f "$ENGINE_DIR/.env" ]]; then
+    source "$ENGINE_DIR/.env"
+    [[ -n "$DEBUG" ]] && echo "[env] Sourced: $ENGINE_DIR/.env" >&2
+fi
+# Project directory .env (adventure-specific overrides)
 if [[ -f "$PROJECT_DIR/.env" ]]; then
-    set -a  # Export all variables
     source "$PROJECT_DIR/.env"
-    set +a
+    [[ -n "$DEBUG" ]] && echo "[env] Sourced: $PROJECT_DIR/.env" >&2
+fi
+set +a
+
+# Debug: confirm critical env vars (without exposing values)
+if [[ -n "$DEBUG" ]]; then
+    [[ -n "${REPLICATE_API_TOKEN:-}" ]] && echo "[env] REPLICATE_API_TOKEN is set" >&2 || echo "[env] WARNING: REPLICATE_API_TOKEN is NOT set" >&2
 fi
 
 # Log file for headless operation
