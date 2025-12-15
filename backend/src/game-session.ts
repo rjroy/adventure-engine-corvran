@@ -15,9 +15,12 @@ import { buildGMSystemPrompt, createThemeMcpServer } from "./gm-prompt";
 import {
   mapSDKError,
   mapGenericError,
+  mapProcessingTimeoutError,
   createErrorPayload,
+  ProcessingTimeoutError,
   type ErrorDetails,
 } from "./error-handler";
+import { env } from "./env";
 import { mockQuery } from "./mock-sdk";
 import type { BackgroundImageService } from "./services/background-image";
 import { sanitizePlayerInput } from "./validation";
@@ -26,6 +29,29 @@ import { sanitizePlayerInput } from "./validation";
 // Use function instead of const to check at runtime, avoiding module cache issues
 function useMockSDK(): boolean {
   return process.env.MOCK_SDK === "true";
+}
+
+/**
+ * Wrap a promise with a timeout.
+ * Throws ProcessingTimeoutError if the promise doesn't resolve within the timeout.
+ */
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout>;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new ProcessingTimeoutError(timeoutMs));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    clearTimeout(timeoutId!);
+  }
 }
 
 /**
@@ -194,8 +220,39 @@ export class GameSession {
           break;
         }
 
-        // Process this input with its associated logger
-        await this.processInput(queuedInput.text, queuedInput.logger);
+        const log = queuedInput.logger ?? logger;
+
+        try {
+          // Process this input with timeout protection
+          await withTimeout(
+            this.processInput(queuedInput.text, queuedInput.logger),
+            env.inputTimeout
+          );
+        } catch (error) {
+          // Handle timeout errors at queue level (processInput handles other errors internally)
+          if (error instanceof ProcessingTimeoutError) {
+            const errorDetails = mapProcessingTimeoutError(error);
+            log.error(
+              {
+                errorCode: errorDetails.code,
+                timeoutMs: error.timeoutMs,
+                adventureId: this.stateManager.getState()?.id,
+              },
+              "Input processing timeout"
+            );
+
+            this.sendMessage(
+              {
+                type: "error",
+                payload: createErrorPayload(errorDetails),
+              },
+              log
+            );
+          } else {
+            // Re-throw unexpected errors (processInput should handle its own errors)
+            throw error;
+          }
+        }
       }
     } finally {
       this.isProcessing = false;

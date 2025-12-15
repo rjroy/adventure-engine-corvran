@@ -94,6 +94,7 @@ Catalog-first strategy: `ImageCatalogService` searches `/assets/backgrounds` bef
 - `LOG_FILE` (default enabled) - Set to "false" to disable rotating file logs in `backend/logs/`
 - `NODE_ENV` (default unset) - Set to "production" for JSON log output, otherwise uses pretty format
 - `MAX_CONNECTIONS` (default 100) - Maximum concurrent WebSocket connections
+- `INPUT_TIMEOUT` (default 60000) - Timeout in milliseconds for input processing (minimum 1000ms)
 
 ## Critical Dependencies
 
