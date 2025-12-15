@@ -6,6 +6,9 @@
  *
  * Naming convention: {mood}-{genre}-{region}*.png
  * Example: ominous-dark-fantasy-underground-1734567890123.png
+ *
+ * Caching: File list is cached on first lookup to avoid repeated directory scans.
+ * Call invalidateCache() after adding new images to refresh the cache.
  */
 
 import { Glob } from "bun";
@@ -19,9 +22,11 @@ const DEFAULT_BACKGROUNDS_DIR = "./assets/backgrounds";
 
 /**
  * Service for finding background images by mood/genre/region using directory glob patterns.
+ * Caches file list to avoid repeated directory scans on every theme change.
  */
 export class ImageCatalogService {
   private backgroundsDir: string;
+  private cachedFiles: string[] | null = null;
 
   /**
    * Create a new ImageCatalogService instance.
@@ -33,7 +38,29 @@ export class ImageCatalogService {
   }
 
   /**
-   * Find images matching mood/genre/region using glob pattern.
+   * Load and cache all PNG files from the backgrounds directory.
+   * Performs a single directory scan and caches the results.
+   *
+   * @returns Array of PNG filenames (without directory path)
+   */
+  private loadCache(): string[] {
+    if (this.cachedFiles === null) {
+      const glob = new Glob("*.png");
+      this.cachedFiles = [...glob.scanSync(this.backgroundsDir)];
+    }
+    return this.cachedFiles;
+  }
+
+  /**
+   * Invalidate the file cache, forcing a rescan on next lookup.
+   * Call this after generating or adding new images to the catalog.
+   */
+  invalidateCache(): void {
+    this.cachedFiles = null;
+  }
+
+  /**
+   * Find images matching mood/genre/region using cached file list.
    * Returns random match for variety when multiple images exist.
    *
    * @param mood - Theme mood state
@@ -42,13 +69,12 @@ export class ImageCatalogService {
    * @returns Image file path if found, null otherwise
    */
   findImage(mood: ThemeMood, genre: Genre, region: Region): string | null {
-    const pattern = `${mood}-${genre}-${region}*.png`;
-    const glob = new Glob(pattern);
+    const prefix = `${mood}-${genre}-${region}`;
+    const files = this.loadCache();
 
-    const matches: string[] = [];
-    for (const match of glob.scanSync(this.backgroundsDir)) {
-      matches.push(`${this.backgroundsDir}/${match}`);
-    }
+    const matches = files
+      .filter((f) => f.startsWith(prefix))
+      .map((f) => `${this.backgroundsDir}/${f}`);
 
     if (matches.length === 0) {
       return null;

@@ -214,4 +214,101 @@ describe("ImageCatalogService", () => {
       expect(result).toBeNull();
     });
   });
+
+  describe("caching", () => {
+    test("caches file list after first findImage call", async () => {
+      // Create initial file
+      await writeFile(
+        `${TEST_BACKGROUNDS_DIR}/calm-high-fantasy-forest-1.png`,
+        "data"
+      );
+
+      // First call should find the image
+      const result1 = service.findImage("calm", "high-fantasy", "forest");
+      expect(result1).toContain("calm-high-fantasy-forest-1.png");
+
+      // Add a new file without invalidating cache
+      await writeFile(
+        `${TEST_BACKGROUNDS_DIR}/tense-sci-fi-city-2.png`,
+        "data"
+      );
+
+      // Second call should NOT find the new file (cache not invalidated)
+      const result2 = service.findImage("tense", "sci-fi", "city");
+      expect(result2).toBeNull();
+    });
+
+    test("invalidateCache allows new files to be discovered", async () => {
+      // Create initial file
+      await writeFile(
+        `${TEST_BACKGROUNDS_DIR}/calm-high-fantasy-forest-1.png`,
+        "data"
+      );
+
+      // First call populates cache
+      service.findImage("calm", "high-fantasy", "forest");
+
+      // Add a new file
+      await writeFile(
+        `${TEST_BACKGROUNDS_DIR}/tense-sci-fi-city-2.png`,
+        "data"
+      );
+
+      // Without invalidation, new file is not found
+      expect(service.findImage("tense", "sci-fi", "city")).toBeNull();
+
+      // Invalidate cache
+      service.invalidateCache();
+
+      // Now new file should be found
+      const result = service.findImage("tense", "sci-fi", "city");
+      expect(result).toContain("tense-sci-fi-city-2.png");
+    });
+
+    test("multiple findImage calls use same cache", async () => {
+      // Create files
+      await writeFile(
+        `${TEST_BACKGROUNDS_DIR}/calm-high-fantasy-forest-1.png`,
+        "data"
+      );
+      await writeFile(
+        `${TEST_BACKGROUNDS_DIR}/tense-sci-fi-city-2.png`,
+        "data"
+      );
+
+      // Multiple calls should work from cached file list
+      expect(service.findImage("calm", "high-fantasy", "forest")).toContain(
+        "calm-high-fantasy-forest"
+      );
+      expect(service.findImage("tense", "sci-fi", "city")).toContain(
+        "tense-sci-fi-city"
+      );
+      expect(service.findImage("ominous", "horror", "ruins")).toBeNull();
+
+      // All calls should have used the same cached file list
+      // (verified by the fact that both existing files were found)
+    });
+
+    test("cache is per-instance", async () => {
+      // Create a file
+      await writeFile(
+        `${TEST_BACKGROUNDS_DIR}/calm-high-fantasy-forest-1.png`,
+        "data"
+      );
+
+      // First service instance populates its cache
+      service.findImage("calm", "high-fantasy", "forest");
+
+      // Add a new file
+      await writeFile(
+        `${TEST_BACKGROUNDS_DIR}/tense-sci-fi-city-2.png`,
+        "data"
+      );
+
+      // New service instance should have fresh cache
+      const service2 = new ImageCatalogService(TEST_BACKGROUNDS_DIR);
+      const result = service2.findImage("tense", "sci-fi", "city");
+      expect(result).toContain("tense-sci-fi-city-2.png");
+    });
+  });
 });

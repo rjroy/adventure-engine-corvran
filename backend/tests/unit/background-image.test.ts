@@ -21,6 +21,7 @@ class MockImageCatalogService {
     (_mood: ThemeMood, _genre: Genre, _region: Region, _filePath: string, _prompt?: string): void => {}
   );
   getFallback = mock((mood: ThemeMood): string => `./assets/backgrounds/${mood}.jpg`);
+  invalidateCache = mock((): void => {});
   close = mock((): void => {});
 }
 
