@@ -615,6 +615,95 @@ describe("GameSession", () => {
       expect(call[2]).toBe("village"); // region
       expect(call[3]).toBe(true); // force_generate
     });
+
+    test("passes image_prompt to BackgroundImageService", async () => {
+      const { ws } = createMockWS();
+
+      const mockBgService = {
+        getBackgroundImage: mock(async () => ({
+          url: "http://example.com/bg.jpg",
+          source: "generated" as const,
+        })),
+      };
+
+      const session = new GameSession(ws, stateManager, mockBgService as any);
+      await session.initialize(adventureId, sessionToken);
+
+      await (session as any).handleSetThemeTool({
+        mood: "ominous",
+        genre: "horror",
+        region: "underground",
+        image_prompt: "A dark cavern with glowing crystals",
+      });
+
+      expect(mockBgService.getBackgroundImage).toHaveBeenCalledTimes(1);
+      const call = mockBgService.getBackgroundImage.mock.calls[0] as unknown[];
+      expect(call[4]).toBe("A dark cavern with glowing crystals"); // image_prompt
+    });
+
+    test("continues gracefully when BackgroundImageService throws", async () => {
+      const { ws, messages } = createMockWS();
+
+      const mockBgService = {
+        getBackgroundImage: mock(async () => {
+          throw new Error("Replicate API error");
+        }),
+      };
+
+      const session = new GameSession(ws, stateManager, mockBgService as any);
+      await session.initialize(adventureId, sessionToken);
+
+      // Should not throw - errors are caught internally
+      await (session as any).handleSetThemeTool({
+        mood: "tense",
+        genre: "high-fantasy",
+        region: "forest",
+      });
+
+      // Should still emit theme_change with null backgroundUrl
+      const themeMessages = messages.filter((m) => m.type === "theme_change");
+      expect(themeMessages.length).toBe(1);
+
+      const themeMsg = themeMessages[0];
+      if (themeMsg.type === "theme_change") {
+        expect(themeMsg.payload.mood).toBe("tense");
+        expect(themeMsg.payload.backgroundUrl).toBeNull();
+      }
+    });
+
+    test("calls stateManager.updateTheme with correct arguments", async () => {
+      const { ws } = createMockWS();
+
+      const mockBgService = {
+        getBackgroundImage: mock(async () => ({
+          url: "http://example.com/forest.jpg",
+          source: "catalog" as const,
+        })),
+      };
+
+      // Create a spy on stateManager.updateTheme
+      const originalUpdateTheme = stateManager.updateTheme.bind(stateManager);
+      const updateThemeSpy = mock(async (...args: Parameters<typeof originalUpdateTheme>) => {
+        return originalUpdateTheme(...args);
+      });
+      stateManager.updateTheme = updateThemeSpy as typeof stateManager.updateTheme;
+
+      const session = new GameSession(ws, stateManager, mockBgService as any);
+      await session.initialize(adventureId, sessionToken);
+
+      await (session as any).handleSetThemeTool({
+        mood: "mysterious",
+        genre: "low-fantasy",
+        region: "ruins",
+      });
+
+      expect(updateThemeSpy).toHaveBeenCalledTimes(1);
+      const call = updateThemeSpy.mock.calls[0] as unknown[];
+      expect(call[0]).toBe("mysterious"); // mood
+      expect(call[1]).toBe("low-fantasy"); // genre
+      expect(call[2]).toBe("ruins"); // region
+      expect(call[3]).toBe("http://example.com/forest.jpg"); // backgroundUrl
+    });
   });
   /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/require-await */
 });
