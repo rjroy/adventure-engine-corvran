@@ -178,7 +178,8 @@ export class BackgroundImageService {
         narrativeContext
       );
 
-      // No need to store in catalog - glob will find it by naming convention
+      // Invalidate catalog cache so new image is discoverable
+      this.catalog.invalidateCache();
       this.log(`Generated image saved: ${result.filePath}`);
 
       // Convert path to URL
