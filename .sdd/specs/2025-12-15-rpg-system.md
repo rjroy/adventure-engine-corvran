@@ -1,5 +1,5 @@
 ---
-version: 1.0.0
+version: 1.1.0
 status: Approved
 created: 2025-12-15
 last_updated: 2025-12-15
@@ -11,13 +11,15 @@ authored_by:
 
 ## Executive Summary
 
-Adventure Engine currently provides AI-driven narrative adventures without mechanical gameplay systems. This specification defines a pluggable RPG framework that enables adventures to include structured game mechanics—character attributes, skill checks, dice rolls, and combat—while preserving the narrative-first experience.
+Adventure Engine currently provides AI-driven narrative adventures without mechanical gameplay systems. This specification defines a pluggable RPG framework that enables adventures to include structured game mechanics—character attributes, skill checks, dice rolls, combat, and NPC management—while preserving the narrative-first experience.
 
-The system stores RPG definitions in adventure markdown files (e.g., `System.md` or `System/*.md`), allowing each adventure to define its own rules. A dice MCP tool provides consistent, auditable randomization with GM-controlled visibility. The framework abstracts common RPG concepts (attributes, skills, checks, combat) so diverse systems (d20, Fudge, Apocalypse World, etc.) can be implemented without code changes.
+The system stores RPG definitions in adventure markdown files (e.g., `System.md` or `System/*.md`), allowing each adventure to define its own rules including NPC templates (similar to a monster manual). A dice MCP tool provides consistent, auditable randomization with GM-controlled visibility. The framework abstracts common RPG concepts (attributes, skills, checks, combat, NPCs) so diverse systems (d20, Fudge, Apocalypse World, etc.) can be implemented without code changes.
 
 ## User Story
 
 As an **adventure creator**, I want to define RPG mechanics in markdown files, so that my adventures can include structured character progression, skill checks, and combat without requiring code changes.
+
+As an **adventure creator**, I want to define NPC templates (like a monster manual), so that the GM can quickly create consistent enemies and allies during play.
 
 As a **player**, I want guided character creation and transparent game mechanics, so that I understand how my choices affect outcomes.
 
@@ -29,7 +31,9 @@ As a **player**, I want guided character creation and transparent game mechanics
 
 ## Definitions
 
-- **System Definition**: Markdown file(s) in adventure directory declaring RPG mechanics. Minimum required: dice types supported. Optional: attributes, skills, combat rules.
+- **System Definition**: Markdown file(s) in adventure directory declaring RPG mechanics. Minimum required: dice types supported. Optional: attributes, skills, combat rules, NPC templates.
+- **NPC (Non-Player Character)**: A GM-controlled character with mechanical properties (stats, HP, skills) that can participate in skill checks and combat. Created dynamically by GM during play.
+- **NPC Template**: A predefined NPC type in the system definition (e.g., "Goblin", "Slime", "Dragon") with default stats, similar to entries in a monster manual. GM can create instances from templates or define NPCs ad-hoc.
 - **Combat Structure**:
   - *Turn-based*: Discrete turns with initiative order, action economy (e.g., d20 systems)
   - *Narrative*: No mechanical turns, GM narrates outcomes based on checks (e.g., Fate)
@@ -45,6 +49,7 @@ As a **player**, I want guided character creation and transparent game mechanics
 3. Dice rolls are logged and auditable; GM controls which rolls are visible to players
 4. Character creation guides players through system-defined choices
 5. Combat resolution follows system-defined rules without hardcoded mechanics
+6. GM can create, manage, and remove NPCs with full mechanical properties during play
 
 ## Functional Requirements
 
@@ -55,6 +60,7 @@ As a **player**, I want guided character creation and transparent game mechanics
 - **REQ-F-3**: System definitions MUST declare attribute schema (names, valid ranges, derivation rules)
 - **REQ-F-4**: System definitions MUST declare skill schema (names, linked attributes, check mechanics)
 - **REQ-F-5**: System definitions MAY declare combat rules (initiative, actions, damage resolution)
+- **REQ-F-5a**: System definitions MAY declare NPC templates (predefined creature/enemy types with default stats, like a monster manual)
 
 ### Character Creation (REQ-F-6 through REQ-F-10)
 
@@ -84,15 +90,25 @@ As a **player**, I want guided character creation and transparent game mechanics
 - **REQ-F-20**: Combat structure (turn-based, narrative, hybrid) MUST be defined by the system
 - **REQ-F-21**: Combat MCP tools MUST support initiative determination when system requires it
 - **REQ-F-22**: Combat MCP tools MUST support damage calculation per system rules
-- **REQ-F-23**: Character health/condition tracking MUST update automatically after combat actions
-- **REQ-F-24**: Combat state (turn order, current combatant) MUST persist across player inputs
+- **REQ-F-23**: Player and NPC health/condition tracking MUST update automatically after combat actions
+- **REQ-F-24**: Combat state (turn order, current combatant) MUST persist across player inputs, including both player and NPC combatants
+
+### NPC Management (REQ-F-33 through REQ-F-39)
+
+- **REQ-F-33**: GM MUST be able to create NPCs with system-defined attributes and skills via MCP tool
+- **REQ-F-34**: NPCs MUST be persisted to adventure state (`npcs` array in `state.json`)
+- **REQ-F-35**: NPCs MUST have the same trackable properties as player characters (stats, skills, HP, conditions)
+- **REQ-F-36**: NPCs MUST be identifiable by unique name within the adventure
+- **REQ-F-37**: GM MUST be able to update or remove NPCs via MCP tools
+- **REQ-F-38**: NPC incapacitation/death MUST be handled per system-defined rules (removal, unconscious state, etc.)
+- **REQ-F-39**: NPCs MAY have a reward property defining what players receive for overcoming them (XP, loot, story progression)
 
 ### State Management (REQ-F-25 through REQ-F-28)
 
-- **REQ-F-25**: Character attributes and skills MUST be persisted in `state.json`
+- **REQ-F-25**: Player character and NPC attributes and skills MUST be persisted in `state.json`
 - **REQ-F-26**: Character progression (XP, levels) MUST be tracked when system defines it
 - **REQ-F-27**: Inventory and equipment MUST be trackable when system defines it
-- **REQ-F-28**: Conditions/status effects MUST be trackable when system defines it
+- **REQ-F-28**: Conditions/status effects MUST be trackable when system defines it (for both player and NPCs)
 
 ### Error Handling (REQ-F-29 through REQ-F-32)
 
@@ -153,6 +169,12 @@ As a **player**, I want guided character creation and transparent game mechanics
 11. **Audit Trail**: Given multiple dice rolls during adventure, when audit log inspected, then each entry includes timestamp, expression, result, and visibility flag
 12. **Invalid Dice Error**: Given dice expression "d7", when GM calls dice tool, then error response explains valid die types
 13. **Malformed System Error**: Given `System.md` missing required dice section, when adventure loads, then error message identifies missing field
+14. **NPC Creation**: Given a combat encounter, when GM creates NPC "Goblin" with HP 7 and AC 15, then NPC is persisted to state with unique identifier
+15. **NPC from Template**: Given system with "Goblin" template defined, when GM creates NPC from template, then NPC inherits template stats
+16. **NPC in Combat**: Given combat with player and 2 goblins, when initiative rolled, then all 3 combatants appear in turn order
+17. **NPC Damage**: Given goblin with 7 HP, when player deals 4 damage, then goblin HP updates to 3
+18. **NPC Death**: Given goblin reduced to 0 HP, when incapacitation checked, then goblin is handled per system rules (removed, unconscious, etc.)
+19. **NPC Reward**: Given goblin with reward "50 XP", when goblin defeated, then GM can apply reward to player
 
 ## Design Decisions
 
@@ -166,10 +188,19 @@ The following questions were resolved during specification:
 
 - Multiplayer/party mechanics (multiple player characters)
 - Visual character sheets in frontend (text-based for now)
-- Automated enemy AI/tactics
+- Automated enemy AI/tactics (GM narrates NPC actions)
 - Character import/export formats (D&D Beyond, Roll20, etc.)
 - Real-time combat (always turn-based or narrative)
 - System definition inheritance (deferred to future version)
+- NPC limits or automatic offloading of inactive NPCs (see Future Enhancements)
+
+## Future Enhancements
+
+The following are explicitly deferred but anticipated for future versions:
+
+1. **NPC Offloading**: As adventures grow, active NPC count may impact performance. Future versions should support offloading "inactive" NPCs (e.g., defeated enemies, NPCs in other locations) to reduce state size while preserving them for potential recall.
+2. **System Definition Inheritance**: Allow adventures to extend base systems rather than redefining everything.
+3. **Visual Character/NPC Sheets**: Frontend UI for viewing character and NPC stats beyond narrative display.
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 specification: [.sdd/specs/2025-12-15-rpg-system.md](./../specs/2025-12-15-rpg-system.md)
-status: Draft
-version: 1.0.0
+status: Approved
+version: 1.1.0
 created: 2025-12-15
 last_updated: 2025-12-15
 authored_by:
@@ -12,14 +12,14 @@ authored_by:
 
 ## Overview
 
-This plan adds a pluggable RPG framework to Adventure Engine, enabling adventures to define game mechanics (attributes, skills, dice rolls, combat) in markdown files. The architecture introduces:
+This plan adds a pluggable RPG framework to Adventure Engine, enabling adventures to define game mechanics (attributes, skills, dice rolls, combat, NPCs) in markdown files. The architecture introduces:
 
-1. **System Definition Parser**: Reads `System.md` or `System/*.md` from adventure directories, extracts RPG rules as narrative context for the GM
+1. **System Definition Parser**: Reads `System.md` or `System/*.md` from adventure directories, extracts RPG rules and NPC templates as narrative context for the GM
 2. **Dice MCP Tool**: Provides auditable randomization with configurable visibility
-3. **Character Management MCP Tools**: Support for creation, skill checks, and combat resolution
-4. **Extended State Persistence**: Character data, dice logs, and combat state in `state.json`
+3. **Character & NPC Management MCP Tools**: Support for PC creation, NPC creation/management, skill checks, and combat resolution
+4. **Extended State Persistence**: Player character, NPCs array, dice logs, and combat state in `state.json`
 
-The design preserves backward compatibility—adventures without system definitions continue as pure narrative. The GM (Claude) interprets system rules and calls MCP tools to resolve mechanics, keeping all game logic in markdown rather than code.
+The design preserves backward compatibility—adventures without system definitions continue as pure narrative. The GM (Claude) interprets system rules and calls MCP tools to resolve mechanics, keeping all game logic in markdown rather than code. NPCs are managed with the same mechanical properties as the player character, enabling proper combat and skill check resolution.
 
 ## Architecture
 
@@ -29,8 +29,8 @@ The design preserves backward compatibility—adventures without system definiti
 ┌─────────────────────────────────────────────────────────────────────┐
 │                      Adventure Directory                             │
 │  ┌─────────────┐                                                     │
-│  │ System.md   │──── RPG rules (dice, attributes, skills, combat)   │
-│  │ or System/* │                                                     │
+│  │ System.md   │──── RPG rules (dice, attributes, skills, combat,   │
+│  │ or System/* │     NPC templates like a monster manual)           │
 │  └─────────────┘                                                     │
 └────────┬────────────────────────────────────────────────────────────┘
          │ Read at adventure start
@@ -40,7 +40,7 @@ The design preserves backward compatibility—adventures without system definiti
 │  ┌─────────────────┐     ┌──────────────────────────────────────┐   │
 │  │ SystemLoader    │────▶│  GM System Prompt (gm-prompt.ts)     │   │
 │  │ (system-loader  │     │  • System rules appended to prompt   │   │
-│  │      .ts)       │     │  • Tools: dice, check, combat        │   │
+│  │      .ts)       │     │  • Tools: dice, check, combat, NPCs  │   │
 │  └─────────────────┘     └──────────────────────────────────────┘   │
 │                                      │                               │
 │                                      ▼                               │
@@ -49,14 +49,18 @@ The design preserves backward compatibility—adventures without system definiti
 │  │  ┌─────────┐  ┌──────────┐  ┌─────────────┐  ┌────────────┐  │  │
 │  │  │roll_dice│  │skill_check│  │apply_damage │  │get_character│ │  │
 │  │  └─────────┘  └──────────┘  └─────────────┘  └────────────┘  │  │
+│  │  ┌──────────┐  ┌──────────┐  ┌────────────┐  ┌─────────────┐ │  │
+│  │  │create_npc│  │update_npc│  │remove_npc  │  │manage_combat│ │  │
+│  │  └──────────┘  └──────────┘  └────────────┘  └─────────────┘ │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 │                                      │                               │
 │                                      ▼                               │
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │              AdventureStateManager (adventure-state.ts)       │  │
 │  │  • playerCharacter (attributes, skills, HP)                   │  │
+│  │  • npcs[] (NPC instances with same properties as PC)          │  │
 │  │  • diceLog[] (audit trail)                                    │  │
-│  │  • combatState (initiative, turn order)                       │  │
+│  │  • combatState (initiative, turn order for PC + NPCs)         │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────┘
          │
@@ -65,7 +69,7 @@ The design preserves backward compatibility—adventures without system definiti
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         Frontend (React)                            │
 │  • No changes required for core RPG functionality                   │
-│  • Character sheet: displayed as narrative via get_character tool   │
+│  • Character/NPC info: displayed as narrative via tools             │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -73,13 +77,17 @@ The design preserves backward compatibility—adventures without system definiti
 
 | Component | Responsibility |
 |-----------|----------------|
-| **SystemLoader** | Parse `System.md`/`System/*.md`, validate required sections, provide rules text to prompt builder |
-| **buildGMSystemPrompt** | Include system rules + RPG tool instructions in GM prompt |
+| **SystemLoader** | Parse `System.md`/`System/*.md`, validate required sections, extract NPC templates, provide rules text to prompt builder |
+| **buildGMSystemPrompt** | Include system rules + NPC templates + RPG tool instructions in GM prompt |
 | **roll_dice tool** | Parse dice expressions, generate results, log with visibility flag |
-| **skill_check tool** | Resolve checks using system-defined mechanics, return success/partial/failure |
-| **apply_damage tool** | Update character HP/conditions, handle incapacitation rules |
-| **get_character tool** | Return current character state for GM reference |
-| **AdventureStateManager** | Persist character data, dice logs, combat state |
+| **skill_check tool** | Resolve checks for PC or NPCs using system-defined mechanics |
+| **apply_damage tool** | Update PC or NPC HP/conditions, handle incapacitation rules |
+| **get_character tool** | Return current PC state for GM reference |
+| **create_npc tool** | Create NPC from template or ad-hoc with stats, persist to state |
+| **update_npc tool** | Modify existing NPC stats, conditions, or properties |
+| **remove_npc tool** | Remove NPC from state (death, departure, etc.) |
+| **manage_combat tool** | Handle initiative, turn order for both PC and NPCs |
+| **AdventureStateManager** | Persist PC data, NPCs array, dice logs, combat state |
 
 ### Data Flow: Skill Check
 
@@ -224,6 +232,56 @@ The design preserves backward compatibility—adventures without system definiti
 - Example: "STR of 25 is too high. This system uses 8-18 range. What value would you like?"
 - No code-level validation needed—GM enforces constraints narratively
 
+### TD-14: NPC Management via MCP Tools
+**Choice**: Three dedicated MCP tools for NPC lifecycle: `create_npc`, `update_npc`, `remove_npc`
+**Requirements**: REQ-F-33, REQ-F-34, REQ-F-37
+**Rationale**:
+- NPCs need full CRUD operations during play (combat, social encounters, etc.)
+- Separate tools provide clear semantics vs. a single "manage_npc" with action parameter
+- GM creates NPCs narratively: "A goblin emerges from the shadows" → calls `create_npc`
+- `update_npc` handles stat changes, condition updates, inventory modifications
+- `remove_npc` cleanly handles death, departure, or story-driven removal
+- Alternative (single tool with action enum) harder for GM to discover correct usage
+
+### TD-15: NPC State Mirrors Player Character
+**Choice**: NPCs use identical data structure to `playerCharacter` with additional NPC-specific fields
+**Requirements**: REQ-F-35, REQ-F-36, REQ-F-39
+**Rationale**:
+- Same properties: stats, skills, HP, conditions, inventory
+- Enables code reuse: `apply_damage`, `skill_check` work on both PC and NPCs
+- Additional NPC fields: `id` (unique identifier), `templateName` (if from template), `reward`
+- Reward property defines XP, loot, or story outcomes when NPC is overcome
+- Array storage (`npcs[]`) vs. map—simpler iteration for combat, easy serialization
+
+### TD-16: NPC Templates in System Definition
+**Choice**: NPC templates defined in System.md as narrative markdown (like a monster manual)
+**Requirements**: REQ-F-5a, REQ-F-33
+**Rationale**:
+- Adventure creators define reusable NPC types: "Goblin", "Slime", "Dragon"
+- GM reads templates from system rules, calls `create_npc` with template name
+- Tool looks up template defaults, allows overrides (e.g., "Goblin Chieftain" with boosted HP)
+- No strict schema—GM interprets template prose like other system rules
+- Example: "## Goblin\nHP: 7, AC: 15, Attack: +4 (1d6 damage)\nReward: 25 XP"
+
+### TD-17: NPC Identification by Unique Name
+**Choice**: NPCs identified by unique name string within adventure scope
+**Requirements**: REQ-F-36
+**Rationale**:
+- Names are natural for GM: "apply 5 damage to Goblin Scout" vs. "apply 5 damage to NPC id abc123"
+- Uniqueness enforced at creation—`create_npc` rejects duplicate names
+- For multiple similar NPCs, GM uses distinguishing names: "Goblin 1", "Goblin 2" or "Gruk", "Sniv"
+- Alternative (UUID-only) breaks narrative flow, harder for GM to reference
+
+### TD-18: NPC Incapacitation Handling
+**Choice**: `apply_damage` returns incapacitation status; GM decides removal based on system rules
+**Requirements**: REQ-F-38, REQ-F-32
+**Rationale**:
+- Different systems handle NPC death differently (instant removal, death saves, unconscious)
+- Tool detects HP ≤ 0, returns `{incapacitated: true, hp: 0}` in response
+- GM interprets system rules to decide: call `remove_npc` immediately, or apply "dying" condition
+- Reward application is GM responsibility: "The goblin falls. You gain 25 XP."
+- Keeps game logic in markdown, not hardcoded
+
 ## Data Model
 
 ### Extended AdventureState
@@ -246,6 +304,9 @@ interface AdventureState {
     level?: number;
   };
 
+  // NEW: NPC instances (same structure as playerCharacter + NPC-specific fields)
+  npcs?: NPC[];
+
   // NEW: Dice audit log
   diceLog?: DiceLogEntry[];
 
@@ -254,6 +315,36 @@ interface AdventureState {
 
   // NEW: System definition cache (parsed on load)
   systemDefinition?: SystemDefinition | null;
+}
+
+/**
+ * NPC instance - mirrors playerCharacter structure with additional fields
+ */
+interface NPC {
+  id: string;                          // UUID for internal reference
+  name: string;                        // Unique display name (e.g., "Goblin Scout")
+  templateName?: string;               // Source template if created from one (e.g., "Goblin")
+
+  // Same properties as playerCharacter
+  stats?: Record<string, number>;      // STR: 10, DEX: 14, etc.
+  skills?: Record<string, number>;     // Stealth: +4
+  hp?: { current: number; max: number };
+  conditions?: string[];               // ["prone", "frightened"]
+  inventory?: InventoryItem[];
+
+  // NPC-specific properties
+  reward?: NPCReward;                  // What players get for overcoming this NPC
+  isHostile?: boolean;                 // Combat disposition (default true for enemies)
+  notes?: string;                      // GM notes about this NPC instance
+}
+
+/**
+ * Reward for overcoming an NPC (defeating, persuading, etc.)
+ */
+interface NPCReward {
+  xp?: number;                         // Experience points
+  loot?: InventoryItem[];              // Items dropped/given
+  storyFlag?: string;                  // Narrative progression marker
 }
 
 interface DiceLogEntry {
@@ -295,6 +386,7 @@ interface SystemDefinition {
   hasAttributes: boolean;
   hasSkills: boolean;
   hasCombat: boolean;
+  hasNPCTemplates: boolean;      // Whether system defines NPC templates
   filePath: string;              // For error reporting
 }
 ```
@@ -329,6 +421,36 @@ Skills are linked to attributes:
 Turn-based combat with initiative (d20 + DEX modifier).
 Actions per turn: 1 action, 1 bonus action, movement.
 Attack: d20 + modifier vs AC. Damage: weapon die + STR/DEX.
+Death: At 0 HP, creatures are incapacitated and removed from combat.
+
+## NPC Templates
+
+### Goblin
+Small, cunning humanoid. Fights in groups, flees when outnumbered.
+- HP: 7
+- AC: 15 (leather armor, shield)
+- Stats: STR 8, DEX 14, CON 10, INT 10, WIS 8, CHA 8
+- Attack: Scimitar +4 (1d6+2 slashing)
+- Skills: Stealth +6
+- Reward: 25 XP
+
+### Slime
+Amorphous creature. Splits when damaged by slashing.
+- HP: 22
+- AC: 8
+- Stats: STR 12, DEX 6, CON 16, INT 1, WIS 6, CHA 2
+- Attack: Pseudopod +3 (1d6+1 bludgeoning + 1d6 acid)
+- Immunities: Slashing damage (splits instead)
+- Reward: 50 XP, Acidic Residue (alchemical component)
+
+### Wolf
+Pack hunter. Advantage on attacks when ally is adjacent.
+- HP: 11
+- AC: 13 (natural armor)
+- Stats: STR 12, DEX 15, CON 12, INT 3, WIS 12, CHA 6
+- Attack: Bite +4 (2d4+2 piercing, DC 11 STR or knocked prone)
+- Skills: Perception +3, Stealth +4
+- Reward: 25 XP, Wolf Pelt
 ```
 
 ## API Design
@@ -465,14 +587,15 @@ Use before making decisions that depend on character capabilities.`,
 ```typescript
 const manageCombatTool = tool(
   "manage_combat",
-  `Manage combat encounters: start, advance turn, end combat.`,
+  `Manage combat encounters: start, advance turn, end combat.
+Combatants can include both player and NPCs.`,
   {
     action: z.enum(["start", "next_turn", "end"]).describe("Combat action"),
     combatants: z.array(z.object({
       name: z.string(),
       initiativeRoll: z.number().optional(),
       isPlayer: z.boolean(),
-    })).optional().describe("Combatants for 'start' action"),
+    })).optional().describe("Combatants for 'start' action (player + NPCs)"),
   },
   async (args) => {
     // Start: create combatState, sort by initiative
@@ -480,6 +603,135 @@ const manageCombatTool = tool(
     // end: clear combatState
   }
 );
+```
+
+### MCP Tool: create_npc
+
+```typescript
+const createNpcTool = tool(
+  "create_npc",
+  `Create a new NPC, either from a system template or with custom stats.
+NPCs persist in state and can participate in combat and skill checks.`,
+  {
+    name: z.string().describe("Unique display name (e.g., 'Goblin Scout', 'Gruk')"),
+    templateName: z.string().optional().describe("Template to base NPC on (e.g., 'Goblin')"),
+    // Override or set stats directly
+    stats: z.record(z.number()).optional().describe("Attribute overrides (e.g., {STR: 12, DEX: 14})"),
+    skills: z.record(z.number()).optional().describe("Skill modifiers (e.g., {Stealth: +4})"),
+    hp: z.object({
+      current: z.number(),
+      max: z.number(),
+    }).optional().describe("Hit points"),
+    reward: z.object({
+      xp: z.number().optional(),
+      loot: z.array(z.string()).optional(),
+      storyFlag: z.string().optional(),
+    }).optional().describe("What players receive for overcoming this NPC"),
+    isHostile: z.boolean().optional().default(true).describe("Combat disposition"),
+    notes: z.string().optional().describe("GM notes about this NPC"),
+  },
+  async (args) => {
+    // Validate unique name
+    // If templateName provided, look up template defaults
+    // Apply overrides from args
+    // Generate UUID for id
+    // Add to npcs array
+    // Return created NPC
+  }
+);
+```
+
+**Response Schema**:
+```typescript
+interface CreateNpcResult {
+  success: boolean;
+  npc: NPC;                      // The created NPC
+  message: string;               // "Created Goblin Scout from template Goblin"
+}
+```
+
+**Error Cases**:
+- Duplicate name → Error with existing NPC names listed
+- Unknown template → Warning (creates ad-hoc NPC with provided stats)
+
+### MCP Tool: update_npc
+
+```typescript
+const updateNpcTool = tool(
+  "update_npc",
+  `Update an existing NPC's properties. Use for stat changes, conditions, inventory, etc.
+For HP changes from combat, prefer apply_damage tool for proper incapacitation handling.`,
+  {
+    name: z.string().describe("Name of NPC to update"),
+    updates: z.object({
+      stats: z.record(z.number()).optional(),
+      skills: z.record(z.number()).optional(),
+      hp: z.object({
+        current: z.number(),
+        max: z.number(),
+      }).optional(),
+      conditions: z.array(z.string()).optional(),
+      inventory: z.array(z.object({
+        name: z.string(),
+        quantity: z.number(),
+      })).optional(),
+      reward: z.object({
+        xp: z.number().optional(),
+        loot: z.array(z.string()).optional(),
+        storyFlag: z.string().optional(),
+      }).optional(),
+      isHostile: z.boolean().optional(),
+      notes: z.string().optional(),
+    }).describe("Fields to update (partial update, unspecified fields unchanged)"),
+  },
+  async (args) => {
+    // Find NPC by name
+    // Apply partial updates
+    // Persist to state
+    // Return updated NPC
+  }
+);
+```
+
+**Response Schema**:
+```typescript
+interface UpdateNpcResult {
+  success: boolean;
+  npc: NPC;                      // The updated NPC
+  changes: string[];             // ["HP: 7 → 3", "Added condition: prone"]
+}
+```
+
+### MCP Tool: remove_npc
+
+```typescript
+const removeNpcTool = tool(
+  "remove_npc",
+  `Remove an NPC from the adventure state.
+Use when NPC is defeated, departs, or is no longer relevant.
+Returns the removed NPC data including any unclaimed rewards.`,
+  {
+    name: z.string().describe("Name of NPC to remove"),
+    reason: z.enum(["defeated", "fled", "departed", "other"]).optional()
+      .describe("Reason for removal (for narrative context)"),
+  },
+  async (args) => {
+    // Find NPC by name
+    // Remove from npcs array
+    // Remove from combatState if in combat
+    // Return removed NPC (so GM can apply rewards if applicable)
+  }
+);
+```
+
+**Response Schema**:
+```typescript
+interface RemoveNpcResult {
+  success: boolean;
+  npc: NPC;                      // The removed NPC (includes reward info)
+  reason: string;
+  message: string;               // "Goblin Scout was defeated. Reward: 25 XP"
+}
 ```
 
 ## Integration Points
@@ -490,10 +742,11 @@ const manageCombatTool = tool(
 - **Dependencies**: Node.js fs for file reading, glob for System/* pattern
 
 ### GM Prompt Integration (gm-prompt.ts)
-- **Purpose**: Include system rules and RPG tool instructions in prompt
+- **Purpose**: Include system rules, NPC templates, and RPG tool instructions in prompt
 - **Changes**:
   - Add system rules section if `systemDefinition` present
-  - Add tool usage instructions for dice/check/combat tools
+  - Include NPC templates (monster manual) for GM reference
+  - Add tool usage instructions for dice/check/combat/NPC tools
   - Conditional: omit RPG sections for adventures without systems
 - **Data Flow**: `buildGMSystemPrompt(state)` checks `state.systemDefinition`
 
@@ -506,15 +759,17 @@ const manageCombatTool = tool(
 - **Purpose**: Handle RPG tool callbacks, update state
 - **Changes**:
   - Add tool handlers for `roll_dice`, `skill_check`, `apply_damage`, `manage_combat`
+  - Add tool handlers for `create_npc`, `update_npc`, `remove_npc`
   - Update `onToolUse` callback in mock SDK to handle new tools
   - Pass state manager to tools for persistence
 
 ### Mock SDK Integration (mock-sdk.ts)
 - **Purpose**: Support RPG tools in E2E tests
 - **Changes**:
-  - Add keyword triggers for dice/combat scenarios
-  - Implement `onToolUse` callback routing for new tools
+  - Add keyword triggers for dice/combat/NPC scenarios
+  - Implement `onToolUse` callback routing for new tools including NPC tools
   - Return deterministic mock results for test predictability
+  - Mock NPC creation/combat scenarios for E2E test coverage
 
 ## Error Handling, Performance, Security
 
@@ -523,12 +778,16 @@ const manageCombatTool = tool(
 - **Malformed System.md**: Log warning with file path and issue, continue without mechanics (REQ-F-29)
 - **Invalid dice expression**: Return structured error with valid examples (REQ-F-30)
 - **Character not created**: Tools return error prompting character creation (REQ-F-31)
-- **HP reaches zero**: Return incapacitation status, let GM handle per system rules (REQ-F-32)
+- **HP reaches zero**: Return incapacitation status, let GM handle per system rules (REQ-F-32, REQ-F-38)
+- **Duplicate NPC name**: Reject creation with list of existing NPC names (REQ-F-36)
+- **Unknown NPC name**: Return error listing valid NPC names when update/remove fails
+- **Unknown NPC template**: Warning (create ad-hoc NPC) not error, for flexibility
 
 ### Performance Targets
 - **Dice roll resolution**: <100ms including logging (REQ-NF-1)
 - **Skill check resolution**: <200ms including dice roll (REQ-NF-2)
 - **System loading**: One-time at adventure start, <500ms for typical System.md
+- **NPC operations**: <50ms for create/update/remove (simple state mutations)
 
 ### Security Measures
 - **Dice randomness**: Use `crypto.randomInt()` for unpredictable results
@@ -541,23 +800,29 @@ const manageCombatTool = tool(
 - **Dice parser**: Expression parsing, edge cases (d100, dF, modifiers)
 - **Roll distribution**: Statistical validation of randomness (chi-square test)
 - **Skill check**: Modifier lookup, outcome determination, all outcome types
-- **System loader**: Valid/invalid markdown, missing sections
+- **System loader**: Valid/invalid markdown, missing sections, NPC template parsing
+- **NPC tools**: Create/update/remove operations, unique name validation, template lookup
 - **Coverage target**: 80% for new code
 
 ### Integration Tests
 - **Full skill check flow**: Mock SDK → tool call → state update → response
-- **Combat lifecycle**: Start → turn advancement → end
+- **Combat lifecycle**: Start → turn advancement → end (with PC and NPCs)
 - **Character creation**: Narrative prompts → stat assignment → persistence
+- **NPC lifecycle**: Create from template → participate in combat → apply damage → remove on death
+- **NPC persistence**: Create NPC → reload adventure → NPC intact with all properties
 - **No-system fallback**: Adventure without System.md works as before
 
 ### E2E Tests
 - **Dice roll visibility**: Verify visible rolls appear in narrative, hidden don't
-- **Combat encounter**: Player enters combat → initiative → turns → victory/defeat
+- **Combat encounter**: Player enters combat with NPCs → initiative → turns → victory/defeat
 - **Character persistence**: Create character → reload adventure → character intact
+- **NPC combat flow**: GM creates goblin → combat starts → player attacks → goblin HP updates → goblin defeated → reward applied
+- **Multiple NPCs**: Create 3 goblins → combat with all → defeat each → state updated correctly
 
 ### Mock SDK Extensions
-- Add keyword triggers: "roll", "attack", "check", "combat"
+- Add keyword triggers: "roll", "attack", "check", "combat", "goblin", "enemy", "npc"
 - Mock tool responses with deterministic values for test reproducibility
+- Mock NPC template lookups for "Goblin", "Slime", "Wolf" test templates
 
 ## Risks & Mitigations
 
@@ -568,6 +833,10 @@ const manageCombatTool = tool(
 | Character creation UX confusion | Medium | Medium | Document expected flow; provide System.md template with clear prompts |
 | Combat state corruption on disconnect | Low | Medium | Validate combat state on reconnect; auto-end combat after timeout |
 | System.md format divergence across adventures | Medium | Low | Ship reference implementation; document expected sections |
+| NPC array grows unbounded | Medium | Low | Future enhancement: offload inactive NPCs; for now, document best practice of removing defeated NPCs |
+| Duplicate NPC name collisions | Low | Low | Enforce unique names; suggest naming patterns ("Goblin 1", "Gruk") |
+| NPC template/instance stat confusion | Medium | Medium | Clear tool documentation; template provides defaults, instance can override |
+| Orphaned NPCs in combat state | Low | Medium | When NPC removed, also remove from combatState.initiativeOrder |
 
 ## Dependencies
 
@@ -577,8 +846,8 @@ const manageCombatTool = tool(
 - **glob**: May need for `System/*.md` pattern matching (evaluate bun native)
 
 ### Team
-- **Reference System.md**: Need d20-like template for adventures to copy
-- **Documentation**: Update adventure creator guide with system definition format
+- **Reference System.md**: Need d20-like template for adventures to copy (including NPC templates)
+- **Documentation**: Update adventure creator guide with system definition format and NPC template section
 
 ## Open Questions
 
@@ -586,3 +855,4 @@ const manageCombatTool = tool(
 - [x] Maximum dice log size? → 1000 entries with rotation
 - [ ] Should hidden rolls appear in audit log export? → TBD, default to yes for debugging
 - [ ] Combat timeout duration for auto-end? → Suggest 10 minutes of inactivity
+- [ ] NPC offloading strategy? → Deferred to future enhancement per spec; monitor state size in practice
