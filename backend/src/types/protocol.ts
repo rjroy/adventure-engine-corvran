@@ -1,4 +1,4 @@
-// Re-export protocol types from shared module
+// Re-export protocol types and validation from shared module
 export type {
   ClientMessage,
   ServerMessage,
@@ -8,4 +8,9 @@ export type {
   Genre,
   Region,
   ThemeChangePayload,
+} from "../../../shared/protocol";
+
+export {
+  parseClientMessage,
+  formatValidationError,
 } from "../../../shared/protocol";

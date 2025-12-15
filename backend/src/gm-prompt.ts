@@ -130,7 +130,7 @@ Provide image_prompt only when you want specific generated imagery as fallback.`
     async (args) => {
       logger.debug({ mood: args.mood, genre: args.genre, region: args.region, promptPreview: args.image_prompt?.slice(0, 50), forceGenerate: args.force_generate ?? false }, "set_theme tool invoked");
       await onThemeChange(
-        args.mood as ThemeMood,
+        args.mood,
         args.genre,
         args.region,
         args.force_generate ?? false,

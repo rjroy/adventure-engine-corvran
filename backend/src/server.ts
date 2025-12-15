@@ -9,6 +9,7 @@ import type { WSContext } from "hono/ws";
 import { AdventureStateManager } from "./adventure-state";
 import { GameSession } from "./game-session";
 import type { ClientMessage, ServerMessage } from "./types/protocol";
+import { parseClientMessage, formatValidationError } from "./types/protocol";
 import {
   mapStateError,
   logError,
@@ -286,7 +287,7 @@ app.get(
           return;
         }
 
-        // Parse message
+        // Parse and validate message
         let message: ClientMessage;
         try {
           // Handle different data types from WebSocket
@@ -302,7 +303,29 @@ app.get(
           } else {
             throw new Error("Unsupported message type");
           }
-          message = JSON.parse(dataString) as ClientMessage;
+
+          // Parse JSON and validate against schema
+          const parsed: unknown = JSON.parse(dataString);
+          const result = parseClientMessage(parsed);
+
+          if (!result.success) {
+            logger.warn(
+              { connId, error: formatValidationError(result.error) },
+              "Invalid client message schema"
+            );
+            const errorMsg: ServerMessage = {
+              type: "error",
+              payload: {
+                code: "GM_ERROR",
+                message: "Invalid message format",
+                retryable: false,
+              },
+            };
+            ws.send(JSON.stringify(errorMsg));
+            return;
+          }
+
+          message = result.data;
         } catch (error) {
           logger.error({ err: error, connId }, "Failed to parse client message");
           const errorMsg: ServerMessage = {

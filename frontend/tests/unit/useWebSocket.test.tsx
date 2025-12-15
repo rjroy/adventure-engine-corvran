@@ -44,7 +44,8 @@ class MockWebSocket {
     this.onopen?.(new Event("open"));
   }
 
-  simulateMessage(data: ServerMessage): void {
+  // Accept unknown to allow testing invalid messages (simulates raw wire data)
+  simulateMessage(data: unknown): void {
     this.onmessage?.(new MessageEvent("message", { data: JSON.stringify(data) }));
   }
 
@@ -423,10 +424,14 @@ describe("useWebSocket", () => {
       const root = document.documentElement;
       const colorBeforeInvalid = root.style.getPropertyValue("--color-primary");
 
-      const invalidThemeMessage: ServerMessage = {
+      // Create a spy for console.error (Zod validation errors go to console.error)
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      // Intentionally invalid message - mood is not a valid enum value
+      // simulateMessage accepts unknown to allow testing invalid wire data
+      const invalidThemeMessage = {
         type: "theme_change",
         payload: {
-          // @ts-expect-error - testing invalid mood
           mood: "invalid-mood",
           genre: "sci-fi",
           region: "city",
@@ -438,18 +443,20 @@ describe("useWebSocket", () => {
         mockWebSocketInstance?.simulateMessage(invalidThemeMessage);
       });
 
-      // Should log warning
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        "Invalid theme mood received: invalid-mood. Ignoring theme change."
+      // Should log error (Zod validation rejects the entire message at boundary)
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Invalid server message:",
+        expect.stringContaining("mood")
       );
 
-      // Should still forward message to onMessage
-      expect(onMessage).toHaveBeenCalledWith(invalidThemeMessage);
+      // Message should NOT be forwarded to onMessage (rejected at boundary)
+      expect(onMessage).not.toHaveBeenCalledWith(invalidThemeMessage);
 
       // Theme should not have changed
       expect(root.style.getPropertyValue("--color-primary")).toBe(colorBeforeInvalid);
 
       consoleWarnSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
     });
 
     test("applies all valid moods correctly", () => {
