@@ -25,6 +25,7 @@ import { env } from "./env";
 import { mockQuery } from "./mock-sdk";
 import type { BackgroundImageService } from "./services/background-image";
 import { sanitizePlayerInput } from "./validation";
+import { loadSystemDefinition } from "./services/system-loader";
 
 // Check if we're in mock mode (for E2E testing)
 // Use function instead of const to check at runtime, avoiding module cache issues
@@ -154,6 +155,45 @@ export class GameSession {
     // Use PROJECT_DIR for SDK sandbox - this is the adventure world directory
     // where the SDK should read/write files
     this.projectDirectory = projectDir;
+
+    // Load system definition if present (RPG system integration)
+    const adventureDir = this.stateManager.getCurrentAdventureDir();
+    if (adventureDir) {
+      try {
+        const systemResult = await loadSystemDefinition(adventureDir);
+        if (systemResult === null) {
+          // No system definition found - this is valid (non-RPG adventure)
+          logger.debug({ adventureId }, "No system definition found");
+        } else if (systemResult.success) {
+          // System definition loaded successfully
+          await this.stateManager.updateSystemDefinition(systemResult.definition);
+          logger.info(
+            {
+              adventureId,
+              filePath: systemResult.definition.filePath,
+              diceTypes: systemResult.definition.diceTypes,
+              hasAttributes: systemResult.definition.hasAttributes,
+              hasSkills: systemResult.definition.hasSkills,
+              hasCombat: systemResult.definition.hasCombat,
+              hasNPCTemplates: systemResult.definition.hasNPCTemplates,
+            },
+            "System definition loaded"
+          );
+        } else {
+          // System definition error - log but don't block adventure
+          logger.warn(
+            { adventureId, error: systemResult.error },
+            "Failed to load system definition - continuing without RPG mechanics"
+          );
+        }
+      } catch (error) {
+        // Unexpected error - log but don't block adventure
+        logger.error(
+          { adventureId, err: error },
+          "Unexpected error loading system definition"
+        );
+      }
+    }
 
     return { success: true };
   }

@@ -632,4 +632,106 @@ describe("AdventureStateManager", () => {
       }
     });
   });
+
+  describe("updateSystemDefinition()", () => {
+    test("updates system definition and persists", async () => {
+      const state = await manager.create();
+
+      const systemDef = {
+        rawContent: "# Dice\nd20, d6",
+        diceTypes: ["d6", "d20"],
+        hasAttributes: true,
+        hasSkills: false,
+        hasCombat: true,
+        hasNPCTemplates: false,
+        filePath: "/test/System.md",
+      };
+
+      await manager.updateSystemDefinition(systemDef);
+
+      // Reload and verify
+      const newManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+      const result = await newManager.load(state.id, state.sessionToken);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.state.systemDefinition).toEqual(systemDef);
+      }
+    });
+
+    test("can clear system definition by setting to null", async () => {
+      const state = await manager.create();
+
+      // First set a system definition
+      await manager.updateSystemDefinition({
+        rawContent: "# Dice\nd20",
+        diceTypes: ["d20"],
+        hasAttributes: false,
+        hasSkills: false,
+        hasCombat: false,
+        hasNPCTemplates: false,
+        filePath: "/test/System.md",
+      });
+
+      // Then clear it
+      await manager.updateSystemDefinition(null);
+
+      // Reload and verify
+      const newManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+      const result = await newManager.load(state.id, state.sessionToken);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.state.systemDefinition).toBeNull();
+      }
+    });
+
+    test("throws error when no state loaded", async () => {
+      const freshManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+
+      let errorThrown = false;
+      try {
+        await freshManager.updateSystemDefinition({
+          rawContent: "# Dice\nd20",
+          diceTypes: ["d20"],
+          hasAttributes: false,
+          hasSkills: false,
+          hasCombat: false,
+          hasNPCTemplates: false,
+          filePath: "/test/System.md",
+        });
+      } catch (error) {
+        errorThrown = true;
+        expect((error as Error).message).toContain("No state loaded");
+      }
+      expect(errorThrown).toBe(true);
+    });
+  });
+
+  describe("getCurrentAdventureDir()", () => {
+    test("returns null when no state loaded", () => {
+      const freshManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+      expect(freshManager.getCurrentAdventureDir()).toBeNull();
+    });
+
+    test("returns adventure directory path after state created", async () => {
+      const state = await manager.create();
+      const adventureDir = manager.getCurrentAdventureDir();
+
+      expect(adventureDir).not.toBeNull();
+      expect(adventureDir).toBe(resolve(TEST_ADVENTURES_DIR, state.id));
+    });
+
+    test("returns adventure directory path after state loaded", async () => {
+      const state = await manager.create();
+
+      // Create new manager and load
+      const newManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+      await newManager.load(state.id, state.sessionToken);
+
+      const adventureDir = newManager.getCurrentAdventureDir();
+      expect(adventureDir).not.toBeNull();
+      expect(adventureDir).toBe(resolve(TEST_ADVENTURES_DIR, state.id));
+    });
+  });
 });

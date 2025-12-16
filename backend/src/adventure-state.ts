@@ -340,6 +340,32 @@ export class AdventureStateManager {
   }
 
   /**
+   * Update system definition
+   * @param definition SystemDefinition object or null
+   */
+  async updateSystemDefinition(
+    definition: AdventureState["systemDefinition"]
+  ): Promise<void> {
+    if (!this.state) {
+      throw new Error("No state loaded - call create() or load() first");
+    }
+
+    this.state.systemDefinition = definition;
+    await this.save();
+  }
+
+  /**
+   * Get adventure directory path for currently loaded state.
+   * @returns Full path to adventure directory or null if no state loaded
+   */
+  getCurrentAdventureDir(): string | null {
+    if (!this.state) {
+      return null;
+    }
+    return this.getAdventureDir(this.state.id);
+  }
+
+  /**
    * Get adventure directory path with path traversal protection
    * @param id Adventure ID
    * @returns Full path to adventure directory
