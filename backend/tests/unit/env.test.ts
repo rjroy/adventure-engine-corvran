@@ -311,6 +311,9 @@ describe("validateEnvironment", () => {
       staticRoot: "/var/www/static",
       mockSdk: true,
       replicateApiToken: "r8_abc123",
+      compactionCharThreshold: 100000,
+      retainedEntryCount: 20,
+      compactionSummaryModel: "claude-haiku-3",
     });
   });
 

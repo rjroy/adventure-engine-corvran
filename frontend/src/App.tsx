@@ -7,7 +7,7 @@ import {
 } from "./components";
 import { BackgroundLayer } from "./components/BackgroundLayer";
 import { useWebSocket } from "./hooks/useWebSocket";
-import type { ServerMessage, NarrativeEntry } from "../../shared/protocol";
+import type { ServerMessage, NarrativeEntry, HistorySummary } from "../../shared/protocol";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import "./App.css";
 
@@ -49,6 +49,9 @@ function GameView({
   const [narrativeHistory, setNarrativeHistory] = useState<NarrativeEntry[]>(
     []
   );
+  const [historySummary, setHistorySummary] = useState<HistorySummary | null>(
+    null
+  );
   const [streamingMessage, setStreamingMessage] =
     useState<StreamingMessage | null>(null);
   const [isGMResponding, setIsGMResponding] = useState(false);
@@ -57,8 +60,9 @@ function GameView({
   const handleMessage = useCallback((message: ServerMessage) => {
     switch (message.type) {
       case "adventure_loaded":
-        // Set initial history from server
+        // Set initial history and summary from server
         setNarrativeHistory(message.payload.history);
+        setHistorySummary(message.payload.summary ?? null);
         setError(null);
         break;
 
@@ -184,6 +188,7 @@ function GameView({
         <NarrativeLog
           entries={displayEntries}
           isStreaming={streamingMessage !== null}
+          summary={historySummary}
         />
 
         <div className="game-input-container">

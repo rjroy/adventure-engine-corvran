@@ -33,6 +33,45 @@ export const NarrativeEntrySchema = z.object({
 export type NarrativeEntry = z.infer<typeof NarrativeEntrySchema>;
 
 // ========================
+// History Compaction Types
+// ========================
+
+/**
+ * Summary of compacted history for context continuity.
+ * Generated when history.json exceeds the compaction threshold.
+ * Provides narrative recap for returning players.
+ */
+export const HistorySummarySchema = z.object({
+  /** When the summary was generated */
+  generatedAt: z.string(), // ISO 8601
+  /** Model used for summarization */
+  model: z.string(),
+  /** Number of entries that were archived */
+  entriesArchived: z.number(),
+  /** Date range covered by archived entries */
+  dateRange: z.object({
+    from: z.string(), // ISO 8601
+    to: z.string(), // ISO 8601
+  }),
+  /** The narrative summary text */
+  text: z.string(),
+});
+
+export type HistorySummary = z.infer<typeof HistorySummarySchema>;
+
+/**
+ * Narrative history with optional summary from compaction.
+ * The summary provides context for archived entries.
+ */
+export const NarrativeHistorySchema = z.object({
+  entries: z.array(NarrativeEntrySchema),
+  /** Summary of previously compacted entries (null if never compacted) */
+  summary: HistorySummarySchema.nullable().optional(),
+});
+
+export type NarrativeHistory = z.infer<typeof NarrativeHistorySchema>;
+
+// ========================
 // Dynamic Theming System Types
 // ========================
 
@@ -192,6 +231,8 @@ export const AdventureLoadedMessageSchema = z.object({
   payload: z.object({
     adventureId: z.string(),
     history: z.array(NarrativeEntrySchema),
+    /** Summary of previously compacted history (null if never compacted) */
+    summary: HistorySummarySchema.nullable().optional(),
   }),
 });
 

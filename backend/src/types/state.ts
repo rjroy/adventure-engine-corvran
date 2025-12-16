@@ -11,10 +11,12 @@ import type {
   CombatState,
   SystemDefinition,
   PlayerCharacter,
+  HistorySummary,
+  NarrativeHistory,
 } from "../../../shared/protocol";
 
 // Re-export types needed by other modules
-export type { SystemDefinition } from "../../../shared/protocol";
+export type { SystemDefinition, HistorySummary, NarrativeHistory } from "../../../shared/protocol";
 
 /**
  * Adventure state stored in state.json
@@ -46,12 +48,36 @@ export interface AdventureState {
   systemDefinition?: SystemDefinition | null;
 }
 
+// NarrativeHistory is now imported from shared/protocol.ts
+// It includes optional summary field for compaction support
+
 /**
- * Narrative history stored in history.json
- * Append-only log of player inputs and GM responses
+ * Configuration for history compaction
  */
-export interface NarrativeHistory {
-  entries: NarrativeEntry[];
+export interface CompactionConfig {
+  /** Number of entries to retain after compaction */
+  retainedCount: number;
+  /** Model to use for summarization */
+  model: string;
+  /** Override for mock SDK mode (defaults to env.mockSdk) */
+  mockSdk?: boolean;
+}
+
+/**
+ * Result of a compaction operation
+ */
+export interface CompactionResult {
+  success: boolean;
+  /** Path to the archive file (if successful) */
+  archivePath?: string;
+  /** Number of entries that were archived */
+  entriesArchived?: number;
+  /** Entries retained after compaction */
+  retainedEntries?: NarrativeEntry[];
+  /** Generated summary (null if summarization failed) */
+  summary?: HistorySummary | null;
+  /** Error message (if failed) */
+  error?: string;
 }
 
 /**

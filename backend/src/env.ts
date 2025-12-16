@@ -34,6 +34,13 @@ export interface EnvConfig {
   staticRoot: string;
   mockSdk: boolean;
   replicateApiToken: string | undefined;
+  // History compaction settings
+  /** Character threshold for triggering compaction (default 100000) */
+  compactionCharThreshold: number;
+  /** Number of entries to retain after compaction (default 20) */
+  retainedEntryCount: number;
+  /** Model to use for summarization (default "claude-haiku-3") */
+  compactionSummaryModel: string;
 }
 
 /**
@@ -159,6 +166,44 @@ export interface RawEnv {
   STATIC_ROOT?: string;
   MOCK_SDK?: string;
   REPLICATE_API_TOKEN?: string;
+  // History compaction
+  COMPACTION_CHAR_THRESHOLD?: string;
+  RETAINED_ENTRY_COUNT?: string;
+  COMPACTION_SUMMARY_MODEL?: string;
+}
+
+/**
+ * Parse and validate COMPACTION_CHAR_THRESHOLD environment variable
+ * @returns Character threshold for triggering compaction (default 100000)
+ * @throws Error if value is not a positive integer
+ */
+export function parseCompactionCharThreshold(value: string | undefined): number {
+  if (!value) return 100000;
+
+  const threshold = parseInt(value, 10);
+  if (isNaN(threshold) || threshold < 1000) {
+    throw new Error(
+      `Invalid COMPACTION_CHAR_THRESHOLD: "${value}". Must be a positive integer >= 1000.`
+    );
+  }
+  return threshold;
+}
+
+/**
+ * Parse and validate RETAINED_ENTRY_COUNT environment variable
+ * @returns Number of entries to retain after compaction (default 20)
+ * @throws Error if value is not a positive integer
+ */
+export function parseRetainedEntryCount(value: string | undefined): number {
+  if (!value) return 20;
+
+  const count = parseInt(value, 10);
+  if (isNaN(count) || count < 2) {
+    throw new Error(
+      `Invalid RETAINED_ENTRY_COUNT: "${value}". Must be a positive integer >= 2.`
+    );
+  }
+  return count;
 }
 
 /**
@@ -199,6 +244,22 @@ export function validateEnvironment(rawEnv: RawEnv = process.env): ValidationRes
     errors.push((e as Error).message);
   }
 
+  // Parse compaction settings
+  let compactionCharThreshold = 100000;
+  let retainedEntryCount = 20;
+
+  try {
+    compactionCharThreshold = parseCompactionCharThreshold(rawEnv.COMPACTION_CHAR_THRESHOLD);
+  } catch (e) {
+    errors.push((e as Error).message);
+  }
+
+  try {
+    retainedEntryCount = parseRetainedEntryCount(rawEnv.RETAINED_ENTRY_COUNT);
+  } catch (e) {
+    errors.push((e as Error).message);
+  }
+
   // Check for REPLICATE_API_TOKEN
   const replicateApiToken = rawEnv.REPLICATE_API_TOKEN;
   if (!replicateApiToken) {
@@ -221,6 +282,10 @@ export function validateEnvironment(rawEnv: RawEnv = process.env): ValidationRes
     staticRoot: rawEnv.STATIC_ROOT || "../frontend/dist",
     mockSdk: parseBoolean(rawEnv.MOCK_SDK, false),
     replicateApiToken,
+    // History compaction
+    compactionCharThreshold,
+    retainedEntryCount,
+    compactionSummaryModel: rawEnv.COMPACTION_SUMMARY_MODEL || "claude-haiku-3",
   };
 
   return { errors, warnings, config };

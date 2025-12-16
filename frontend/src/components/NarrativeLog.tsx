@@ -1,6 +1,10 @@
 import { useEffect, useRef } from "react";
-import type { NarrativeEntry as NarrativeEntryType } from "../types/protocol";
+import type {
+  NarrativeEntry as NarrativeEntryType,
+  HistorySummary as HistorySummaryType,
+} from "../types/protocol";
 import { NarrativeEntry } from "./NarrativeEntry";
+import { HistorySummary } from "./HistorySummary";
 import "./NarrativeLog.css";
 
 interface NarrativeLogProps {
@@ -10,9 +14,11 @@ interface NarrativeLogProps {
     text: string;
   };
   isStreaming?: boolean;
+  /** Summary of previously archived history entries */
+  summary?: HistorySummaryType | null;
 }
 
-export function NarrativeLog({ entries, streamingContent }: NarrativeLogProps) {
+export function NarrativeLog({ entries, streamingContent, summary }: NarrativeLogProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const previousEntriesLengthRef = useRef(entries.length);
   const previousStreamingTextRef = useRef(streamingContent?.text);
@@ -40,12 +46,13 @@ export function NarrativeLog({ entries, streamingContent }: NarrativeLogProps) {
       data-testid="narrative-log"
       className="narrative-log"
     >
-      {entries.length === 0 && !streamingContent ? (
+      {entries.length === 0 && !streamingContent && !summary ? (
         <div className="narrative-log__placeholder">
           No narrative entries yet. Start your adventure!
         </div>
       ) : (
         <>
+          {summary && <HistorySummary summary={summary} />}
           {entries.map((entry, index) => {
             // Check if this entry is currently streaming
             const isStreamingEntry =
