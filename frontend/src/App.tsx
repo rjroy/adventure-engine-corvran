@@ -11,6 +11,23 @@ import type { ServerMessage, NarrativeEntry } from "../../shared/protocol";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import "./App.css";
 
+// Fallback UUID generator for insecure contexts (non-HTTPS, non-localhost)
+// crypto.randomUUID() is only available in secure contexts
+function generateUUID(): string {
+  if (typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  // Fallback using crypto.getRandomValues() which has broader support
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  // Set version 4 bits
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  // Set variant bits
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 interface AdventureSession {
   adventureId: string;
   sessionToken: string;
@@ -107,7 +124,7 @@ function GameView({
     (text: string) => {
       // Add player input to history immediately
       const playerEntry: NarrativeEntry = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         timestamp: new Date().toISOString(),
         type: "player_input",
         content: text,
