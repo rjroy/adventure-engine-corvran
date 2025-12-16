@@ -1,0 +1,11 @@
+{
+  "name": "d20-system",
+  "version": "1.0.0",
+  "author": {
+    "name": "Ronald Roy",
+    "email": "gsdwig@gmail.com"
+  },
+  "description": "SRD 5.2-compatible d20 RPG mechanics for Adventure Engine adventures. Provides character creation, combat, spellcasting, and monster skills with templates and the complete System Reference Document for rule lookups.",
+  "repository": "https://github.com/rjroy/wyrd-gateway.git",
+  "license": "CC-BY-4.0"
+}
