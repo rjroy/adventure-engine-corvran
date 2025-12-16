@@ -49,7 +49,7 @@ describe("BackgroundImageService", () => {
   let generatorService: MockImageGeneratorService;
   let orchestrator: BackgroundImageService;
 
-  const BASE_URL = "http://localhost:3000/backgrounds";
+  const BASE_URL = "/backgrounds";
 
   beforeEach(() => {
     catalogService = new MockImageCatalogService();
@@ -70,7 +70,7 @@ describe("BackgroundImageService", () => {
       const withSlash = new BackgroundImageService(
         catalogService as unknown as ImageCatalogService,
         generatorService as unknown as ImageGeneratorService,
-        { baseUrl: "http://localhost:3000/backgrounds/" }
+        { baseUrl: "/backgrounds/" }
       );
       expect(withSlash).toBeDefined();
     });

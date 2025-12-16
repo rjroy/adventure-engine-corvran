@@ -198,7 +198,7 @@ describe("MCP Tool Use via Mock SDK", () => {
       const mockBgService = {
         getBackgroundImage: mock(() =>
           Promise.resolve({
-            url: "http://localhost:3000/backgrounds/ominous-forest.jpg",
+            url: "/backgrounds/ominous-forest.jpg",
             source: "catalog" as const,
           })
         ),
@@ -216,7 +216,7 @@ describe("MCP Tool Use via Mock SDK", () => {
       const themeMsg = themeMessages[0];
       if (themeMsg.type === "theme_change") {
         expect(themeMsg.payload.backgroundUrl).toBe(
-          "http://localhost:3000/backgrounds/ominous-forest.jpg"
+          "/backgrounds/ominous-forest.jpg"
         );
       }
 

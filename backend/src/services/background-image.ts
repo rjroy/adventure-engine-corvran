@@ -31,7 +31,7 @@ import { logger } from "../logger";
  * Configuration for BackgroundImageService
  */
 interface BackgroundImageConfig {
-  /** Base URL for serving static background images (e.g., "http://localhost:3000/backgrounds") */
+  /** Base URL for serving static background images (e.g., "/backgrounds") */
   baseUrl: string;
   /** Enable verbose logging for debugging */
   verbose?: boolean;
@@ -73,7 +73,7 @@ export interface BackgroundImageResult {
  * const orchestrator = new BackgroundImageService(
  *   catalogService,
  *   generatorService,
- *   { baseUrl: "http://localhost:3000/backgrounds" }
+ *   { baseUrl: "/backgrounds" }
  * );
  *
  * const result = await orchestrator.getBackgroundImage(
