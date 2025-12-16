@@ -73,12 +73,12 @@ describe("buildGMSystemPrompt", () => {
       expect(prompt).toContain("./quests.md");
     });
 
-    test("includes dice rolling instructions with bash script", () => {
+    test("includes dice rolling instructions with skill reference", () => {
       const state = createTestState();
       const prompt = buildGMSystemPrompt(state);
 
-      // Should reference the dice roller bash script
-      expect(prompt).toContain("scripts/roll.sh");
+      // Should reference the dice-roller skill
+      expect(prompt).toContain("dice-roller skill");
       expect(prompt).toContain("2d6+3");
       expect(prompt).toContain("JSON");
     });

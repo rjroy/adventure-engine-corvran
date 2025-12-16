@@ -452,6 +452,7 @@ export class GameSession {
     // - Bash for dice rolling (scripts/roll.sh) when System.md defines RPG rules
     // - set_theme for UI visual updates
     const allowedTools = [
+      "Skill",
       "Read",
       "Write",
       "Glob",

@@ -206,8 +206,7 @@ BEFORE RESPONDING - Read existing files to maintain consistency:
 - ./quests.md - Active quests
 
 DICE ROLLING (when ./System.md exists):
-For dice rolls, run: bash scripts/roll.sh "2d6+3"
-The script returns JSON with individual rolls and total.
+Use the dice-roller skill for dice rolls. It provides a script that outputs JSON.
 Example: {"expression": "2d6+3", "rolls": [4, 2], "modifier": 3, "total": 9}
 
 STATE MANAGEMENT - All state lives in markdown files:

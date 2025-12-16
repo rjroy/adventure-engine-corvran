@@ -1,41 +1,23 @@
 ---
 name: dice-roller
-description: Provides deterministic dice rolling for RPG mechanics. Use when the adventure has a System.md that defines RPG rules requiring dice rolls for resolution.
+description: This skill should be used when the user asks to "roll dice", "make a dice roll", "roll for initiative", "roll a skill check", "roll damage", or needs to resolve RPG mechanics with random dice outcomes. Provides deterministic dice rolling for tabletop RPG adventures.
 ---
 
 # Dice Roller Skill
 
-This skill provides a bash script for rolling dice in RPG adventures.
-
-## Setup
-
-Adventure projects that use dice rolling need a copy of `roll.sh` in their `scripts/` directory:
-
-```bash
-# From the adventure project root
-mkdir -p scripts
-cp {corvran-plugin-path}/skills/dice-roller/scripts/roll.sh scripts/
-chmod +x scripts/roll.sh
-```
-
-The GM expects the script at `./scripts/roll.sh` relative to the adventure directory.
-
-## When to Use
-
-Use this skill when:
-- The adventure has a `System.md` file defining RPG rules
-- You need to resolve actions with dice (skill checks, attacks, damage, etc.)
-- The system requires random outcomes that should be deterministic and visible
+Provides a bash script for rolling dice in RPG adventures with JSON output for programmatic use.
 
 ## How to Roll Dice
 
-Run the dice roller script with a dice expression:
+Execute the dice roller script with a dice expression:
 
 ```bash
-bash scripts/roll.sh "2d6+3"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/dice-roller/scripts/roll.sh" "2d6+3"
 ```
 
-### Supported Expressions
+The script is bundled with this skill and executes from the plugin directory.
+
+## Supported Expressions
 
 | Expression | Meaning |
 |------------|---------|
@@ -44,10 +26,11 @@ bash scripts/roll.sh "2d6+3"
 | `1d20+5` | Roll d20, add 5 |
 | `3d8-2` | Roll 3d8, subtract 2 |
 | `4dF` | Roll 4 Fudge dice (-1, 0, +1 each) |
+| `d100` | Roll percentile (1-100) |
 
-### Output Format
+## Output Format
 
-The script outputs JSON:
+The script outputs JSON with individual rolls and computed total:
 
 ```json
 {
@@ -58,30 +41,34 @@ The script outputs JSON:
 }
 ```
 
-## Integration with RPG Systems
+## When to Roll
 
-When an adventure has a `System.md`, use dice rolls for:
+For adventures with RPG rules (indicated by `System.md`), use dice rolls for:
 
-1. **Skill Checks**: Roll per system rules, compare to difficulty
+1. **Skill Checks**: Roll per system rules, compare to difficulty threshold
 2. **Attack Rolls**: Roll to hit, then roll damage if successful
-3. **Saving Throws**: Roll to resist effects
+3. **Saving Throws**: Roll to resist effects or avoid hazards
 4. **Initiative**: Roll to determine turn order in combat
-
-Always narrate the outcome - the player sees your narrative, not the raw dice output.
 
 ## Example Usage
 
 **Skill Check (d20 system)**:
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/dice-roller/scripts/roll.sh" "1d20+5"
+# Output: {"expression": "1d20+5", "rolls": [14], "modifier": 5, "total": 19}
 ```
-Player: "I try to pick the lock"
-GM: *rolls* bash scripts/roll.sh "1d20+5"
-Output: {"expression": "1d20+5", "rolls": [14], "modifier": 5, "total": 19}
-GM narrates: "Your nimble fingers work the tumblers. With a satisfying click, the lock yields to your expertise."
-```
+Narrate the outcome based on the result vs the difficulty class.
 
 **Damage Roll**:
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/dice-roller/scripts/roll.sh" "2d6+3"
+# Output: {"expression": "2d6+3", "rolls": [5, 4], "modifier": 3, "total": 12}
 ```
-GM: *rolls damage* bash scripts/roll.sh "2d6+3"
-Output: {"expression": "2d6+3", "rolls": [5, 4], "modifier": 3, "total": 12}
-GM narrates: "Your sword bites deep, dealing 12 damage to the goblin."
-```
+Describe the impact narratively - "Your sword bites deep, dealing 12 damage."
+
+## Best Practices
+
+- Always narrate outcomes - players see the story, not raw numbers
+- Parse the JSON output to extract the total for mechanical comparisons
+- Include context in narration (what was rolled, why it matters)
+- For hidden rolls (GM secrets), execute silently and narrate only the outcome
