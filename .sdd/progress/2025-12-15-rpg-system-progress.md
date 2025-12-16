@@ -12,10 +12,10 @@ authored_by:
 
 # RPG System Integration - Implementation Progress
 
-**Last Updated**: 2025-12-15 | **Status**: 83% complete (15 of 18 tasks)
+**Last Updated**: 2025-12-15 | **Status**: 89% complete (16 of 18 tasks)
 
 ## Current Session
-**Date**: 2025-12-15 | **Working On**: TASK-016: Implement Mock SDK Support for RPG Tools | **Blockers**: None
+**Date**: 2025-12-15 | **Working On**: TASK-017: Create Reference System.md Template | **Blockers**: None
 
 ## Completed Today
 - TASK-001: Define RPG Type Definitions ✅ (commit: 0d0617e)
@@ -33,6 +33,7 @@ authored_by:
 - TASK-013: Implement remove_npc MCP Tool ✅ (commit: 4c3848b)
 - TASK-014: Implement manage_combat MCP Tool ✅ (commit: 9ca2058)
 - TASK-015: Register All MCP Tools in GM MCP Server ✅ (commit: d495bbb)
+- TASK-016: Implement Mock SDK Support for RPG Tools ✅ (commit: 53998b0)
 
 ## Discovered Issues
 - None
@@ -83,7 +84,7 @@ authored_by:
 
 **In Progress** ⏳
 - [x] TASK-015: Register All MCP Tools in GM MCP Server - *Completed 2025-12-15* (commit: d495bbb)
-- [ ] TASK-016: Implement Mock SDK Support for RPG Tools
+- [x] TASK-016: Implement Mock SDK Support for RPG Tools - *Completed 2025-12-15* (commit: 53998b0)
 - [ ] TASK-017: Create Reference System.md Template
 - [ ] TASK-018: Write Integration and E2E Tests
 
@@ -111,6 +112,7 @@ authored_by:
 | Dice Roller | ✅ Complete |
 | System Loader | ✅ Complete |
 | MCP Tools | ✅ Complete (roll_dice, get_character, apply_damage, create_npc, update_npc, remove_npc, manage_combat) |
+| Mock SDK Support | ✅ Complete (all RPG tools) |
 | Integration Tests | ⏳ Pending |
 | E2E Tests | ⏳ Pending |
 
@@ -118,8 +120,13 @@ authored_by:
 
 ## Notes for Next Session
 - Continuing with Phase 7: Integration & Polish
-- TASK-015 completed: Implemented conditional tool registration
-  - RPG tools only available when systemDefinition is present
-  - Added manage_combat to allowedTools list (was missing)
-  - Dynamic allowedTools array based on system presence
-- TASK-016 next: Add mock implementations for all RPG tools in mock-sdk.ts
+- TASK-016 completed: Extended mock SDK to handle RPG tool calls
+  - Added detection functions for create_npc, apply_damage, manage_combat
+  - Implemented deterministic mock responses for all RPG tools
+  - Extended game-session onToolUse callback to handle new tools
+  - Created comprehensive unit tests for detection logic
+  - All 625 unit tests pass
+- TASK-017 next: Create Reference System.md Template
+  - Should include all required sections (Dice, Attributes, etc.)
+  - Provide examples for NPCs, combat, skills
+  - Document best practices for system definition authoring
