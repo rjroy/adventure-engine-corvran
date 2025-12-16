@@ -4,7 +4,7 @@
 import { tool, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import type { AdventureState } from "./types/state";
-import type { ThemeMood, DiceLogEntry, PlayerCharacter } from "./types/protocol";
+import type { ThemeMood, DiceLogEntry, PlayerCharacter, NPC } from "./types/protocol";
 import { sanitizeStateValue } from "./validation";
 import { logger } from "./logger";
 import { rollDiceTool as rollDiceToolDefinition, createRollDiceTool } from "./mcp-tools/roll-dice";
@@ -12,6 +12,10 @@ import {
   getCharacterToolDefinition,
   createGetCharacterTool,
 } from "./mcp-tools/get-character";
+import {
+  applyDamageToolDefinition,
+  createApplyDamageTool,
+} from "./mcp-tools/apply-damage";
 
 /**
  * Valid theme moods for the set_theme tool
@@ -149,23 +153,26 @@ Provide image_prompt only when you want specific generated imagery as fallback.`
 }
 
 /**
- * Create an MCP server with the set_theme, roll_dice, and get_character tools
+ * Create an MCP server with set_theme, roll_dice, get_character, and apply_damage tools
  * @param onThemeChange Callback invoked when theme should change
  * @param diceLog Reference to adventure state's dice log array
  * @param getPlayerCharacter Function to get current player character state
+ * @param getNpcs Function to get current NPCs array
  */
 export function createThemeMcpServer(
   onThemeChange: ThemeChangeHandler,
   diceLog: DiceLogEntry[],
-  getPlayerCharacter: () => PlayerCharacter
+  getPlayerCharacter: () => PlayerCharacter,
+  getNpcs: () => NPC[]
 ) {
   const setThemeTool = createSetThemeTool(onThemeChange);
   const rollDiceTool = createRollDiceTool(diceLog);
   const getCharacterTool = createGetCharacterTool(getPlayerCharacter);
+  const applyDamageTool = createApplyDamageTool(getPlayerCharacter, getNpcs);
   return createSdkMcpServer({
     name: "adventure-theme",
     version: "1.0.0",
-    tools: [setThemeTool, rollDiceTool, getCharacterTool],
+    tools: [setThemeTool, rollDiceTool, getCharacterTool, applyDamageTool],
   });
 }
 
@@ -178,6 +185,11 @@ export const rollDiceTool = rollDiceToolDefinition;
  * Export the static get_character tool definition for external use
  */
 export const getCharacterTool = getCharacterToolDefinition;
+
+/**
+ * Export the static apply_damage tool definition for external use
+ */
+export const applyDamageTool = applyDamageToolDefinition;
 
 /** Structural boundary for separating system instructions from game data */
 const BOUNDARY = "════════════════════════════════════════";

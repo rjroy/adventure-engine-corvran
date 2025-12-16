@@ -10,6 +10,7 @@ export type {
   ThemeChangePayload,
   DiceLogEntry,
   PlayerCharacter,
+  NPC,
 } from "../../../shared/protocol";
 
 export {

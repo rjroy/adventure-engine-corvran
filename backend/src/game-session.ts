@@ -484,7 +484,12 @@ export class GameSession {
       state.diceLog = [];
     }
 
-    // Create MCP server for set_theme, roll_dice, and get_character tools
+    // Ensure npcs array exists (for backward compatibility with old saves)
+    if (!state.npcs) {
+      state.npcs = [];
+    }
+
+    // Create MCP server for set_theme, roll_dice, get_character, and apply_damage tools
     const themeMcpServer = createThemeMcpServer(
       async (mood, genre, region, forceGenerate, imagePrompt) => {
         log.debug({ mood, genre, region }, "MCP callback invoked");
@@ -506,7 +511,8 @@ export class GameSession {
         }
       },
       state.diceLog,
-      () => state.playerCharacter
+      () => state.playerCharacter,
+      () => state.npcs ?? []
     );
 
     // Query Claude Agent SDK with resume for conversation continuity
@@ -518,7 +524,7 @@ export class GameSession {
         // Provide set_theme and roll_dice tools via MCP server (keyed by server name)
         mcpServers: { "adventure-theme": themeMcpServer },
         // SDK provides tools by default; allowedTools filters to what we need
-        allowedTools: ["Read", "Write", "Glob", "Grep", "mcp__adventure-theme__set_theme", "mcp__adventure-theme__roll_dice", "mcp__adventure-theme__get_character"],
+        allowedTools: ["Read", "Write", "Glob", "Grep", "mcp__adventure-theme__set_theme", "mcp__adventure-theme__roll_dice", "mcp__adventure-theme__get_character", "mcp__adventure-theme__apply_damage"],
         cwd: this.projectDirectory,
         includePartialMessages: true, // Enable token streaming
         permissionMode: "acceptEdits", // Auto-accept file edits within sandbox
