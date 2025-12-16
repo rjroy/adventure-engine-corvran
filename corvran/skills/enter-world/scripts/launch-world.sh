@@ -8,11 +8,17 @@
 
 set -euo pipefail
 
-# Determine where the Adventure Engine code lives (relative to this script)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENGINE_DIR="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+DEBUG="${DEBUG:-}"
 
-PROJECT_DIR="${1:-.}"
+
+# Determine project directory from argument (default to current directory)
+PROJECT_DIR="${1:-}"
+if [[ -n "${PROJECT_DIR:-}" ]]; then
+    # Convert to absolute path (required for SDK cwd)
+    PROJECT_DIR="$(cd "$PROJECT_DIR" && pwd)"
+else
+    PROJECT_DIR="$(pwd)"
+fi
 
 # Validate project directory exists
 if [[ ! -d "$PROJECT_DIR" ]]; then
@@ -20,26 +26,49 @@ if [[ ! -d "$PROJECT_DIR" ]]; then
     exit 1
 fi
 
-# Convert to absolute path (required for SDK cwd)
-PROJECT_DIR="$(cd "$PROJECT_DIR" && pwd)"
+
+# Source .env files (project specific first-pass overrides)
+set -a  # Export all variables
+# Project directory .env (adventure-specific overrides)
+if [[ -f "$PROJECT_DIR/.env" ]]; then
+    source "$PROJECT_DIR/.env"
+    [[ -n "$DEBUG" ]] && echo "[env] Sourced (first-pass): $PROJECT_DIR/.env" >&2
+fi
+set +a
+
+
+# Determine where the Adventure Engine code lives (relative to this script or provided by env)
+if [[ -n "${CORVRAN_DIR:-}" ]]; then
+    # Convert to absolute path (required for SDK cwd)
+    CORVRAN_DIR="$(cd "$CORVRAN_DIR" && pwd)"
+else
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    CORVRAN_DIR="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+fi
+
+# Validate CORVRAN_DIR exists
+if [[ ! -d "$CORVRAN_DIR" ]]; then
+    echo "Error: CORVRAN_DIR does not exist: $CORVRAN_DIR" >&2
+    exit 1
+fi
+
 
 # Source .env files (engine defaults first, then project overrides)
-DEBUG="${DEBUG:-}"
 set -a  # Export all variables
 # Engine backend .env (development defaults)
-if [[ -f "$ENGINE_DIR/backend/.env" ]]; then
-    source "$ENGINE_DIR/backend/.env"
-    [[ -n "$DEBUG" ]] && echo "[env] Sourced: $ENGINE_DIR/backend/.env" >&2
+if [[ -f "$CORVRAN_DIR/backend/.env" ]]; then
+    source "$CORVRAN_DIR/backend/.env"
+    [[ -n "$DEBUG" ]] && echo "[env] Sourced: $CORVRAN_DIR/backend/.env" >&2
 fi
 # Engine root .env
-if [[ -f "$ENGINE_DIR/.env" ]]; then
-    source "$ENGINE_DIR/.env"
-    [[ -n "$DEBUG" ]] && echo "[env] Sourced: $ENGINE_DIR/.env" >&2
+if [[ -f "$CORVRAN_DIR/.env" ]]; then
+    source "$CORVRAN_DIR/.env"
+    [[ -n "$DEBUG" ]] && echo "[env] Sourced: $CORVRAN_DIR/.env" >&2
 fi
 # Project directory .env (adventure-specific overrides)
 if [[ -f "$PROJECT_DIR/.env" ]]; then
     source "$PROJECT_DIR/.env"
-    [[ -n "$DEBUG" ]] && echo "[env] Sourced: $PROJECT_DIR/.env" >&2
+    [[ -n "$DEBUG" ]] && echo "[env] Sourced (second pass): $PROJECT_DIR/.env" >&2
 fi
 set +a
 
@@ -55,8 +84,8 @@ LOG_FILE="$PROJECT_DIR/.adventure-engine.log"
 SERVER_HOST="${HOST:-localhost}"
 SERVER_PORT="${PORT:-3000}"
 SERVER_URL="http://${SERVER_HOST}:${SERVER_PORT}"
-BACKEND_DIR="$ENGINE_DIR/backend"
-FRONTEND_DIR="$ENGINE_DIR/frontend"
+BACKEND_DIR="$CORVRAN_DIR/backend"
+FRONTEND_DIR="$CORVRAN_DIR/frontend"
 PID_FILE="$PROJECT_DIR/.adventure-engine.pid"
 
 # Track whether cleanup should kill the server
@@ -123,7 +152,7 @@ fi
 {
     echo "=== Adventure Engine Launch ==="
     echo "Timestamp: $(date -Iseconds)"
-    echo "Engine directory: $ENGINE_DIR"
+    echo "Engine directory: $CORVRAN_DIR"
     echo "Project directory: $PROJECT_DIR"
     echo "Server URL: $SERVER_URL"
     echo ""
