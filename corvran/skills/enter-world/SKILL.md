@@ -13,7 +13,7 @@ Launch the Adventure Engine application to begin an interactive adventure sessio
 2. Run the launcher script which will boot the Adventure Engine application in fire-and-forget mode:
 
 ```bash
-./scripts/launch-world.sh "$PWD"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/enter-world/scripts/launch-world.sh" "$PWD"
 ```
 
 The script launches the application asynchronously - control returns immediately to Claude Code while the adventure application runs independently. Output is written to `.adventure-engine.log` in the project directory.
