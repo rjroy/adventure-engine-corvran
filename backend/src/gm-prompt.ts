@@ -4,7 +4,7 @@
 import { tool, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import type { AdventureState, SystemDefinition } from "./types/state";
-import type { ThemeMood, DiceLogEntry, PlayerCharacter, NPC } from "./types/protocol";
+import type { ThemeMood, DiceLogEntry, PlayerCharacter, NPC, CombatState } from "./types/protocol";
 import { sanitizeStateValue } from "./validation";
 import { logger } from "./logger";
 import { rollDiceTool as rollDiceToolDefinition, createRollDiceTool } from "./mcp-tools/roll-dice";
@@ -24,6 +24,10 @@ import {
   updateNpcToolDefinition,
   createUpdateNpcTool,
 } from "./mcp-tools/update-npc";
+import {
+  removeNpcToolDefinition,
+  createRemoveNpcTool,
+} from "./mcp-tools/remove-npc";
 
 /**
  * Valid theme moods for the set_theme tool
@@ -173,7 +177,10 @@ export function createThemeMcpServer(
   getPlayerCharacter: () => PlayerCharacter,
   getNpcs: () => NPC[],
   addNpc: (npc: NPC) => void,
-  getSystemDefinition: () => SystemDefinition | null
+  getSystemDefinition: () => SystemDefinition | null,
+  getCombatState: () => CombatState | null,
+  removeFromNpcs: (index: number) => void,
+  removeFromInitiative: (npcName: string) => void
 ) {
   const setThemeTool = createSetThemeTool(onThemeChange);
   const rollDiceTool = createRollDiceTool(diceLog);
@@ -181,10 +188,11 @@ export function createThemeMcpServer(
   const applyDamageTool = createApplyDamageTool(getPlayerCharacter, getNpcs);
   const createNpcTool = createCreateNpcTool(getNpcs, addNpc, getSystemDefinition);
   const updateNpcTool = createUpdateNpcTool(getNpcs);
+  const removeNpcTool = createRemoveNpcTool(getNpcs, getCombatState, removeFromNpcs, removeFromInitiative);
   return createSdkMcpServer({
     name: "adventure-theme",
     version: "1.0.0",
-    tools: [setThemeTool, rollDiceTool, getCharacterTool, applyDamageTool, createNpcTool, updateNpcTool],
+    tools: [setThemeTool, rollDiceTool, getCharacterTool, applyDamageTool, createNpcTool, updateNpcTool, removeNpcTool],
   });
 }
 
@@ -212,6 +220,11 @@ export const createNpcTool = createNpcToolDefinition;
  * Export the static update_npc tool definition for external use
  */
 export const updateNpcTool = updateNpcToolDefinition;
+
+/**
+ * Export the static remove_npc tool definition for external use
+ */
+export const removeNpcTool = removeNpcToolDefinition;
 
 /** Structural boundary for separating system instructions from game data */
 const BOUNDARY = "════════════════════════════════════════";

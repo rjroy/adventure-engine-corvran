@@ -519,7 +519,23 @@ export class GameSession {
         }
         state.npcs.push(npc);
       },
-      () => state.systemDefinition ?? null
+      () => state.systemDefinition ?? null,
+      () => state.combatState ?? null,
+      (index) => {
+        if (state.npcs) {
+          state.npcs.splice(index, 1);
+        }
+      },
+      (npcName) => {
+        if (state.combatState?.initiativeOrder) {
+          const idx = state.combatState.initiativeOrder.findIndex(
+            (c) => c.name.toLowerCase() === npcName.toLowerCase() && !c.isPlayer
+          );
+          if (idx !== -1) {
+            state.combatState.initiativeOrder.splice(idx, 1);
+          }
+        }
+      }
     );
 
     // Query Claude Agent SDK with resume for conversation continuity
@@ -531,7 +547,7 @@ export class GameSession {
         // Provide set_theme and roll_dice tools via MCP server (keyed by server name)
         mcpServers: { "adventure-theme": themeMcpServer },
         // SDK provides tools by default; allowedTools filters to what we need
-        allowedTools: ["Read", "Write", "Glob", "Grep", "mcp__adventure-theme__set_theme", "mcp__adventure-theme__roll_dice", "mcp__adventure-theme__get_character", "mcp__adventure-theme__apply_damage", "mcp__adventure-theme__create_npc", "mcp__adventure-theme__update_npc"],
+        allowedTools: ["Read", "Write", "Glob", "Grep", "mcp__adventure-theme__set_theme", "mcp__adventure-theme__roll_dice", "mcp__adventure-theme__get_character", "mcp__adventure-theme__apply_damage", "mcp__adventure-theme__create_npc", "mcp__adventure-theme__update_npc", "mcp__adventure-theme__remove_npc"],
         cwd: this.projectDirectory,
         includePartialMessages: true, // Enable token streaming
         permissionMode: "acceptEdits", // Auto-accept file edits within sandbox

@@ -11,6 +11,7 @@ export type {
   DiceLogEntry,
   PlayerCharacter,
   NPC,
+  CombatState,
 } from "../../../shared/protocol";
 
 export {
