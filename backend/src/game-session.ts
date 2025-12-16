@@ -489,7 +489,7 @@ export class GameSession {
       state.npcs = [];
     }
 
-    // Create MCP server for set_theme, roll_dice, get_character, and apply_damage tools
+    // Create MCP server for set_theme, roll_dice, get_character, apply_damage, NPC, and combat tools
     const themeMcpServer = createThemeMcpServer(
       async (mood, genre, region, forceGenerate, imagePrompt) => {
         log.debug({ mood, genre, region }, "MCP callback invoked");
@@ -521,6 +521,9 @@ export class GameSession {
       },
       () => state.systemDefinition ?? null,
       () => state.combatState ?? null,
+      (combatState) => {
+        state.combatState = combatState;
+      },
       (index) => {
         if (state.npcs) {
           state.npcs.splice(index, 1);

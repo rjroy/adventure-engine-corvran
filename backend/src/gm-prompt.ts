@@ -28,6 +28,10 @@ import {
   removeNpcToolDefinition,
   createRemoveNpcTool,
 } from "./mcp-tools/remove-npc";
+import {
+  manageCombatToolDefinition,
+  createManageCombatTool,
+} from "./mcp-tools/manage-combat";
 
 /**
  * Valid theme moods for the set_theme tool
@@ -165,11 +169,17 @@ Provide image_prompt only when you want specific generated imagery as fallback.`
 }
 
 /**
- * Create an MCP server with set_theme, roll_dice, get_character, and apply_damage tools
+ * Create an MCP server with set_theme, roll_dice, get_character, apply_damage, NPC, and combat tools
  * @param onThemeChange Callback invoked when theme should change
  * @param diceLog Reference to adventure state's dice log array
  * @param getPlayerCharacter Function to get current player character state
  * @param getNpcs Function to get current NPCs array
+ * @param addNpc Function to add NPC to state
+ * @param getSystemDefinition Function to get system definition
+ * @param getCombatState Function to get current combat state
+ * @param setCombatState Function to update combat state
+ * @param removeFromNpcs Function to remove NPC from array
+ * @param removeFromInitiative Function to remove NPC from initiative order
  */
 export function createThemeMcpServer(
   onThemeChange: ThemeChangeHandler,
@@ -179,6 +189,7 @@ export function createThemeMcpServer(
   addNpc: (npc: NPC) => void,
   getSystemDefinition: () => SystemDefinition | null,
   getCombatState: () => CombatState | null,
+  setCombatState: (state: CombatState | null) => void,
   removeFromNpcs: (index: number) => void,
   removeFromInitiative: (npcName: string) => void
 ) {
@@ -189,10 +200,11 @@ export function createThemeMcpServer(
   const createNpcTool = createCreateNpcTool(getNpcs, addNpc, getSystemDefinition);
   const updateNpcTool = createUpdateNpcTool(getNpcs);
   const removeNpcTool = createRemoveNpcTool(getNpcs, getCombatState, removeFromNpcs, removeFromInitiative);
+  const manageCombatTool = createManageCombatTool(getCombatState, setCombatState, getNpcs);
   return createSdkMcpServer({
     name: "adventure-theme",
     version: "1.0.0",
-    tools: [setThemeTool, rollDiceTool, getCharacterTool, applyDamageTool, createNpcTool, updateNpcTool, removeNpcTool],
+    tools: [setThemeTool, rollDiceTool, getCharacterTool, applyDamageTool, createNpcTool, updateNpcTool, removeNpcTool, manageCombatTool],
   });
 }
 
@@ -225,6 +237,11 @@ export const updateNpcTool = updateNpcToolDefinition;
  * Export the static remove_npc tool definition for external use
  */
 export const removeNpcTool = removeNpcToolDefinition;
+
+/**
+ * Export the static manage_combat tool definition for external use
+ */
+export const manageCombatTool = manageCombatToolDefinition;
 
 /** Structural boundary for separating system instructions from game data */
 const BOUNDARY = "════════════════════════════════════════";
