@@ -12,10 +12,10 @@ authored_by:
 
 # RPG System Integration - Implementation Progress
 
-**Last Updated**: 2025-12-15 | **Status**: 78% complete (14 of 18 tasks)
+**Last Updated**: 2025-12-15 | **Status**: 83% complete (15 of 18 tasks)
 
 ## Current Session
-**Date**: 2025-12-15 | **Working On**: TASK-015: Register All MCP Tools in GM MCP Server | **Blockers**: None
+**Date**: 2025-12-15 | **Working On**: TASK-016: Implement Mock SDK Support for RPG Tools | **Blockers**: None
 
 ## Completed Today
 - TASK-001: Define RPG Type Definitions ✅ (commit: 0d0617e)
@@ -32,6 +32,7 @@ authored_by:
 - TASK-012: Implement update_npc MCP Tool ✅ (commit: 8b423d3)
 - TASK-013: Implement remove_npc MCP Tool ✅ (commit: 4c3848b)
 - TASK-014: Implement manage_combat MCP Tool ✅ (commit: 9ca2058)
+- TASK-015: Register All MCP Tools in GM MCP Server ✅ (commit: d495bbb)
 
 ## Discovered Issues
 - None
@@ -80,8 +81,8 @@ authored_by:
 
 ### Phase 7: Integration & Polish
 
-**Upcoming** ⏳
-- [ ] TASK-015: Register All MCP Tools in GM MCP Server
+**In Progress** ⏳
+- [x] TASK-015: Register All MCP Tools in GM MCP Server - *Completed 2025-12-15* (commit: d495bbb)
 - [ ] TASK-016: Implement Mock SDK Support for RPG Tools
 - [ ] TASK-017: Create Reference System.md Template
 - [ ] TASK-018: Write Integration and E2E Tests
@@ -116,7 +117,9 @@ authored_by:
 ---
 
 ## Notes for Next Session
-- Continuing with Phase 5: NPC Management
-- TASK-011 creates NPCs from templates or custom specs
-- TASK-012 updates existing NPCs
-- TASK-013 removes NPCs from scene
+- Continuing with Phase 7: Integration & Polish
+- TASK-015 completed: Implemented conditional tool registration
+  - RPG tools only available when systemDefinition is present
+  - Added manage_combat to allowedTools list (was missing)
+  - Dynamic allowedTools array based on system presence
+- TASK-016 next: Add mock implementations for all RPG tools in mock-sdk.ts
