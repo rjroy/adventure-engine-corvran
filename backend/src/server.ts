@@ -628,12 +628,13 @@ async function validateAndLoadAdventure(
     }
   }
 
-  // Send adventure loaded confirmation with history
+  // Send adventure loaded confirmation with history and optional summary
   const loadedMsg: ServerMessage = {
     type: "adventure_loaded",
     payload: {
       adventureId: result.state.id,
       history: result.history.entries,
+      summary: result.history.summary ?? null,
     },
   };
 

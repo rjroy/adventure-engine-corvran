@@ -11,6 +11,9 @@ import type {
   StateLoadResult,
 } from "./types/state";
 import { validateAdventureId, safeResolvePath } from "./validation";
+import { HistoryCompactor } from "./services/history-compactor";
+import { env } from "./env";
+import { logger } from "./logger";
 
 /**
  * Manages persistence of adventure state to filesystem
@@ -193,6 +196,11 @@ export class AdventureStateManager {
     // Update last active timestamp
     this.state.lastActiveAt = new Date().toISOString();
 
+    // Check if existing history needs compaction (handles old large histories)
+    if (this.shouldCompact()) {
+      void this.compactHistoryAsync();
+    }
+
     return {
       success: true,
       state: this.state,
@@ -254,7 +262,8 @@ export class AdventureStateManager {
   }
 
   /**
-   * Append a new entry to narrative history and persist
+   * Append a new entry to narrative history and persist.
+   * Triggers automatic compaction if history exceeds threshold.
    * @param entry Narrative entry to add
    */
   async appendHistory(entry: NarrativeEntry): Promise<void> {
@@ -266,6 +275,69 @@ export class AdventureStateManager {
 
     this.history.entries.push(entry);
     await this.save();
+
+    // Check if compaction is needed and trigger asynchronously
+    if (this.shouldCompact()) {
+      void this.compactHistoryAsync();
+    }
+  }
+
+  /**
+   * Check if history should be compacted based on character count.
+   * @returns true if compaction should occur
+   */
+  private shouldCompact(): boolean {
+    const totalChars = this.history.entries.reduce(
+      (sum, e) => sum + e.content.length,
+      0
+    );
+    return totalChars >= env.compactionCharThreshold;
+  }
+
+  /**
+   * Perform history compaction asynchronously.
+   * Archives older entries, generates summary, and updates history.
+   */
+  private async compactHistoryAsync(): Promise<void> {
+    const log = logger.child({ component: "AdventureStateManager" });
+    const adventureDir = this.getCurrentAdventureDir();
+
+    if (!adventureDir) {
+      log.warn("Cannot compact: no adventure directory");
+      return;
+    }
+
+    const compactor = new HistoryCompactor(adventureDir, {
+      retainedCount: env.retainedEntryCount,
+      model: env.compactionSummaryModel,
+    });
+
+    try {
+      const result = await compactor.compact(this.history);
+
+      if (result.success && result.retainedEntries) {
+        // Update history with compacted version
+        this.history = {
+          entries: result.retainedEntries,
+          summary: result.summary ?? this.history.summary,
+        };
+        await this.save();
+
+        log.info(
+          {
+            entriesArchived: result.entriesArchived,
+            archivePath: result.archivePath,
+            hasSummary: !!result.summary,
+          },
+          "History compaction completed"
+        );
+      } else if (!result.success) {
+        log.warn({ error: result.error }, "History compaction skipped");
+      }
+    } catch (error) {
+      log.error({ error }, "History compaction failed");
+      // Non-fatal: don't throw, just log and continue
+    }
   }
 
   /**

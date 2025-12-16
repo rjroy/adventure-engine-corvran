@@ -8,4 +8,5 @@ export type {
   Genre,
   Region,
   ThemeChangePayload,
+  HistorySummary,
 } from "../../../shared/protocol";
