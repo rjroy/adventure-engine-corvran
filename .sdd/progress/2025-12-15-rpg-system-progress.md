@@ -12,10 +12,10 @@ authored_by:
 
 # RPG System Integration - Implementation Progress
 
-**Last Updated**: 2025-12-15 | **Status**: 28% complete (5 of 18 tasks)
+**Last Updated**: 2025-12-15 | **Status**: 39% complete (7 of 18 tasks)
 
 ## Current Session
-**Date**: 2025-12-15 | **Working On**: TASK-006: Implement System Loader Service | **Blockers**: None
+**Date**: 2025-12-15 | **Working On**: TASK-008: Update GM Prompt with System Rules | **Blockers**: None
 
 ## Completed Today
 - TASK-001: Define RPG Type Definitions ✅ (commit: 0d0617e)
@@ -23,6 +23,8 @@ authored_by:
 - TASK-003: Implement Dice Expression Parser ✅ (commit: ed0ddb8)
 - TASK-004: Implement Dice Roller Service ✅ (commit: e893e36)
 - TASK-005: Implement roll_dice MCP Tool ✅ (commit: c9b5f77)
+- TASK-006: Implement System Loader Service ✅ (commit: d064995)
+- TASK-007: Integrate System Loader with Adventure Loading ✅ (commit: 912cf00)
 
 ## Discovered Issues
 - None
@@ -47,11 +49,9 @@ authored_by:
 ### Phase 3: System Definition Loading
 
 **In Progress** 🚧
-- [ ] TASK-006: Implement System Loader Service - Starting now
-
-**Upcoming** ⏳
-- [ ] TASK-007: Integrate System Loader with Adventure Loading
-- [ ] TASK-008: Update GM Prompt with System Rules
+- [x] TASK-006: Implement System Loader Service - *Completed 2025-12-15* (commit: d064995)
+- [x] TASK-007: Integrate System Loader with Adventure Loading - *Completed 2025-12-15* (commit: 912cf00)
+- [ ] TASK-008: Update GM Prompt with System Rules - Starting now
 
 ### Phase 4: Character Management
 
@@ -101,6 +101,7 @@ authored_by:
 | AdventureState Schema | ✅ Complete |
 | Dice Parser | ✅ Complete |
 | Dice Roller | ✅ Complete |
+| System Loader | ✅ Complete |
 | MCP Tools | 🚧 In Progress (roll_dice done) |
 | Integration Tests | ⏳ Pending |
 | E2E Tests | ⏳ Pending |

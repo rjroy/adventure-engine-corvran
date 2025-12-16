@@ -168,6 +168,92 @@ export const rollDiceTool = rollDiceToolDefinition;
 const BOUNDARY = "════════════════════════════════════════";
 
 /**
+ * Build RPG system rules section for the GM prompt
+ * Only included when an adventure has a system definition loaded
+ * @param state Current adventure state
+ * @returns RPG system rules section string or empty string
+ */
+function buildRPGSystemSection(state: AdventureState): string {
+  const { systemDefinition, playerCharacter } = state;
+
+  // No system = no RPG mechanics
+  if (!systemDefinition) {
+    return "";
+  }
+
+  // Build character status section
+  let characterSection = "";
+  if (playerCharacter.stats || playerCharacter.hp || playerCharacter.skills) {
+    const statsList = playerCharacter.stats
+      ? Object.entries(playerCharacter.stats).map(([k, v]) => `${k}: ${v}`).join(", ")
+      : "none defined";
+    const skillsList = playerCharacter.skills
+      ? Object.entries(playerCharacter.skills).map(([k, v]) => `${k}: ${v}`).join(", ")
+      : "none defined";
+    const hpStatus = playerCharacter.hp
+      ? `${playerCharacter.hp.current}/${playerCharacter.hp.max}`
+      : "not tracked";
+    const conditions = playerCharacter.conditions?.length
+      ? playerCharacter.conditions.join(", ")
+      : "none";
+
+    characterSection = `
+PLAYER CHARACTER STATS:
+- Stats: ${statsList}
+- Skills: ${skillsList}
+- HP: ${hpStatus}
+- Conditions: ${conditions}
+- Level: ${playerCharacter.level ?? "N/A"} | XP: ${playerCharacter.xp ?? 0}`;
+  }
+
+  // Build NPC template guidance
+  const npcTemplatesGuidance = systemDefinition.hasNPCTemplates
+    ? `\n\nNPC TEMPLATES (from System.md):
+Refer to the NPC Templates section in the system rules below when creating enemies and NPCs.
+Use the provided stat blocks and difficulty ratings for balanced encounters.`
+    : "";
+
+  // Build character creation guidance if character not yet created
+  const characterCreationGuidance = !playerCharacter.stats
+    ? `
+
+CHARACTER CREATION:
+The player has not yet created their character. At the start of the adventure:
+1. Guide the player through character creation per the system rules below
+2. Help them choose attributes, skills, and background as defined in the system
+3. Validate their choices against system constraints (attribute limits, valid skills)
+4. Once complete, persist their character data using the Write tool to ./player.md
+5. Track stats, skills, HP, inventory, and conditions in the character file`
+    : "";
+
+  return `
+${BOUNDARY}
+RPG SYSTEM RULES:
+This adventure uses an RPG system. Follow these mechanics when resolving actions.
+${characterSection}${characterCreationGuidance}${npcTemplatesGuidance}
+
+DICE MECHANICS - Use roll_dice tool for resolution:
+Supported dice: ${systemDefinition.diceTypes.join(", ")}
+- roll_dice(expression, context, visible) → returns individual rolls and total
+- Use expressions like "1d20+5" for attack rolls, "2d6+3" for damage
+- Set visible=false for hidden GM rolls (enemy stats, secret checks)
+- Always describe the roll context: "Attack roll", "Perception check", etc.
+
+When to roll dice:
+- Combat: Attack rolls, damage, initiative
+- Skill checks: When outcome is uncertain and stakes exist
+- Saving throws: Resisting effects per system rules
+- DO NOT roll for trivial actions or when narrative resolution is better
+
+SYSTEM DEFINITION:
+\`\`\`markdown
+${systemDefinition.rawContent}
+\`\`\`
+${BOUNDARY}
+`;
+}
+
+/**
  * Build the Game Master system prompt from current adventure state
  * This prompt guides Claude to act as an interactive fiction GM
  * Includes prompt injection defenses via sanitization and structural boundaries
@@ -205,6 +291,9 @@ ${safePlayerAttributes ? `Attributes: ${safePlayerAttributes}` : ""}`
 ${safeWorldState}`
       : "WORLD STATE: No established facts yet";
 
+  // Build RPG system section (only if system definition exists)
+  const rpgSection = buildRPGSystemSection(state);
+
   return `You are the Game Master for an interactive text adventure.
 
 ${BOUNDARY}
@@ -222,7 +311,7 @@ ${safeDescription}
 ${worldStateInfo}
 
 ${playerInfo}
-
+${rpgSection}
 NARRATIVE GUIDELINES:
 - Respond with vivid, engaging narrative maintaining consistency with files
 - Ask clarifying questions if player intent is ambiguous
