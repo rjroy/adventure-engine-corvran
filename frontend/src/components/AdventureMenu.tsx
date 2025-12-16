@@ -12,6 +12,7 @@ interface AdventureData {
 
 interface AdventureSummary {
   id: string;
+  sessionToken: string;
   createdAt: string;
   lastActiveAt: string;
   currentScene: { description: string; location: string };
@@ -90,43 +91,22 @@ export function AdventureMenu({ onAdventureStart }: AdventureMenuProps) {
         throw new Error("Invalid response from server");
       }
 
-      // Ensure current adventure is migrated to tokens map before filtering
-      const tokens = getStoredTokens();
-      const currentId = localStorage.getItem(STORAGE_KEYS.ADVENTURE_ID);
-      const currentToken = localStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
-      if (currentId && currentToken && !tokens[currentId]) {
-        tokens[currentId] = currentToken;
-        localStorage.setItem(STORAGE_KEYS.ADVENTURE_TOKENS, JSON.stringify(tokens));
-      }
-
-      // Filter to only adventures we have tokens for
-      const accessibleAdventures = (data.adventures as AdventureSummary[]).filter(
-        (adventure) => tokens[adventure.id]
-      );
-
-      setAdventures(accessibleAdventures);
+      setAdventures(data.adventures as AdventureSummary[]);
       setShowAdventureList(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load adventures");
     } finally {
       setLoadingList(false);
     }
-  }, [getStoredTokens]);
+  }, []);
 
   const handleSelectAdventure = useCallback(
     (adventure: AdventureSummary) => {
-      const tokens = getStoredTokens();
-      const token = tokens[adventure.id];
-
-      if (token) {
-        // Save as most recent
-        saveToken({ adventureId: adventure.id, sessionToken: token });
-        onAdventureStart(adventure.id, token);
-      } else {
-        setError("Session token not found for this adventure");
-      }
+      // Save token and start adventure
+      saveToken({ adventureId: adventure.id, sessionToken: adventure.sessionToken });
+      onAdventureStart(adventure.id, adventure.sessionToken);
     },
-    [getStoredTokens, saveToken, onAdventureStart]
+    [saveToken, onAdventureStart]
   );
 
   const handleNewAdventure = useCallback(async () => {

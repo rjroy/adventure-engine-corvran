@@ -144,6 +144,7 @@ app.get("/api/adventures", async (c) => {
           const stateContent = await readFile(statePath, "utf-8");
           const state = JSON.parse(stateContent) as {
             id: string;
+            sessionToken: string;
             createdAt: string;
             lastActiveAt: string;
             currentScene: { description: string; location: string };
@@ -152,6 +153,7 @@ app.get("/api/adventures", async (c) => {
 
           return {
             id: state.id,
+            sessionToken: state.sessionToken,
             createdAt: state.createdAt,
             lastActiveAt: state.lastActiveAt,
             currentScene: state.currentScene,
