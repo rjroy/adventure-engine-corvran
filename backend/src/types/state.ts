@@ -1,7 +1,17 @@
 // Adventure State Types
 // Data model for adventure persistence
 
-import type { NarrativeEntry, ThemeMood, Genre, Region } from "../../../shared/protocol";
+import type {
+  NarrativeEntry,
+  ThemeMood,
+  Genre,
+  Region,
+  NPC,
+  DiceLogEntry,
+  CombatState,
+  SystemDefinition,
+  PlayerCharacter,
+} from "../../../shared/protocol";
 
 /**
  * Adventure state stored in state.json
@@ -18,10 +28,7 @@ export interface AdventureState {
     location: string; // Where the player is
   };
   worldState: Record<string, unknown>; // Flexible world facts
-  playerCharacter: {
-    name: string | null;
-    attributes: Record<string, unknown>;
-  };
+  playerCharacter: PlayerCharacter;
   // Current visual theme (persisted for session restoration)
   currentTheme: {
     mood: ThemeMood;
@@ -29,6 +36,11 @@ export interface AdventureState {
     region: Region;
     backgroundUrl: string | null;
   };
+  // RPG system fields (all optional for backward compatibility)
+  npcs?: NPC[];
+  diceLog?: DiceLogEntry[];
+  combatState?: CombatState | null;
+  systemDefinition?: SystemDefinition | null;
 }
 
 /**

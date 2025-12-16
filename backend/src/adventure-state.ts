@@ -65,6 +65,11 @@ export class AdventureStateManager {
         region: "village",
         backgroundUrl: null,
       },
+      // RPG system fields (initialized as empty/null for new adventures)
+      npcs: [],
+      diceLog: [],
+      combatState: null,
+      systemDefinition: null,
     };
 
     this.history = { entries: [] };
@@ -136,6 +141,20 @@ export class AdventureStateManager {
         region: "village",
         backgroundUrl: null,
       };
+    }
+
+    // Migrate old states without RPG fields
+    if (this.state.npcs === undefined) {
+      this.state.npcs = [];
+    }
+    if (this.state.diceLog === undefined) {
+      this.state.diceLog = [];
+    }
+    if (this.state.combatState === undefined) {
+      this.state.combatState = null;
+    }
+    if (this.state.systemDefinition === undefined) {
+      this.state.systemDefinition = null;
     }
 
     // Validate session token
