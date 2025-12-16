@@ -4,9 +4,10 @@
 import { tool, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import type { AdventureState } from "./types/state";
-import type { ThemeMood } from "./types/protocol";
+import type { ThemeMood, DiceLogEntry } from "./types/protocol";
 import { sanitizeStateValue } from "./validation";
 import { logger } from "./logger";
+import { rollDiceTool as rollDiceToolDefinition, createRollDiceTool } from "./mcp-tools/roll-dice";
 
 /**
  * Valid theme moods for the set_theme tool
@@ -144,17 +145,24 @@ Provide image_prompt only when you want specific generated imagery as fallback.`
 }
 
 /**
- * Create an MCP server with the set_theme tool
+ * Create an MCP server with the set_theme and roll_dice tools
  * @param onThemeChange Callback invoked when theme should change
+ * @param diceLog Reference to adventure state's dice log array
  */
-export function createThemeMcpServer(onThemeChange: ThemeChangeHandler) {
+export function createThemeMcpServer(onThemeChange: ThemeChangeHandler, diceLog: DiceLogEntry[]) {
   const setThemeTool = createSetThemeTool(onThemeChange);
+  const rollDiceTool = createRollDiceTool(diceLog);
   return createSdkMcpServer({
     name: "adventure-theme",
     version: "1.0.0",
-    tools: [setThemeTool],
+    tools: [setThemeTool, rollDiceTool],
   });
 }
+
+/**
+ * Export the static roll_dice tool definition for external use
+ */
+export const rollDiceTool = rollDiceToolDefinition;
 
 /** Structural boundary for separating system instructions from game data */
 const BOUNDARY = "════════════════════════════════════════";

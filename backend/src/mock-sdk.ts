@@ -39,6 +39,24 @@ interface ThemeToolCall {
 }
 
 /**
+ * Dice roll tool call detected from input
+ */
+interface DiceToolCall {
+  name: "roll_dice";
+  input: {
+    expression: string;
+    context?: string;
+    visible?: boolean;
+  };
+}
+
+/**
+ * Union type for all tool calls (for future use)
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type ToolCall = ThemeToolCall | DiceToolCall;
+
+/**
  * Theme trigger rules - maps keywords to theme parameters
  */
 const THEME_TRIGGERS: Array<{
@@ -106,6 +124,55 @@ export function detectThemeTool(prompt: string): ThemeToolCall | null {
 }
 
 /**
+ * Detect if input should trigger a dice roll tool call
+ * @param prompt - Player input (lowercase)
+ * @returns Dice tool call or null
+ */
+export function detectDiceTool(prompt: string): DiceToolCall | null {
+  // Detect common dice roll patterns
+  const shouldRoll =
+    prompt.includes("roll") ||
+    prompt.includes("attack") ||
+    prompt.includes("check") ||
+    prompt.includes("stealth") ||
+    prompt.includes("sneak") ||
+    prompt.includes("damage") ||
+    prompt.includes("initiative") ||
+    prompt.includes("strike");
+
+  if (!shouldRoll) {
+    return null;
+  }
+
+  // Determine expression based on context
+  let expression = "1d20";
+  let context = "Skill check";
+
+  if (prompt.includes("attack") || prompt.includes("strike")) {
+    expression = "1d20+3";
+    context = "Attack roll";
+  } else if (prompt.includes("damage")) {
+    expression = "2d6+2";
+    context = "Damage roll";
+  } else if (prompt.includes("initiative")) {
+    expression = "1d20+2";
+    context = "Initiative roll";
+  } else if (prompt.includes("stealth") || prompt.includes("sneak")) {
+    expression = "1d20+5";
+    context = "Stealth check";
+  }
+
+  return {
+    name: "roll_dice",
+    input: {
+      expression,
+      context,
+      visible: true,
+    },
+  };
+}
+
+/**
  * Mock query function that simulates Claude Agent SDK responses
  * Used when MOCK_SDK=true environment variable is set
  *
@@ -123,11 +190,16 @@ export async function* mockQuery(
     session_id: `mock-session-${Date.now()}`,
   };
 
-  // Check for theme tool trigger and invoke callback if provided
+  // Check for tool triggers and invoke callbacks if provided
   if (options.options?.onToolUse) {
-    const toolCall = detectThemeTool(prompt);
-    if (toolCall) {
-      await options.options.onToolUse(toolCall.name, toolCall.input);
+    const themeCall = detectThemeTool(prompt);
+    if (themeCall) {
+      await options.options.onToolUse(themeCall.name, themeCall.input);
+    }
+
+    const diceCall = detectDiceTool(prompt);
+    if (diceCall) {
+      await options.options.onToolUse(diceCall.name, diceCall.input);
     }
   }
 

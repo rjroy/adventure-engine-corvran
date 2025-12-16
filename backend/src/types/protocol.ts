@@ -8,6 +8,7 @@ export type {
   Genre,
   Region,
   ThemeChangePayload,
+  DiceLogEntry,
 } from "../../../shared/protocol";
 
 export {
