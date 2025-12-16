@@ -63,7 +63,7 @@ Token: Sent via `authenticate` message after connection (not in URL for security
 
 **MCP Tools**: Only `set_theme` remains (sends WebSocket messages for UI theme updates).
 
-**Dice Rolling**: Uses bash script `scripts/roll.sh` (from corvran plugin's dice-roller skill). Adventures with RPG systems should copy this script to their `scripts/` directory.
+**Dice Rolling**: The `dice-roller` skill (in corvran plugin) provides a bash script for dice expressions. The GM invokes the skill which handles paths via `${CLAUDE_PLUGIN_ROOT}` - no copying required.
 
 **Mock Mode**: Set `MOCK_SDK=true` to use `/backend/src/mock-sdk.ts` instead of real SDK (used by E2E tests).
 
