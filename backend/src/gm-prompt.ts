@@ -205,9 +205,13 @@ BEFORE RESPONDING - Read existing files to maintain consistency:
 - ./locations.md - Known places
 - ./quests.md - Active quests
 
-DICE ROLLING (when ./System.md exists):
-Use the dice-roller skill for dice rolls. It provides a script that outputs JSON.
-Example: {"expression": "2d6+3", "rolls": [4, 2], "modifier": 3, "total": 9}
+SKILLS - Check for and use available skills that provide domain guidance:
+- dice-roller: For dice rolls, outputs JSON with individual rolls and total
+- d20-players: Player character creation, stats, leveling (if available)
+- d20-monsters: NPC/enemy stat blocks and behavior (if available)
+- d20-combat: Combat mechanics, initiative, actions (if available)
+- d20-magic: Spell slots, casting, magical effects (if available)
+Skills influence how you structure state files. Use them when relevant.
 
 STATE MANAGEMENT - All state lives in markdown files:
 - Player stats, inventory, abilities → Write to ./player.md
