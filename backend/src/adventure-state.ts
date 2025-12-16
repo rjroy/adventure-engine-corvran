@@ -65,6 +65,11 @@ export class AdventureStateManager {
         region: "village",
         backgroundUrl: null,
       },
+      // RPG system fields (initialized as empty/null for new adventures)
+      npcs: [],
+      diceLog: [],
+      combatState: null,
+      systemDefinition: null,
     };
 
     this.history = { entries: [] };
@@ -136,6 +141,20 @@ export class AdventureStateManager {
         region: "village",
         backgroundUrl: null,
       };
+    }
+
+    // Migrate old states without RPG fields
+    if (this.state.npcs === undefined) {
+      this.state.npcs = [];
+    }
+    if (this.state.diceLog === undefined) {
+      this.state.diceLog = [];
+    }
+    if (this.state.combatState === undefined) {
+      this.state.combatState = null;
+    }
+    if (this.state.systemDefinition === undefined) {
+      this.state.systemDefinition = null;
     }
 
     // Validate session token
@@ -318,6 +337,32 @@ export class AdventureStateManager {
 
     this.state.currentTheme = { mood, genre, region, backgroundUrl };
     await this.save();
+  }
+
+  /**
+   * Update system definition
+   * @param definition SystemDefinition object or null
+   */
+  async updateSystemDefinition(
+    definition: AdventureState["systemDefinition"]
+  ): Promise<void> {
+    if (!this.state) {
+      throw new Error("No state loaded - call create() or load() first");
+    }
+
+    this.state.systemDefinition = definition;
+    await this.save();
+  }
+
+  /**
+   * Get adventure directory path for currently loaded state.
+   * @returns Full path to adventure directory or null if no state loaded
+   */
+  getCurrentAdventureDir(): string | null {
+    if (!this.state) {
+      return null;
+    }
+    return this.getAdventureDir(this.state.id);
   }
 
   /**

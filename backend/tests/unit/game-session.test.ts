@@ -146,6 +146,9 @@ describe("GameSession", () => {
         process.env.PROJECT_DIR = originalProjectDir;
       }
     });
+
+    // Note: System definition loading was removed.
+    // The GM now reads System.md directly via file operations during gameplay.
   });
 
   describe("handleInput() - Queue Management", () => {

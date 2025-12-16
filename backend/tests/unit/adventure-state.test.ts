@@ -459,4 +459,279 @@ describe("AdventureStateManager", () => {
       expect(permissions).toBe(0o600);
     });
   });
+
+  describe("RPG system fields", () => {
+    test("new adventures initialize with empty RPG fields", async () => {
+      const state = await manager.create();
+
+      expect(state.npcs).toEqual([]);
+      expect(state.diceLog).toEqual([]);
+      expect(state.combatState).toBeNull();
+      expect(state.systemDefinition).toBeNull();
+    });
+
+    test("new adventures persist RPG fields to disk", async () => {
+      const state = await manager.create();
+      const statePath = join(TEST_ADVENTURES_DIR, state.id, "state.json");
+
+      const content = await readFile(statePath, "utf-8");
+      const loadedState = JSON.parse(content) as AdventureState;
+
+      expect(loadedState.npcs).toEqual([]);
+      expect(loadedState.diceLog).toEqual([]);
+      expect(loadedState.combatState).toBeNull();
+      expect(loadedState.systemDefinition).toBeNull();
+    });
+
+    test("loads legacy adventures without RPG fields (backward compatibility)", async () => {
+      // Create an old-style state without RPG fields
+      const adventureId = "legacy-test-adventure";
+      const sessionToken = randomUUID();
+      const adventureDir = join(TEST_ADVENTURES_DIR, adventureId);
+      await mkdir(adventureDir, { recursive: true });
+
+      const legacyState = {
+        id: adventureId,
+        sessionToken,
+        agentSessionId: null,
+        createdAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        currentScene: {
+          description: "Legacy adventure",
+          location: "Legacy Location",
+        },
+        worldState: {},
+        playerCharacter: {
+          name: "Legacy Hero",
+          attributes: { strength: 10 },
+        },
+        currentTheme: {
+          mood: "calm",
+          genre: "high-fantasy",
+          region: "village",
+          backgroundUrl: null,
+        },
+        // No RPG fields - simulating old state.json
+      };
+
+      const statePath = join(adventureDir, "state.json");
+      await writeFile(statePath, JSON.stringify(legacyState, null, 2), "utf-8");
+
+      // Load the legacy state
+      const newManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+      const result = await newManager.load(adventureId, sessionToken);
+
+      // Verify successful load with migrated RPG fields
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.state.npcs).toEqual([]);
+        expect(result.state.diceLog).toEqual([]);
+        expect(result.state.combatState).toBeNull();
+        expect(result.state.systemDefinition).toBeNull();
+        // Verify original fields are preserved
+        expect(result.state.playerCharacter.name).toBe("Legacy Hero");
+        expect(result.state.playerCharacter.attributes).toEqual({ strength: 10 });
+      }
+    });
+
+    test("saves and reloads adventures with RPG data", async () => {
+      const state = await manager.create();
+
+      // Modify state with RPG data
+      if (state.npcs) {
+        state.npcs.push({
+          id: "npc-1",
+          name: "Test Goblin",
+          stats: { strength: 8, dexterity: 14 },
+          hp: { current: 7, max: 7 },
+          conditions: [],
+          inventory: [],
+          isHostile: true,
+        });
+      }
+
+      if (state.diceLog) {
+        state.diceLog.push({
+          id: randomUUID(),
+          timestamp: new Date().toISOString(),
+          expression: "1d20+3",
+          individualRolls: [15],
+          total: 18,
+          context: "Attack roll",
+          visible: true,
+          requestedBy: "system",
+        });
+      }
+
+      if (state.combatState !== undefined) {
+        state.combatState = {
+          active: true,
+          round: 1,
+          initiativeOrder: [
+            { name: "Player", initiative: 15, isPlayer: true, conditions: [] },
+            { name: "Test Goblin", initiative: 12, isPlayer: false, conditions: [] },
+          ],
+          currentIndex: 0,
+          structure: "turn-based",
+        };
+      }
+
+      await manager.save();
+
+      // Reload and verify
+      const newManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+      const result = await newManager.load(state.id, state.sessionToken);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.state.npcs).toHaveLength(1);
+        expect(result.state.npcs?.[0].name).toBe("Test Goblin");
+        expect(result.state.diceLog).toHaveLength(1);
+        expect(result.state.diceLog?.[0].expression).toBe("1d20+3");
+        expect(result.state.combatState?.active).toBe(true);
+        expect(result.state.combatState?.round).toBe(1);
+      }
+    });
+
+    test("handles playerCharacter with extended RPG properties", async () => {
+      const state = await manager.create();
+
+      // Update playerCharacter with RPG properties
+      state.playerCharacter = {
+        name: "Adventurer",
+        attributes: { background: "warrior" },
+        stats: { strength: 16, dexterity: 14, constitution: 15 },
+        skills: { athletics: 5, stealth: 2 },
+        hp: { current: 25, max: 30 },
+        conditions: ["blessed"],
+        inventory: [
+          { name: "Longsword", quantity: 1, equipped: true },
+          { name: "Health Potion", quantity: 3 },
+        ],
+        xp: 1500,
+        level: 3,
+      };
+
+      await manager.save();
+
+      // Reload and verify
+      const newManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+      const result = await newManager.load(state.id, state.sessionToken);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const pc = result.state.playerCharacter;
+        expect(pc.name).toBe("Adventurer");
+        expect(pc.stats).toEqual({ strength: 16, dexterity: 14, constitution: 15 });
+        expect(pc.skills).toEqual({ athletics: 5, stealth: 2 });
+        expect(pc.hp).toEqual({ current: 25, max: 30 });
+        expect(pc.conditions).toEqual(["blessed"]);
+        expect(pc.inventory).toHaveLength(2);
+        expect(pc.xp).toBe(1500);
+        expect(pc.level).toBe(3);
+      }
+    });
+  });
+
+  describe("updateSystemDefinition()", () => {
+    test("updates system definition and persists", async () => {
+      const state = await manager.create();
+
+      const systemDef = {
+        rawContent: "# Dice\nd20, d6",
+        diceTypes: ["d6", "d20"],
+        hasAttributes: true,
+        hasSkills: false,
+        hasCombat: true,
+        hasNPCTemplates: false,
+        filePath: "/test/System.md",
+      };
+
+      await manager.updateSystemDefinition(systemDef);
+
+      // Reload and verify
+      const newManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+      const result = await newManager.load(state.id, state.sessionToken);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.state.systemDefinition).toEqual(systemDef);
+      }
+    });
+
+    test("can clear system definition by setting to null", async () => {
+      const state = await manager.create();
+
+      // First set a system definition
+      await manager.updateSystemDefinition({
+        rawContent: "# Dice\nd20",
+        diceTypes: ["d20"],
+        hasAttributes: false,
+        hasSkills: false,
+        hasCombat: false,
+        hasNPCTemplates: false,
+        filePath: "/test/System.md",
+      });
+
+      // Then clear it
+      await manager.updateSystemDefinition(null);
+
+      // Reload and verify
+      const newManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+      const result = await newManager.load(state.id, state.sessionToken);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.state.systemDefinition).toBeNull();
+      }
+    });
+
+    test("throws error when no state loaded", async () => {
+      const freshManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+
+      let errorThrown = false;
+      try {
+        await freshManager.updateSystemDefinition({
+          rawContent: "# Dice\nd20",
+          diceTypes: ["d20"],
+          hasAttributes: false,
+          hasSkills: false,
+          hasCombat: false,
+          hasNPCTemplates: false,
+          filePath: "/test/System.md",
+        });
+      } catch (error) {
+        errorThrown = true;
+        expect((error as Error).message).toContain("No state loaded");
+      }
+      expect(errorThrown).toBe(true);
+    });
+  });
+
+  describe("getCurrentAdventureDir()", () => {
+    test("returns null when no state loaded", () => {
+      const freshManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+      expect(freshManager.getCurrentAdventureDir()).toBeNull();
+    });
+
+    test("returns adventure directory path after state created", async () => {
+      const state = await manager.create();
+      const adventureDir = manager.getCurrentAdventureDir();
+
+      expect(adventureDir).not.toBeNull();
+      expect(adventureDir).toBe(resolve(TEST_ADVENTURES_DIR, state.id));
+    });
+
+    test("returns adventure directory path after state loaded", async () => {
+      const state = await manager.create();
+
+      // Create new manager and load
+      const newManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+      await newManager.load(state.id, state.sessionToken);
+
+      const adventureDir = newManager.getCurrentAdventureDir();
+      expect(adventureDir).not.toBeNull();
+      expect(adventureDir).toBe(resolve(TEST_ADVENTURES_DIR, state.id));
+    });
+  });
 });

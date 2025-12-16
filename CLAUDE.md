@@ -51,13 +51,25 @@ Token: Sent via `authenticate` message after connection (not in URL for security
 
 ### Claude Agent SDK Integration
 
-`GameSession` (`/backend/src/game-session.ts`) uses the Agent SDK's `query()` function. System prompts are built by `buildGMSystemPrompt()` in `/backend/src/gm-prompt.ts`, which includes MCP tools for dynamic theming.
+`GameSession` (`/backend/src/game-session.ts`) uses the Agent SDK's `query()` function. System prompts are built by `buildGMSystemPrompt()` in `/backend/src/gm-prompt.ts`.
+
+**File-Based State Management**: The GM (Claude) reads and writes markdown files directly for all game state:
+- `./System.md` - RPG rules (read-only, defines game mechanics)
+- `./player.md` - Player character sheet
+- `./characters.md` - NPCs and their details
+- `./world_state.md` - Established world facts
+- `./locations.md` - Known places
+- `./quests.md` - Active quests
+
+**MCP Tools**: Only `set_theme` remains (sends WebSocket messages for UI theme updates).
+
+**Dice Rolling**: The `dice-roller` skill (in corvran plugin) provides a bash script for dice expressions. The GM invokes the skill which handles paths via `${CLAUDE_PLUGIN_ROOT}` - no copying required.
 
 **Mock Mode**: Set `MOCK_SDK=true` to use `/backend/src/mock-sdk.ts` instead of real SDK (used by E2E tests).
 
 ### State Persistence
 
-Adventures persist to `/adventures/{adventureId}/` with `state.json` (core state) and `history.json` (narrative entries).
+Adventures persist to `/adventures/{adventureId}/` with `state.json` (session metadata) and `history.json` (conversation log). Game state is maintained in markdown files within the adventure directory.
 
 ### Theme System
 

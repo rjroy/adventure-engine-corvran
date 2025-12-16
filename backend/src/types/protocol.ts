@@ -8,6 +8,10 @@ export type {
   Genre,
   Region,
   ThemeChangePayload,
+  DiceLogEntry,
+  PlayerCharacter,
+  NPC,
+  CombatState,
 } from "../../../shared/protocol";
 
 export {

@@ -226,6 +226,139 @@ export const ServerMessageSchema = z.discriminatedUnion("type", [
 export type ServerMessage = z.infer<typeof ServerMessageSchema>;
 
 // ========================
+// RPG System Types
+// ========================
+
+/**
+ * Inventory item for player characters and NPCs.
+ * Tracks items with quantities and optional properties.
+ */
+export const InventoryItemSchema = z.object({
+  name: z.string(),
+  quantity: z.number(),
+  equipped: z.boolean().optional(),
+  properties: z.record(z.unknown()).optional(),
+});
+
+export type InventoryItem = z.infer<typeof InventoryItemSchema>;
+
+/**
+ * Reward for overcoming an NPC (defeating, persuading, etc.).
+ * Defines what players receive when they overcome this NPC.
+ */
+export const NPCRewardSchema = z.object({
+  xp: z.number().optional(),
+  loot: z.array(InventoryItemSchema).optional(),
+  storyFlag: z.string().optional(),
+});
+
+export type NPCReward = z.infer<typeof NPCRewardSchema>;
+
+/**
+ * NPC instance - mirrors playerCharacter structure with additional fields.
+ * NPCs can participate in combat and skill checks with the same mechanics as player.
+ */
+export const NPCSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  templateName: z.string().optional(),
+  stats: z.record(z.number()).optional(),
+  skills: z.record(z.number()).optional(),
+  hp: z.object({
+    current: z.number(),
+    max: z.number(),
+  }).optional(),
+  conditions: z.array(z.string()).optional(),
+  inventory: z.array(InventoryItemSchema).optional(),
+  reward: NPCRewardSchema.optional(),
+  isHostile: z.boolean().optional(),
+  notes: z.string().optional(),
+});
+
+export type NPC = z.infer<typeof NPCSchema>;
+
+/**
+ * Dice roll log entry for audit trail.
+ * Tracks all dice rolls with full transparency for debugging and verification.
+ */
+export const DiceLogEntrySchema = z.object({
+  id: z.string(),
+  timestamp: z.string(),
+  expression: z.string(),
+  individualRolls: z.array(z.number()),
+  total: z.number(),
+  context: z.string(),
+  visible: z.boolean(),
+  requestedBy: z.enum(["gm", "system"]),
+});
+
+export type DiceLogEntry = z.infer<typeof DiceLogEntrySchema>;
+
+/**
+ * Combat participant in initiative order.
+ */
+export const CombatantEntrySchema = z.object({
+  name: z.string(),
+  initiative: z.number(),
+  isPlayer: z.boolean(),
+  conditions: z.array(z.string()),
+});
+
+export type CombatantEntry = z.infer<typeof CombatantEntrySchema>;
+
+/**
+ * Combat state tracking for turn-based combat.
+ * Null when not in combat, populated when combat begins.
+ */
+export const CombatStateSchema = z.object({
+  active: z.boolean(),
+  round: z.number(),
+  initiativeOrder: z.array(CombatantEntrySchema),
+  currentIndex: z.number(),
+  structure: z.enum(["turn-based", "narrative", "hybrid"]),
+});
+
+export type CombatState = z.infer<typeof CombatStateSchema>;
+
+/**
+ * System definition metadata extracted from System.md.
+ * Cached at adventure load for GM prompt and validation.
+ */
+export const SystemDefinitionSchema = z.object({
+  rawContent: z.string(),
+  diceTypes: z.array(z.string()),
+  hasAttributes: z.boolean(),
+  hasSkills: z.boolean(),
+  hasCombat: z.boolean(),
+  hasNPCTemplates: z.boolean(),
+  filePath: z.string(),
+});
+
+export type SystemDefinition = z.infer<typeof SystemDefinitionSchema>;
+
+/**
+ * Extended player character type with RPG properties.
+ * Backward compatible - all RPG fields are optional.
+ */
+export const PlayerCharacterSchema = z.object({
+  name: z.string().nullable(),
+  attributes: z.record(z.unknown()),
+  // RPG-specific fields (all optional for backward compatibility)
+  stats: z.record(z.number()).optional(),
+  skills: z.record(z.number()).optional(),
+  hp: z.object({
+    current: z.number(),
+    max: z.number(),
+  }).optional(),
+  conditions: z.array(z.string()).optional(),
+  inventory: z.array(InventoryItemSchema).optional(),
+  xp: z.number().optional(),
+  level: z.number().optional(),
+});
+
+export type PlayerCharacter = z.infer<typeof PlayerCharacterSchema>;
+
+// ========================
 // Validation Helpers
 // ========================
 

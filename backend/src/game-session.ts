@@ -395,7 +395,7 @@ export class GameSession {
         prompt: input,
         options: {
           systemPrompt,
-          // Hook into tool_use simulation - invoke handleSetThemeTool when theme triggers detected
+          // Hook into tool_use simulation - invoke tool handlers when detected
           onToolUse: async (toolName, toolInput) => {
             if (toolName === "set_theme") {
               log.debug({ toolName, toolInput }, "Mock SDK tool_use triggered");
@@ -424,7 +424,7 @@ export class GameSession {
       return;
     }
 
-    // Create MCP server for set_theme tool with callback to handle theme changes
+    // Create MCP server for set_theme tool (UI theme updates)
     const themeMcpServer = createThemeMcpServer(
       async (mood, genre, region, forceGenerate, imagePrompt) => {
         log.debug({ mood, genre, region }, "MCP callback invoked");
@@ -447,17 +447,32 @@ export class GameSession {
       }
     );
 
+    // Tools available to the GM:
+    // - File operations (Read, Write, Glob, Grep) for state management in markdown files
+    // - Bash for dice rolling (scripts/roll.sh) when System.md defines RPG rules
+    // - set_theme for UI visual updates
+    const allowedTools = [
+      "Skill",
+      "Read",
+      "Write",
+      "Glob",
+      "Grep",
+      "Bash",
+      "mcp__adventure-theme__set_theme",
+    ];
+
     // Query Claude Agent SDK with resume for conversation continuity
     const sdkQuery = query({
       prompt: input,
       options: {
         resume: state.agentSessionId ?? undefined, // Resume conversation if available
         systemPrompt,
-        // Provide set_theme tool via MCP server (keyed by server name)
+        // Provide set_theme via MCP server (keyed by server name)
         mcpServers: { "adventure-theme": themeMcpServer },
         // SDK provides tools by default; allowedTools filters to what we need
-        allowedTools: ["Read", "Write", "Glob", "Grep", "mcp__adventure-theme__set_theme"],
+        allowedTools,
         cwd: this.projectDirectory,
+        settingSources: ["project"],
         includePartialMessages: true, // Enable token streaming
         permissionMode: "acceptEdits", // Auto-accept file edits within sandbox
         model: "claude-sonnet-4-5", // Use latest Sonnet for quality

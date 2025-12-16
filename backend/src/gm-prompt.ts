@@ -1,5 +1,6 @@
 // GM System Prompt Builder
 // Constructs the Game Master system prompt from adventure state
+// Simplified architecture: All state lives in markdown files, only set_theme uses MCP
 
 import { tool, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
@@ -144,11 +145,13 @@ Provide image_prompt only when you want specific generated imagery as fallback.`
 }
 
 /**
- * Create an MCP server with the set_theme tool
+ * Create an MCP server with only the set_theme tool
+ * All other state management is done via file read/write
  * @param onThemeChange Callback invoked when theme should change
  */
 export function createThemeMcpServer(onThemeChange: ThemeChangeHandler) {
   const setThemeTool = createSetThemeTool(onThemeChange);
+
   return createSdkMcpServer({
     name: "adventure-theme",
     version: "1.0.0",
@@ -162,40 +165,16 @@ const BOUNDARY = "════════════════════�
 /**
  * Build the Game Master system prompt from current adventure state
  * This prompt guides Claude to act as an interactive fiction GM
- * Includes prompt injection defenses via sanitization and structural boundaries
- * @param state Current adventure state
+ * All state management is done via file read/write - the GM maintains state in markdown files
+ * @param state Current adventure state (minimal - just theme and scene info)
  * @returns System prompt string
  */
 export function buildGMSystemPrompt(state: AdventureState): string {
-  const { currentScene, worldState, playerCharacter } = state;
+  const { currentScene } = state;
 
-  // Sanitize all state values before embedding in prompt
+  // Sanitize scene values before embedding in prompt
   const safeLocation = sanitizeStateValue(currentScene.location, 200);
   const safeDescription = sanitizeStateValue(currentScene.description, 500);
-  const safeWorldState = sanitizeStateValue(
-    JSON.stringify(worldState, null, 2),
-    1000
-  );
-  const safePlayerName = playerCharacter.name
-    ? sanitizeStateValue(playerCharacter.name, 100)
-    : null;
-  const safePlayerAttributes =
-    Object.keys(playerCharacter.attributes).length > 0
-      ? sanitizeStateValue(JSON.stringify(playerCharacter.attributes, null, 2), 500)
-      : null;
-
-  // Build player character info section
-  const playerInfo = safePlayerName
-    ? `PLAYER CHARACTER: ${safePlayerName}
-${safePlayerAttributes ? `Attributes: ${safePlayerAttributes}` : ""}`
-    : "PLAYER CHARACTER: Not yet defined";
-
-  // Build world state section
-  const worldStateInfo =
-    Object.keys(worldState).length > 0
-      ? `WORLD STATE:
-${safeWorldState}`
-      : "WORLD STATE: No established facts yet";
 
   return `You are the Game Master for an interactive text adventure.
 
@@ -211,10 +190,6 @@ CURRENT SCENE:
 Location: ${safeLocation}
 ${safeDescription}
 
-${worldStateInfo}
-
-${playerInfo}
-
 NARRATIVE GUIDELINES:
 - Respond with vivid, engaging narrative maintaining consistency with files
 - Ask clarifying questions if player intent is ambiguous
@@ -222,18 +197,33 @@ NARRATIVE GUIDELINES:
 
 REQUIRED ACTIONS (perform EVERY response - files are your ONLY persistent memory):
 
-BEFORE RESPONDING - Use the Read tool on existing files to maintain consistency:
-- ./world_state.md, ./locations.md, ./characters.md, ./player.md, ./quests.md
+BEFORE RESPONDING - Read existing files to maintain consistency:
+- ./System.md - RPG rules (if this adventure has an RPG system)
+- ./player.md - Player character details and stats
+- ./characters.md - NPCs and their details
+- ./world_state.md - Established world facts
+- ./locations.md - Known places
+- ./quests.md - Active quests
 
-AFTER NARRATIVE - Use the Write tool when state changes:
-- New/changed location → Write to ./locations.md
-- New/changed NPC → Write to ./characters.md
-- Player inventory/abilities → Write to ./player.md
+SKILLS - Check for and use available skills that provide domain guidance (examples):
+- dice-roller: For dice rolls, outputs JSON with individual rolls and total
+- players: Player character creation, stats, leveling (if available)
+- monsters: NPC/enemy stat blocks and behavior (if available)
+- combat: Combat mechanics, initiative, actions (if available)
+- magic: Spell slots, casting, magical effects (if available)
+Skills influence how you structure state files. Use them when relevant.
+
+STATE MANAGEMENT - All state lives in markdown files:
+- Player stats, inventory, abilities → Write to ./player.md
+- NPCs, enemies, allies → Write to ./characters.md
+- Locations discovered → Write to ./locations.md
 - Quest progress → Write to ./quests.md
-- World facts established → Write to ./world_state.md
+- World facts, lore → Write to ./world_state.md
 
 ON FIRST RESPONSE - Create initial files:
-Use the Write tool to create ./world_state.md with: world name, genre, current era, established rules.
+1. Read ./System.md if it exists (RPG rules)
+2. Write ./world_state.md with: world name, genre, current era
+3. Call set_theme to set initial visual atmosphere
 
 DURING NARRATIVE - Set visual theme when mood/location changes:
 Call set_theme(mood, genre, region) for atmosphere transitions.
@@ -241,23 +231,16 @@ Call set_theme(mood, genre, region) for atmosphere transitions.
 - genre: high-fantasy | low-fantasy | sci-fi | steampunk | horror | modern | historical
 - region: forest | village | city | castle | ruins | mountain | desert | ocean | underground
 
-ALWAYS perform these actions:
-1. First response: Use Write tool to create ./world_state.md AND call set_theme
-2. Location changes: Use Write tool for ./locations.md AND call set_theme
-3. New NPCs: Use Write tool for ./characters.md
-4. Combat/danger/victory: Call set_theme
-5. Player gains/loses items: Use Write tool for ./player.md
-6. Quest progress: Use Write tool for ./quests.md
-
 Theme examples:
 - Tavern → set_theme(mood="calm", genre="high-fantasy", region="village")
 - Dark forest → set_theme(mood="mysterious", genre="high-fantasy", region="forest")
 - Battle → set_theme(mood="tense", genre="high-fantasy", region="forest")
 
 File examples:
-- Player finds sword → Write "./player.md" with "## Inventory\n- Iron Sword"
-- Meet innkeeper → Write "./characters.md" with "## Mira\nInnkeeper at Rusty Tankard."
-- Discover village → Write "./locations.md" with "## Thorndale\nSmall farming village."
+- Player creates character → Write "./player.md" with name, stats, background
+- Player finds sword → Update "./player.md" inventory section
+- Meet innkeeper → Write "./characters.md" with "## Mira\\nInnkeeper at Rusty Tankard."
+- Discover village → Write "./locations.md" with "## Thorndale\\nSmall farming village."
 
 Use relative paths (./file.md), never /tmp/.`;
 }
