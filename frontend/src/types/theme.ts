@@ -38,6 +38,14 @@ export interface ThemeColors {
   error: string;
   /** Error background color */
   errorBg: string;
+  /** Inline code background */
+  codeBg: string;
+  /** Inline code text */
+  codeText: string;
+  /** Code block background */
+  preBg: string;
+  /** Code block text */
+  preText: string;
 }
 
 /**
@@ -102,4 +110,8 @@ export const CSS_VARIABLE_MAP: Record<keyof ThemeColors, string> = {
   gmBorder: "--color-gm-border",
   error: "--color-error",
   errorBg: "--color-error-bg",
+  codeBg: "--color-code-bg",
+  codeText: "--color-code-text",
+  preBg: "--color-pre-bg",
+  preText: "--color-pre-text",
 };
