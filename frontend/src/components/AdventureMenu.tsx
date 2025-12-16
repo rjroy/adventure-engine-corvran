@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import "./AdventureMenu.css";
 
 export interface AdventureMenuProps {
@@ -10,32 +10,124 @@ interface AdventureData {
   sessionToken: string;
 }
 
+interface AdventureSummary {
+  id: string;
+  createdAt: string;
+  lastActiveAt: string;
+  currentScene: { description: string; location: string };
+  backgroundUrl: string | null;
+}
+
 const STORAGE_KEYS = {
   ADVENTURE_ID: "adventure_id",
   SESSION_TOKEN: "session_token",
+  ADVENTURE_TOKENS: "adventure_tokens",
 } as const;
 
 export function AdventureMenu({ onAdventureStart }: AdventureMenuProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAdventureList, setShowAdventureList] = useState(false);
+  const [adventures, setAdventures] = useState<AdventureSummary[]>([]);
+  const [loadingList, setLoadingList] = useState(false);
 
-  // Check if there's a saved adventure
+  // Check if there's a saved adventure (most recent)
   const savedAdventureId = localStorage.getItem(STORAGE_KEYS.ADVENTURE_ID);
   const savedSessionToken = localStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
   const hasSavedAdventure = Boolean(savedAdventureId && savedSessionToken);
 
-  const saveToLocalStorage = useCallback(
+  // Get all stored tokens (adventure_id -> session_token map)
+  const getStoredTokens = useCallback((): Record<string, string> => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.ADVENTURE_TOKENS);
+      if (stored) {
+        return JSON.parse(stored) as Record<string, string>;
+      }
+    } catch {
+      // Invalid JSON, ignore
+    }
+    return {};
+  }, []);
+
+  const saveToken = useCallback(
     ({ adventureId, sessionToken }: AdventureData) => {
+      // Save as most recent
       localStorage.setItem(STORAGE_KEYS.ADVENTURE_ID, adventureId);
       localStorage.setItem(STORAGE_KEYS.SESSION_TOKEN, sessionToken);
+
+      // Also store in tokens map for future loading
+      const tokens = getStoredTokens();
+      tokens[adventureId] = sessionToken;
+      localStorage.setItem(STORAGE_KEYS.ADVENTURE_TOKENS, JSON.stringify(tokens));
     },
-    []
+    [getStoredTokens]
   );
 
   const clearLocalStorage = useCallback(() => {
     localStorage.removeItem(STORAGE_KEYS.ADVENTURE_ID);
     localStorage.removeItem(STORAGE_KEYS.SESSION_TOKEN);
   }, []);
+
+  const loadAdventureList = useCallback(async () => {
+    setLoadingList(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/adventures");
+
+      if (!response.ok) {
+        throw new Error(`Failed to load adventures: ${response.status}`);
+      }
+
+      const data: unknown = await response.json();
+
+      if (
+        typeof data !== "object" ||
+        data === null ||
+        !("adventures" in data) ||
+        !Array.isArray(data.adventures)
+      ) {
+        throw new Error("Invalid response from server");
+      }
+
+      // Ensure current adventure is migrated to tokens map before filtering
+      const tokens = getStoredTokens();
+      const currentId = localStorage.getItem(STORAGE_KEYS.ADVENTURE_ID);
+      const currentToken = localStorage.getItem(STORAGE_KEYS.SESSION_TOKEN);
+      if (currentId && currentToken && !tokens[currentId]) {
+        tokens[currentId] = currentToken;
+        localStorage.setItem(STORAGE_KEYS.ADVENTURE_TOKENS, JSON.stringify(tokens));
+      }
+
+      // Filter to only adventures we have tokens for
+      const accessibleAdventures = (data.adventures as AdventureSummary[]).filter(
+        (adventure) => tokens[adventure.id]
+      );
+
+      setAdventures(accessibleAdventures);
+      setShowAdventureList(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load adventures");
+    } finally {
+      setLoadingList(false);
+    }
+  }, [getStoredTokens]);
+
+  const handleSelectAdventure = useCallback(
+    (adventure: AdventureSummary) => {
+      const tokens = getStoredTokens();
+      const token = tokens[adventure.id];
+
+      if (token) {
+        // Save as most recent
+        saveToken({ adventureId: adventure.id, sessionToken: token });
+        onAdventureStart(adventure.id, token);
+      } else {
+        setError("Session token not found for this adventure");
+      }
+    },
+    [getStoredTokens, saveToken, onAdventureStart]
+  );
 
   const handleNewAdventure = useCallback(async () => {
     setIsLoading(true);
@@ -75,7 +167,7 @@ export function AdventureMenu({ onAdventureStart }: AdventureMenuProps) {
       }
 
       // Save to localStorage
-      saveToLocalStorage({
+      saveToken({
         adventureId: data.adventureId,
         sessionToken: data.sessionToken,
       });
@@ -89,7 +181,7 @@ export function AdventureMenu({ onAdventureStart }: AdventureMenuProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [saveToLocalStorage, onAdventureStart]);
+  }, [saveToken, onAdventureStart]);
 
   const handleResumeAdventure = useCallback(() => {
     if (savedAdventureId && savedSessionToken) {
@@ -102,6 +194,87 @@ export function AdventureMenu({ onAdventureStart }: AdventureMenuProps) {
     setError(null);
     window.location.reload();
   }, [clearLocalStorage]);
+
+  // Migrate existing saved adventure to tokens map on mount
+  useEffect(() => {
+    if (savedAdventureId && savedSessionToken) {
+      const tokens = getStoredTokens();
+      if (!tokens[savedAdventureId]) {
+        tokens[savedAdventureId] = savedSessionToken;
+        localStorage.setItem(STORAGE_KEYS.ADVENTURE_TOKENS, JSON.stringify(tokens));
+      }
+    }
+  }, [savedAdventureId, savedSessionToken, getStoredTokens]);
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  // Truncate description
+  const truncateDescription = (text: string, maxLength = 100) => {
+    if (text.length <= maxLength) return text;
+    return text.slice(0, maxLength).trim() + "...";
+  };
+
+  if (showAdventureList) {
+    return (
+      <div className="adventure-menu">
+        <h1 className="adventure-menu__title">Load Adventure</h1>
+
+        <div className="adventure-list">
+          {adventures.length === 0 ? (
+            <p className="adventure-list__empty">
+              No saved adventures found. Start a new adventure to begin.
+            </p>
+          ) : (
+            adventures.map((adventure) => (
+              <button
+                key={adventure.id}
+                className="adventure-card"
+                onClick={() => handleSelectAdventure(adventure)}
+              >
+                <div
+                  className="adventure-card__image"
+                  style={{
+                    backgroundImage: adventure.backgroundUrl
+                      ? `url(${adventure.backgroundUrl})`
+                      : undefined,
+                  }}
+                >
+                  {!adventure.backgroundUrl && (
+                    <span className="adventure-card__no-image">No Image</span>
+                  )}
+                </div>
+                <div className="adventure-card__content">
+                  <p className="adventure-card__description">
+                    {truncateDescription(adventure.currentScene.description)}
+                  </p>
+                  <p className="adventure-card__meta">
+                    {adventure.currentScene.location} &bull;{" "}
+                    {formatDate(adventure.lastActiveAt)}
+                  </p>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+
+        <button
+          onClick={() => setShowAdventureList(false)}
+          className="adventure-menu__button adventure-menu__button--back"
+        >
+          Back
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="adventure-menu">
@@ -131,6 +304,20 @@ export function AdventureMenu({ onAdventureStart }: AdventureMenuProps) {
             </p>
           </>
         )}
+
+        <button
+          onClick={() => {
+            loadAdventureList().catch((err: unknown) => {
+              setError(
+                err instanceof Error ? err.message : "An unexpected error occurred"
+              );
+            });
+          }}
+          disabled={isLoading || loadingList}
+          className="adventure-menu__button adventure-menu__button--load"
+        >
+          {loadingList ? "Loading..." : "Load Adventure"}
+        </button>
 
         <button
           onClick={() => {

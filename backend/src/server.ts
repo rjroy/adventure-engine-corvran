@@ -23,6 +23,8 @@ import {
   safeResolvePath,
   MAX_INPUT_LENGTH,
 } from "./validation";
+import { readdir, readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 // WebSocket connection tracking
 interface WSConnection {
@@ -112,6 +114,79 @@ try {
 // Health check (used by launch script to verify server is ready)
 app.get("/api/health", (c) => c.text("Adventure Engine Backend"));
 
+/**
+ * GET /api/adventures
+ * List all available adventures with metadata for selection UI
+ * Returns array of adventure summaries (no authentication required)
+ */
+app.get("/api/adventures", async (c) => {
+  try {
+    // List all directories in adventures folder
+    const entries = await readdir(ADVENTURES_DIR, { withFileTypes: true });
+    const adventureDirs = entries.filter((e) => e.isDirectory());
+
+    // Load state.json from each adventure directory
+    const adventures = await Promise.all(
+      adventureDirs.map(async (dir) => {
+        // Validate directory name to prevent path traversal (defense-in-depth)
+        const validation = validateAdventureId(dir.name);
+        if (!validation.valid) {
+          return null;
+        }
+
+        const safePath = safeResolvePath(ADVENTURES_DIR, dir.name);
+        if (safePath === null) {
+          return null;
+        }
+
+        const statePath = join(safePath, "state.json");
+        try {
+          const stateContent = await readFile(statePath, "utf-8");
+          const state = JSON.parse(stateContent) as {
+            id: string;
+            createdAt: string;
+            lastActiveAt: string;
+            currentScene: { description: string; location: string };
+            currentTheme?: { backgroundUrl: string | null };
+          };
+
+          return {
+            id: state.id,
+            createdAt: state.createdAt,
+            lastActiveAt: state.lastActiveAt,
+            currentScene: state.currentScene,
+            backgroundUrl: state.currentTheme?.backgroundUrl ?? null,
+          };
+        } catch {
+          // Skip adventures with invalid/missing state
+          return null;
+        }
+      })
+    );
+
+    // Filter out failed loads and sort by lastActiveAt (most recent first)
+    const validAdventures = adventures
+      .filter((a): a is NonNullable<typeof a> => a !== null)
+      .sort((a, b) => new Date(b.lastActiveAt).getTime() - new Date(a.lastActiveAt).getTime());
+
+    return c.json({ adventures: validAdventures });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      // Adventures directory doesn't exist yet
+      return c.json({ adventures: [] });
+    }
+
+    logger.error({ err: error }, "Failed to list adventures");
+    return c.json(
+      {
+        error: "Failed to list adventures",
+        message: (error as Error).message,
+      },
+      500
+    );
+  }
+});
+
 // REST Endpoints
 
 /**
@@ -169,9 +244,6 @@ app.get("/adventure/:id", async (c) => {
       400
     );
   }
-
-  const { join } = await import("node:path");
-  const { readFile } = await import("node:fs/promises");
 
   const statePath = join(safePath, "state.json");
 
