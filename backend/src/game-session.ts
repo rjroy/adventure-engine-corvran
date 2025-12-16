@@ -489,7 +489,10 @@ export class GameSession {
       state.npcs = [];
     }
 
-    // Create MCP server for set_theme, roll_dice, get_character, apply_damage, NPC, and combat tools
+    // Determine if RPG system is present for conditional tool registration
+    const hasRpgSystem = !!state.systemDefinition;
+
+    // Create MCP server for set_theme tool and conditionally RPG tools
     const themeMcpServer = createThemeMcpServer(
       async (mood, genre, region, forceGenerate, imagePrompt) => {
         log.debug({ mood, genre, region }, "MCP callback invoked");
@@ -510,6 +513,7 @@ export class GameSession {
           throw error;
         }
       },
+      hasRpgSystem,
       state.diceLog,
       () => state.playerCharacter,
       () => state.npcs ?? [],
@@ -541,16 +545,30 @@ export class GameSession {
       }
     );
 
+    // Build dynamic allowedTools list based on system presence
+    const baseTools = ["Read", "Write", "Glob", "Grep", "mcp__adventure-theme__set_theme"];
+    const rpgTools = hasRpgSystem
+      ? [
+          "mcp__adventure-theme__roll_dice",
+          "mcp__adventure-theme__get_character",
+          "mcp__adventure-theme__apply_damage",
+          "mcp__adventure-theme__create_npc",
+          "mcp__adventure-theme__update_npc",
+          "mcp__adventure-theme__remove_npc",
+          "mcp__adventure-theme__manage_combat",
+        ]
+      : [];
+
     // Query Claude Agent SDK with resume for conversation continuity
     const sdkQuery = query({
       prompt: input,
       options: {
         resume: state.agentSessionId ?? undefined, // Resume conversation if available
         systemPrompt,
-        // Provide set_theme and roll_dice tools via MCP server (keyed by server name)
+        // Provide set_theme and conditionally RPG tools via MCP server (keyed by server name)
         mcpServers: { "adventure-theme": themeMcpServer },
         // SDK provides tools by default; allowedTools filters to what we need
-        allowedTools: ["Read", "Write", "Glob", "Grep", "mcp__adventure-theme__set_theme", "mcp__adventure-theme__roll_dice", "mcp__adventure-theme__get_character", "mcp__adventure-theme__apply_damage", "mcp__adventure-theme__create_npc", "mcp__adventure-theme__update_npc", "mcp__adventure-theme__remove_npc"],
+        allowedTools: [...baseTools, ...rpgTools],
         cwd: this.projectDirectory,
         includePartialMessages: true, // Enable token streaming
         permissionMode: "acceptEdits", // Auto-accept file edits within sandbox

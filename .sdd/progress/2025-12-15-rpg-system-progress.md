@@ -12,10 +12,10 @@ authored_by:
 
 # RPG System Integration - Implementation Progress
 
-**Last Updated**: 2025-12-15 | **Status**: 72% complete (13 of 18 tasks)
+**Last Updated**: 2025-12-15 | **Status**: 78% complete (14 of 18 tasks)
 
 ## Current Session
-**Date**: 2025-12-15 | **Working On**: TASK-014: Implement manage_combat MCP Tool | **Blockers**: None | **Status**: In Progress ✨
+**Date**: 2025-12-15 | **Working On**: TASK-015: Register All MCP Tools in GM MCP Server | **Blockers**: None
 
 ## Completed Today
 - TASK-001: Define RPG Type Definitions ✅ (commit: 0d0617e)
@@ -31,6 +31,7 @@ authored_by:
 - TASK-011: Implement create_npc MCP Tool ✅ (commit: b317e8c)
 - TASK-012: Implement update_npc MCP Tool ✅ (commit: 8b423d3)
 - TASK-013: Implement remove_npc MCP Tool ✅ (commit: 4c3848b)
+- TASK-014: Implement manage_combat MCP Tool ✅ (commit: 9ca2058)
 
 ## Discovered Issues
 - None
@@ -72,10 +73,10 @@ authored_by:
 - [x] TASK-012: Implement update_npc MCP Tool - *Completed 2025-12-15* (commit: 8b423d3)
 - [x] TASK-013: Implement remove_npc MCP Tool - *Completed 2025-12-15* (commit: 4c3848b)
 
-### Phase 6: Combat System
+### Phase 6: Combat System ✅ COMPLETE
 
-**In Progress** 🚧
-- [ ] TASK-014: Implement manage_combat MCP Tool - Starting now
+**Completed** ✅
+- [x] TASK-014: Implement manage_combat MCP Tool - *Completed 2025-12-15* (commit: 9ca2058)
 
 ### Phase 7: Integration & Polish
 
@@ -108,7 +109,7 @@ authored_by:
 | Dice Parser | ✅ Complete |
 | Dice Roller | ✅ Complete |
 | System Loader | ✅ Complete |
-| MCP Tools | 🚧 In Progress (roll_dice, get_character, apply_damage, create_npc, update_npc, remove_npc done) |
+| MCP Tools | ✅ Complete (roll_dice, get_character, apply_damage, create_npc, update_npc, remove_npc, manage_combat) |
 | Integration Tests | ⏳ Pending |
 | E2E Tests | ⏳ Pending |
 
