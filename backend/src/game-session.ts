@@ -13,6 +13,9 @@ import type { AdventureState } from "./types/state";
 import type { ServerMessage, NarrativeEntry, ThemeMood, Genre, Region } from "./types/protocol";
 import { buildGMSystemPrompt, createThemeMcpServer } from "./gm-prompt";
 import { rollDiceWithRequester } from "./services/dice-roller";
+import { createNpc } from "./mcp-tools/create-npc";
+import { applyDamageToPlayer, applyDamageToNpc } from "./mcp-tools/apply-damage";
+import { startCombat, nextTurn, endCombat } from "./mcp-tools/manage-combat";
 import {
   mapSDKError,
   mapGenericError,
@@ -462,6 +465,76 @@ export class GameSession {
                 state.diceLog,
                 "gm"
               );
+            } else if (toolName === "create_npc") {
+              log.debug({ toolName, toolInput }, "Mock SDK create_npc triggered");
+              // Ensure npcs array exists
+              if (!state.npcs) {
+                state.npcs = [];
+              }
+              // Create the NPC
+              const result = createNpc(
+                toolInput as { name: string; templateName?: string; hp?: { current: number; max: number }; isHostile?: boolean; notes?: string },
+                state.npcs,
+                state.systemDefinition ?? null
+              );
+              // Add NPC if creation succeeded
+              if (result.success) {
+                state.npcs.push(result.npc);
+              }
+            } else if (toolName === "apply_damage") {
+              log.debug({ toolName, toolInput }, "Mock SDK apply_damage triggered");
+              const { target, npcName, amount, damageType } = toolInput as {
+                target: "player" | "npc";
+                npcName?: string;
+                amount: number;
+                damageType?: string;
+              };
+
+              if (target === "player") {
+                applyDamageToPlayer(
+                  state.playerCharacter,
+                  amount,
+                  damageType ?? null,
+                  []
+                );
+              } else if (target === "npc" && npcName) {
+                if (!state.npcs) {
+                  state.npcs = [];
+                }
+                applyDamageToNpc(
+                  state.npcs,
+                  npcName,
+                  amount,
+                  damageType ?? null,
+                  []
+                );
+              }
+            } else if (toolName === "manage_combat") {
+              log.debug({ toolName, toolInput }, "Mock SDK manage_combat triggered");
+              const { action, combatants } = toolInput as {
+                action: "start" | "next_turn" | "end";
+                combatants?: Array<{ name: string; initiativeRoll: number; isPlayer: boolean }>;
+              };
+
+              if (action === "start" && combatants) {
+                const result = startCombat(combatants);
+                if (result.success) {
+                  state.combatState = result.combatState;
+                }
+              } else if (action === "next_turn") {
+                if (!state.npcs) {
+                  state.npcs = [];
+                }
+                const result = nextTurn(state.combatState ?? null, state.npcs);
+                if (result.success) {
+                  state.combatState = result.combatState;
+                }
+              } else if (action === "end") {
+                const result = endCombat(state.combatState ?? null);
+                if (result.success) {
+                  state.combatState = result.combatState;
+                }
+              }
             }
           },
         },

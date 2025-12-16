@@ -51,10 +51,52 @@ interface DiceToolCall {
 }
 
 /**
+ * Create NPC tool call detected from input
+ */
+interface CreateNpcToolCall {
+  name: "create_npc";
+  input: {
+    name: string;
+    templateName?: string;
+    hp?: { current: number; max: number };
+    isHostile?: boolean;
+    notes?: string;
+  };
+}
+
+/**
+ * Apply damage tool call detected from input
+ */
+interface ApplyDamageToolCall {
+  name: "apply_damage";
+  input: {
+    target: "player" | "npc";
+    npcName?: string;
+    amount: number;
+    damageType?: string;
+  };
+}
+
+/**
+ * Manage combat tool call detected from input
+ */
+interface ManageCombatToolCall {
+  name: "manage_combat";
+  input: {
+    action: "start" | "next_turn" | "end";
+    combatants?: Array<{
+      name: string;
+      initiativeRoll: number;
+      isPlayer: boolean;
+    }>;
+  };
+}
+
+/**
  * Union type for all tool calls (for future use)
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-type ToolCall = ThemeToolCall | DiceToolCall;
+type ToolCall = ThemeToolCall | DiceToolCall | CreateNpcToolCall | ApplyDamageToolCall | ManageCombatToolCall;
 
 /**
  * Theme trigger rules - maps keywords to theme parameters
@@ -173,6 +215,185 @@ export function detectDiceTool(prompt: string): DiceToolCall | null {
 }
 
 /**
+ * Detect if input should trigger a create_npc tool call
+ * @param prompt - Player input (lowercase)
+ * @returns Create NPC tool call or null
+ */
+export function detectCreateNpcTool(prompt: string): CreateNpcToolCall | null {
+  // Detect NPC creation keywords
+  const shouldCreate =
+    (prompt.includes("goblin") ||
+      prompt.includes("orc") ||
+      prompt.includes("wolf") ||
+      prompt.includes("bandit") ||
+      prompt.includes("enemy") ||
+      prompt.includes("npc") ||
+      prompt.includes("creature") ||
+      prompt.includes("monster")) &&
+    (prompt.includes("appear") ||
+      prompt.includes("arrives") ||
+      prompt.includes("encounter") ||
+      prompt.includes("see") ||
+      prompt.includes("spot") ||
+      prompt.includes("attack"));
+
+  if (!shouldCreate) {
+    return null;
+  }
+
+  // Determine NPC type based on keywords
+  let name = "Goblin Scout";
+  let templateName = "Goblin";
+  let hp = { current: 7, max: 7 };
+
+  if (prompt.includes("orc")) {
+    name = "Orc Warrior";
+    templateName = "Orc";
+    hp = { current: 15, max: 15 };
+  } else if (prompt.includes("wolf")) {
+    name = "Wolf";
+    templateName = "Wolf";
+    hp = { current: 11, max: 11 };
+  } else if (prompt.includes("bandit")) {
+    name = "Bandit";
+    templateName = "Bandit";
+    hp = { current: 12, max: 12 };
+  }
+
+  return {
+    name: "create_npc",
+    input: {
+      name,
+      templateName,
+      hp,
+      isHostile: true,
+      notes: "Created by mock SDK for testing",
+    },
+  };
+}
+
+/**
+ * Detect if input should trigger an apply_damage tool call
+ * @param prompt - Player input (lowercase)
+ * @returns Apply damage tool call or null
+ */
+export function detectApplyDamageTool(prompt: string): ApplyDamageToolCall | null {
+  // Detect damage application keywords
+  const shouldApplyDamage =
+    (prompt.includes("hit") ||
+      prompt.includes("damage") ||
+      prompt.includes("wound") ||
+      prompt.includes("hurt") ||
+      prompt.includes("attack") ||
+      prompt.includes("strikes")) &&
+    (prompt.includes("player") ||
+      prompt.includes("me") ||
+      prompt.includes("goblin") ||
+      prompt.includes("enemy") ||
+      prompt.includes("npc"));
+
+  if (!shouldApplyDamage) {
+    return null;
+  }
+
+  // Determine target and amount
+  const targetIsPlayer =
+    prompt.includes("player") ||
+    prompt.includes("me") ||
+    prompt.includes("you") ||
+    prompt.includes("hit me");
+
+  const amount = 5; // Fixed damage for mock
+  const damageType = prompt.includes("fire")
+    ? "fire"
+    : prompt.includes("poison")
+      ? "poison"
+      : "slashing";
+
+  if (targetIsPlayer) {
+    return {
+      name: "apply_damage",
+      input: {
+        target: "player",
+        amount,
+        damageType,
+      },
+    };
+  } else {
+    return {
+      name: "apply_damage",
+      input: {
+        target: "npc",
+        npcName: "Goblin Scout",
+        amount: 8,
+        damageType,
+      },
+    };
+  }
+}
+
+/**
+ * Detect if input should trigger a manage_combat tool call
+ * @param prompt - Player input (lowercase)
+ * @returns Manage combat tool call or null
+ */
+export function detectManageCombatTool(prompt: string): ManageCombatToolCall | null {
+  // Detect combat start
+  if (
+    (prompt.includes("start") || prompt.includes("begin") || prompt.includes("initiative")) &&
+    (prompt.includes("combat") || prompt.includes("battle") || prompt.includes("fight"))
+  ) {
+    return {
+      name: "manage_combat",
+      input: {
+        action: "start",
+        combatants: [
+          {
+            name: "Player",
+            initiativeRoll: 15,
+            isPlayer: true,
+          },
+          {
+            name: "Goblin Scout",
+            initiativeRoll: 12,
+            isPlayer: false,
+          },
+        ],
+      },
+    };
+  }
+
+  // Detect next turn
+  if (
+    (prompt.includes("next") && prompt.includes("turn")) ||
+    prompt.includes("end turn") ||
+    prompt.includes("my turn")
+  ) {
+    return {
+      name: "manage_combat",
+      input: {
+        action: "next_turn",
+      },
+    };
+  }
+
+  // Detect end combat
+  if (
+    (prompt.includes("end") || prompt.includes("finish") || prompt.includes("stop")) &&
+    (prompt.includes("combat") || prompt.includes("battle") || prompt.includes("fight"))
+  ) {
+    return {
+      name: "manage_combat",
+      input: {
+        action: "end",
+      },
+    };
+  }
+
+  return null;
+}
+
+/**
  * Mock query function that simulates Claude Agent SDK responses
  * Used when MOCK_SDK=true environment variable is set
  *
@@ -200,6 +421,21 @@ export async function* mockQuery(
     const diceCall = detectDiceTool(prompt);
     if (diceCall) {
       await options.options.onToolUse(diceCall.name, diceCall.input);
+    }
+
+    const createNpcCall = detectCreateNpcTool(prompt);
+    if (createNpcCall) {
+      await options.options.onToolUse(createNpcCall.name, createNpcCall.input);
+    }
+
+    const applyDamageCall = detectApplyDamageTool(prompt);
+    if (applyDamageCall) {
+      await options.options.onToolUse(applyDamageCall.name, applyDamageCall.input);
+    }
+
+    const manageCombatCall = detectManageCombatTool(prompt);
+    if (manageCombatCall) {
+      await options.options.onToolUse(manageCombatCall.name, manageCombatCall.input);
     }
   }
 
