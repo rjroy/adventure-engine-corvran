@@ -20,6 +20,10 @@ import {
   createNpcToolDefinition,
   createCreateNpcTool,
 } from "./mcp-tools/create-npc";
+import {
+  updateNpcToolDefinition,
+  createUpdateNpcTool,
+} from "./mcp-tools/update-npc";
 
 /**
  * Valid theme moods for the set_theme tool
@@ -176,10 +180,11 @@ export function createThemeMcpServer(
   const getCharacterTool = createGetCharacterTool(getPlayerCharacter);
   const applyDamageTool = createApplyDamageTool(getPlayerCharacter, getNpcs);
   const createNpcTool = createCreateNpcTool(getNpcs, addNpc, getSystemDefinition);
+  const updateNpcTool = createUpdateNpcTool(getNpcs);
   return createSdkMcpServer({
     name: "adventure-theme",
     version: "1.0.0",
-    tools: [setThemeTool, rollDiceTool, getCharacterTool, applyDamageTool, createNpcTool],
+    tools: [setThemeTool, rollDiceTool, getCharacterTool, applyDamageTool, createNpcTool, updateNpcTool],
   });
 }
 
@@ -202,6 +207,11 @@ export const applyDamageTool = applyDamageToolDefinition;
  * Export the static create_npc tool definition for external use
  */
 export const createNpcTool = createNpcToolDefinition;
+
+/**
+ * Export the static update_npc tool definition for external use
+ */
+export const updateNpcTool = updateNpcToolDefinition;
 
 /** Structural boundary for separating system instructions from game data */
 const BOUNDARY = "════════════════════════════════════════";
