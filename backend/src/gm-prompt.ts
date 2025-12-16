@@ -1,37 +1,13 @@
 // GM System Prompt Builder
 // Constructs the Game Master system prompt from adventure state
+// Simplified architecture: All state lives in markdown files, only set_theme uses MCP
 
 import { tool, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
-import type { AdventureState, SystemDefinition } from "./types/state";
-import type { ThemeMood, DiceLogEntry, PlayerCharacter, NPC, CombatState } from "./types/protocol";
+import type { AdventureState } from "./types/state";
+import type { ThemeMood } from "./types/protocol";
 import { sanitizeStateValue } from "./validation";
 import { logger } from "./logger";
-import { rollDiceTool as rollDiceToolDefinition, createRollDiceTool } from "./mcp-tools/roll-dice";
-import {
-  getCharacterToolDefinition,
-  createGetCharacterTool,
-} from "./mcp-tools/get-character";
-import {
-  applyDamageToolDefinition,
-  createApplyDamageTool,
-} from "./mcp-tools/apply-damage";
-import {
-  createNpcToolDefinition,
-  createCreateNpcTool,
-} from "./mcp-tools/create-npc";
-import {
-  updateNpcToolDefinition,
-  createUpdateNpcTool,
-} from "./mcp-tools/update-npc";
-import {
-  removeNpcToolDefinition,
-  createRemoveNpcTool,
-} from "./mcp-tools/remove-npc";
-import {
-  manageCombatToolDefinition,
-  createManageCombatTool,
-} from "./mcp-tools/manage-combat";
 
 /**
  * Valid theme moods for the set_theme tool
@@ -169,61 +145,13 @@ Provide image_prompt only when you want specific generated imagery as fallback.`
 }
 
 /**
- * Create an MCP server with set_theme tool and optionally RPG tools
+ * Create an MCP server with only the set_theme tool
+ * All other state management is done via file read/write
  * @param onThemeChange Callback invoked when theme should change
- * @param hasRpgSystem Whether to include RPG tools (only when systemDefinition is present)
- * @param diceLog Reference to adventure state's dice log array
- * @param getPlayerCharacter Function to get current player character state
- * @param getNpcs Function to get current NPCs array
- * @param addNpc Function to add NPC to state
- * @param getSystemDefinition Function to get system definition
- * @param getCombatState Function to get current combat state
- * @param setCombatState Function to update combat state
- * @param removeFromNpcs Function to remove NPC from array
- * @param removeFromInitiative Function to remove NPC from initiative order
  */
-export function createThemeMcpServer(
-  onThemeChange: ThemeChangeHandler,
-  hasRpgSystem: boolean,
-  diceLog: DiceLogEntry[],
-  getPlayerCharacter: () => PlayerCharacter,
-  getNpcs: () => NPC[],
-  addNpc: (npc: NPC) => void,
-  getSystemDefinition: () => SystemDefinition | null,
-  getCombatState: () => CombatState | null,
-  setCombatState: (state: CombatState | null) => void,
-  removeFromNpcs: (index: number) => void,
-  removeFromInitiative: (npcName: string) => void
-) {
+export function createThemeMcpServer(onThemeChange: ThemeChangeHandler) {
   const setThemeTool = createSetThemeTool(onThemeChange);
 
-  // Conditionally add RPG tools only when system definition is present
-  if (hasRpgSystem) {
-    const rollDiceTool = createRollDiceTool(diceLog);
-    const getCharacterTool = createGetCharacterTool(getPlayerCharacter);
-    const applyDamageTool = createApplyDamageTool(getPlayerCharacter, getNpcs);
-    const createNpcTool = createCreateNpcTool(getNpcs, addNpc, getSystemDefinition);
-    const updateNpcTool = createUpdateNpcTool(getNpcs);
-    const removeNpcTool = createRemoveNpcTool(getNpcs, getCombatState, removeFromNpcs, removeFromInitiative);
-    const manageCombatTool = createManageCombatTool(getCombatState, setCombatState, getNpcs);
-
-    return createSdkMcpServer({
-      name: "adventure-theme",
-      version: "1.0.0",
-      tools: [
-        setThemeTool,
-        rollDiceTool,
-        getCharacterTool,
-        applyDamageTool,
-        createNpcTool,
-        updateNpcTool,
-        removeNpcTool,
-        manageCombatTool,
-      ],
-    });
-  }
-
-  // No RPG system - only include set_theme tool
   return createSdkMcpServer({
     name: "adventure-theme",
     version: "1.0.0",
@@ -231,170 +159,22 @@ export function createThemeMcpServer(
   });
 }
 
-/**
- * Export the static roll_dice tool definition for external use
- */
-export const rollDiceTool = rollDiceToolDefinition;
-
-/**
- * Export the static get_character tool definition for external use
- */
-export const getCharacterTool = getCharacterToolDefinition;
-
-/**
- * Export the static apply_damage tool definition for external use
- */
-export const applyDamageTool = applyDamageToolDefinition;
-
-/**
- * Export the static create_npc tool definition for external use
- */
-export const createNpcTool = createNpcToolDefinition;
-
-/**
- * Export the static update_npc tool definition for external use
- */
-export const updateNpcTool = updateNpcToolDefinition;
-
-/**
- * Export the static remove_npc tool definition for external use
- */
-export const removeNpcTool = removeNpcToolDefinition;
-
-/**
- * Export the static manage_combat tool definition for external use
- */
-export const manageCombatTool = manageCombatToolDefinition;
-
 /** Structural boundary for separating system instructions from game data */
 const BOUNDARY = "════════════════════════════════════════";
 
 /**
- * Build RPG system rules section for the GM prompt
- * Only included when an adventure has a system definition loaded
- * @param state Current adventure state
- * @returns RPG system rules section string or empty string
- */
-function buildRPGSystemSection(state: AdventureState): string {
-  const { systemDefinition, playerCharacter } = state;
-
-  // No system = no RPG mechanics
-  if (!systemDefinition) {
-    return "";
-  }
-
-  // Build character status section
-  let characterSection = "";
-  if (playerCharacter.stats || playerCharacter.hp || playerCharacter.skills) {
-    const statsList = playerCharacter.stats
-      ? Object.entries(playerCharacter.stats).map(([k, v]) => `${k}: ${v}`).join(", ")
-      : "none defined";
-    const skillsList = playerCharacter.skills
-      ? Object.entries(playerCharacter.skills).map(([k, v]) => `${k}: ${v}`).join(", ")
-      : "none defined";
-    const hpStatus = playerCharacter.hp
-      ? `${playerCharacter.hp.current}/${playerCharacter.hp.max}`
-      : "not tracked";
-    const conditions = playerCharacter.conditions?.length
-      ? playerCharacter.conditions.join(", ")
-      : "none";
-
-    characterSection = `
-PLAYER CHARACTER STATS:
-- Stats: ${statsList}
-- Skills: ${skillsList}
-- HP: ${hpStatus}
-- Conditions: ${conditions}
-- Level: ${playerCharacter.level ?? "N/A"} | XP: ${playerCharacter.xp ?? 0}`;
-  }
-
-  // Build NPC template guidance
-  const npcTemplatesGuidance = systemDefinition.hasNPCTemplates
-    ? `\n\nNPC TEMPLATES (from System.md):
-Refer to the NPC Templates section in the system rules below when creating enemies and NPCs.
-Use the provided stat blocks and difficulty ratings for balanced encounters.`
-    : "";
-
-  // Build character creation guidance if character not yet created
-  const characterCreationGuidance = !playerCharacter.stats
-    ? `
-
-CHARACTER CREATION:
-The player has not yet created their character. At the start of the adventure:
-1. Guide the player through character creation per the system rules below
-2. Help them choose attributes, skills, and background as defined in the system
-3. Validate their choices against system constraints (attribute limits, valid skills)
-4. Once complete, persist their character data using the Write tool to ./player.md
-5. Track stats, skills, HP, inventory, and conditions in the character file`
-    : "";
-
-  return `
-${BOUNDARY}
-RPG SYSTEM RULES:
-This adventure uses an RPG system. Follow these mechanics when resolving actions.
-${characterSection}${characterCreationGuidance}${npcTemplatesGuidance}
-
-DICE MECHANICS - Use roll_dice tool for resolution:
-Supported dice: ${systemDefinition.diceTypes.join(", ")}
-- roll_dice(expression, context, visible) → returns individual rolls and total
-- Use expressions like "1d20+5" for attack rolls, "2d6+3" for damage
-- Set visible=false for hidden GM rolls (enemy stats, secret checks)
-- Always describe the roll context: "Attack roll", "Perception check", etc.
-
-When to roll dice:
-- Combat: Attack rolls, damage, initiative
-- Skill checks: When outcome is uncertain and stakes exist
-- Saving throws: Resisting effects per system rules
-- DO NOT roll for trivial actions or when narrative resolution is better
-
-SYSTEM DEFINITION:
-\`\`\`markdown
-${systemDefinition.rawContent}
-\`\`\`
-${BOUNDARY}
-`;
-}
-
-/**
  * Build the Game Master system prompt from current adventure state
  * This prompt guides Claude to act as an interactive fiction GM
- * Includes prompt injection defenses via sanitization and structural boundaries
- * @param state Current adventure state
+ * All state management is done via file read/write - the GM maintains state in markdown files
+ * @param state Current adventure state (minimal - just theme and scene info)
  * @returns System prompt string
  */
 export function buildGMSystemPrompt(state: AdventureState): string {
-  const { currentScene, worldState, playerCharacter } = state;
+  const { currentScene } = state;
 
-  // Sanitize all state values before embedding in prompt
+  // Sanitize scene values before embedding in prompt
   const safeLocation = sanitizeStateValue(currentScene.location, 200);
   const safeDescription = sanitizeStateValue(currentScene.description, 500);
-  const safeWorldState = sanitizeStateValue(
-    JSON.stringify(worldState, null, 2),
-    1000
-  );
-  const safePlayerName = playerCharacter.name
-    ? sanitizeStateValue(playerCharacter.name, 100)
-    : null;
-  const safePlayerAttributes =
-    Object.keys(playerCharacter.attributes).length > 0
-      ? sanitizeStateValue(JSON.stringify(playerCharacter.attributes, null, 2), 500)
-      : null;
-
-  // Build player character info section
-  const playerInfo = safePlayerName
-    ? `PLAYER CHARACTER: ${safePlayerName}
-${safePlayerAttributes ? `Attributes: ${safePlayerAttributes}` : ""}`
-    : "PLAYER CHARACTER: Not yet defined";
-
-  // Build world state section
-  const worldStateInfo =
-    Object.keys(worldState).length > 0
-      ? `WORLD STATE:
-${safeWorldState}`
-      : "WORLD STATE: No established facts yet";
-
-  // Build RPG system section (only if system definition exists)
-  const rpgSection = buildRPGSystemSection(state);
 
   return `You are the Game Master for an interactive text adventure.
 
@@ -410,10 +190,6 @@ CURRENT SCENE:
 Location: ${safeLocation}
 ${safeDescription}
 
-${worldStateInfo}
-
-${playerInfo}
-${rpgSection}
 NARRATIVE GUIDELINES:
 - Respond with vivid, engaging narrative maintaining consistency with files
 - Ask clarifying questions if player intent is ambiguous
@@ -421,18 +197,30 @@ NARRATIVE GUIDELINES:
 
 REQUIRED ACTIONS (perform EVERY response - files are your ONLY persistent memory):
 
-BEFORE RESPONDING - Use the Read tool on existing files to maintain consistency:
-- ./world_state.md, ./locations.md, ./characters.md, ./player.md, ./quests.md
+BEFORE RESPONDING - Read existing files to maintain consistency:
+- ./System.md - RPG rules (if this adventure has an RPG system)
+- ./player.md - Player character details and stats
+- ./characters.md - NPCs and their details
+- ./world_state.md - Established world facts
+- ./locations.md - Known places
+- ./quests.md - Active quests
 
-AFTER NARRATIVE - Use the Write tool when state changes:
-- New/changed location → Write to ./locations.md
-- New/changed NPC → Write to ./characters.md
-- Player inventory/abilities → Write to ./player.md
+DICE ROLLING (when ./System.md exists):
+For dice rolls, run: bash scripts/roll.sh "2d6+3"
+The script returns JSON with individual rolls and total.
+Example: {"expression": "2d6+3", "rolls": [4, 2], "modifier": 3, "total": 9}
+
+STATE MANAGEMENT - All state lives in markdown files:
+- Player stats, inventory, abilities → Write to ./player.md
+- NPCs, enemies, allies → Write to ./characters.md
+- Locations discovered → Write to ./locations.md
 - Quest progress → Write to ./quests.md
-- World facts established → Write to ./world_state.md
+- World facts, lore → Write to ./world_state.md
 
 ON FIRST RESPONSE - Create initial files:
-Use the Write tool to create ./world_state.md with: world name, genre, current era, established rules.
+1. Read ./System.md if it exists (RPG rules)
+2. Write ./world_state.md with: world name, genre, current era
+3. Call set_theme to set initial visual atmosphere
 
 DURING NARRATIVE - Set visual theme when mood/location changes:
 Call set_theme(mood, genre, region) for atmosphere transitions.
@@ -440,23 +228,16 @@ Call set_theme(mood, genre, region) for atmosphere transitions.
 - genre: high-fantasy | low-fantasy | sci-fi | steampunk | horror | modern | historical
 - region: forest | village | city | castle | ruins | mountain | desert | ocean | underground
 
-ALWAYS perform these actions:
-1. First response: Use Write tool to create ./world_state.md AND call set_theme
-2. Location changes: Use Write tool for ./locations.md AND call set_theme
-3. New NPCs: Use Write tool for ./characters.md
-4. Combat/danger/victory: Call set_theme
-5. Player gains/loses items: Use Write tool for ./player.md
-6. Quest progress: Use Write tool for ./quests.md
-
 Theme examples:
 - Tavern → set_theme(mood="calm", genre="high-fantasy", region="village")
 - Dark forest → set_theme(mood="mysterious", genre="high-fantasy", region="forest")
 - Battle → set_theme(mood="tense", genre="high-fantasy", region="forest")
 
 File examples:
-- Player finds sword → Write "./player.md" with "## Inventory\n- Iron Sword"
-- Meet innkeeper → Write "./characters.md" with "## Mira\nInnkeeper at Rusty Tankard."
-- Discover village → Write "./locations.md" with "## Thorndale\nSmall farming village."
+- Player creates character → Write "./player.md" with name, stats, background
+- Player finds sword → Update "./player.md" inventory section
+- Meet innkeeper → Write "./characters.md" with "## Mira\\nInnkeeper at Rusty Tankard."
+- Discover village → Write "./locations.md" with "## Thorndale\\nSmall farming village."
 
 Use relative paths (./file.md), never /tmp/.`;
 }

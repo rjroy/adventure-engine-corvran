@@ -2,7 +2,7 @@
 // Unit tests for input queuing, message protocol, and state updates
 
 import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, rm } from "node:fs/promises";
 import type { WSContext } from "hono/ws";
 import type { ServerMessage } from "../../src/types/protocol";
 
@@ -147,68 +147,8 @@ describe("GameSession", () => {
       }
     });
 
-    test("loads system definition when System.md exists", async () => {
-      const { ws } = createMockWS();
-      const session = new GameSession(ws, stateManager);
-
-      // Get adventure directory and create System.md
-      const adventureDir = stateManager.getCurrentAdventureDir();
-      expect(adventureDir).not.toBeNull();
-
-      const systemContent = `# Dice
-d20, d6
-
-# Attributes
-Strength, Dexterity, Constitution
-
-# Combat
-Roll initiative with 1d20`;
-
-      await writeFile(`${adventureDir}/System.md`, systemContent);
-
-      const result = await session.initialize(adventureId, sessionToken);
-
-      expect(result.success).toBe(true);
-      const state = session.getState();
-      expect(state?.systemDefinition).not.toBeNull();
-      expect(state?.systemDefinition?.diceTypes).toContain("d20");
-      expect(state?.systemDefinition?.diceTypes).toContain("d6");
-      expect(state?.systemDefinition?.hasAttributes).toBe(true);
-      expect(state?.systemDefinition?.hasCombat).toBe(true);
-    });
-
-    test("continues without system when no System.md exists", async () => {
-      const { ws } = createMockWS();
-      const session = new GameSession(ws, stateManager);
-
-      const result = await session.initialize(adventureId, sessionToken);
-
-      expect(result.success).toBe(true);
-      const state = session.getState();
-      expect(state?.systemDefinition).toBeNull();
-    });
-
-    test("continues when System.md has validation errors", async () => {
-      const { ws } = createMockWS();
-      const session = new GameSession(ws, stateManager);
-
-      // Get adventure directory and create invalid System.md (missing Dice section)
-      const adventureDir = stateManager.getCurrentAdventureDir();
-      expect(adventureDir).not.toBeNull();
-
-      const invalidSystemContent = `# Rules
-Some rules without a dice section`;
-
-      await writeFile(`${adventureDir}/System.md`, invalidSystemContent);
-
-      const result = await session.initialize(adventureId, sessionToken);
-
-      // Should still succeed - system errors are logged but don't block
-      expect(result.success).toBe(true);
-      const state = session.getState();
-      // System definition should remain null due to validation error
-      expect(state?.systemDefinition).toBeNull();
-    });
+    // Note: System definition loading was removed.
+    // The GM now reads System.md directly via file operations during gameplay.
   });
 
   describe("handleInput() - Queue Management", () => {

@@ -12,10 +12,6 @@ import { AdventureStateManager } from "./adventure-state";
 import type { AdventureState } from "./types/state";
 import type { ServerMessage, NarrativeEntry, ThemeMood, Genre, Region } from "./types/protocol";
 import { buildGMSystemPrompt, createThemeMcpServer } from "./gm-prompt";
-import { rollDiceWithRequester } from "./services/dice-roller";
-import { createNpc } from "./mcp-tools/create-npc";
-import { applyDamageToPlayer, applyDamageToNpc } from "./mcp-tools/apply-damage";
-import { startCombat, nextTurn, endCombat } from "./mcp-tools/manage-combat";
 import {
   mapSDKError,
   mapGenericError,
@@ -28,7 +24,6 @@ import { env } from "./env";
 import { mockQuery } from "./mock-sdk";
 import type { BackgroundImageService } from "./services/background-image";
 import { sanitizePlayerInput } from "./validation";
-import { loadSystemDefinition } from "./services/system-loader";
 
 // Check if we're in mock mode (for E2E testing)
 // Use function instead of const to check at runtime, avoiding module cache issues
@@ -158,45 +153,6 @@ export class GameSession {
     // Use PROJECT_DIR for SDK sandbox - this is the adventure world directory
     // where the SDK should read/write files
     this.projectDirectory = projectDir;
-
-    // Load system definition if present (RPG system integration)
-    const adventureDir = this.stateManager.getCurrentAdventureDir();
-    if (adventureDir) {
-      try {
-        const systemResult = await loadSystemDefinition(adventureDir);
-        if (systemResult === null) {
-          // No system definition found - this is valid (non-RPG adventure)
-          logger.debug({ adventureId }, "No system definition found");
-        } else if (systemResult.success) {
-          // System definition loaded successfully
-          await this.stateManager.updateSystemDefinition(systemResult.definition);
-          logger.info(
-            {
-              adventureId,
-              filePath: systemResult.definition.filePath,
-              diceTypes: systemResult.definition.diceTypes,
-              hasAttributes: systemResult.definition.hasAttributes,
-              hasSkills: systemResult.definition.hasSkills,
-              hasCombat: systemResult.definition.hasCombat,
-              hasNPCTemplates: systemResult.definition.hasNPCTemplates,
-            },
-            "System definition loaded"
-          );
-        } else {
-          // System definition error - log but don't block adventure
-          logger.warn(
-            { adventureId, error: systemResult.error },
-            "Failed to load system definition - continuing without RPG mechanics"
-          );
-        }
-      } catch (error) {
-        // Unexpected error - log but don't block adventure
-        logger.error(
-          { adventureId, err: error },
-          "Unexpected error loading system definition"
-        );
-      }
-    }
 
     return { success: true };
   }
@@ -451,90 +407,6 @@ export class GameSession {
                 },
                 log
               );
-            } else if (toolName === "roll_dice") {
-              log.debug({ toolName, toolInput }, "Mock SDK roll_dice triggered");
-              // Ensure diceLog exists
-              if (!state.diceLog) {
-                state.diceLog = [];
-              }
-              // Execute the roll
-              rollDiceWithRequester(
-                toolInput.expression as string,
-                (toolInput.context as string | undefined) ?? "GM roll",
-                (toolInput.visible as boolean | undefined) ?? true,
-                state.diceLog,
-                "gm"
-              );
-            } else if (toolName === "create_npc") {
-              log.debug({ toolName, toolInput }, "Mock SDK create_npc triggered");
-              // Ensure npcs array exists
-              if (!state.npcs) {
-                state.npcs = [];
-              }
-              // Create the NPC
-              const result = createNpc(
-                toolInput as { name: string; templateName?: string; hp?: { current: number; max: number }; isHostile?: boolean; notes?: string },
-                state.npcs,
-                state.systemDefinition ?? null
-              );
-              // Add NPC if creation succeeded
-              if (result.success) {
-                state.npcs.push(result.npc);
-              }
-            } else if (toolName === "apply_damage") {
-              log.debug({ toolName, toolInput }, "Mock SDK apply_damage triggered");
-              const { target, npcName, amount, damageType } = toolInput as {
-                target: "player" | "npc";
-                npcName?: string;
-                amount: number;
-                damageType?: string;
-              };
-
-              if (target === "player") {
-                applyDamageToPlayer(
-                  state.playerCharacter,
-                  amount,
-                  damageType ?? null,
-                  []
-                );
-              } else if (target === "npc" && npcName) {
-                if (!state.npcs) {
-                  state.npcs = [];
-                }
-                applyDamageToNpc(
-                  state.npcs,
-                  npcName,
-                  amount,
-                  damageType ?? null,
-                  []
-                );
-              }
-            } else if (toolName === "manage_combat") {
-              log.debug({ toolName, toolInput }, "Mock SDK manage_combat triggered");
-              const { action, combatants } = toolInput as {
-                action: "start" | "next_turn" | "end";
-                combatants?: Array<{ name: string; initiativeRoll: number; isPlayer: boolean }>;
-              };
-
-              if (action === "start" && combatants) {
-                const result = startCombat(combatants);
-                if (result.success) {
-                  state.combatState = result.combatState;
-                }
-              } else if (action === "next_turn") {
-                if (!state.npcs) {
-                  state.npcs = [];
-                }
-                const result = nextTurn(state.combatState ?? null, state.npcs);
-                if (result.success) {
-                  state.combatState = result.combatState;
-                }
-              } else if (action === "end") {
-                const result = endCombat(state.combatState ?? null);
-                if (result.success) {
-                  state.combatState = result.combatState;
-                }
-              }
             }
           },
         },
@@ -552,20 +424,7 @@ export class GameSession {
       return;
     }
 
-    // Ensure diceLog exists (for backward compatibility with old saves)
-    if (!state.diceLog) {
-      state.diceLog = [];
-    }
-
-    // Ensure npcs array exists (for backward compatibility with old saves)
-    if (!state.npcs) {
-      state.npcs = [];
-    }
-
-    // Determine if RPG system is present for conditional tool registration
-    const hasRpgSystem = !!state.systemDefinition;
-
-    // Create MCP server for set_theme tool and conditionally RPG tools
+    // Create MCP server for set_theme tool (UI theme updates)
     const themeMcpServer = createThemeMcpServer(
       async (mood, genre, region, forceGenerate, imagePrompt) => {
         log.debug({ mood, genre, region }, "MCP callback invoked");
@@ -585,52 +444,21 @@ export class GameSession {
           log.error({ err: error, mood }, "MCP callback error");
           throw error;
         }
-      },
-      hasRpgSystem,
-      state.diceLog,
-      () => state.playerCharacter,
-      () => state.npcs ?? [],
-      (npc) => {
-        if (!state.npcs) {
-          state.npcs = [];
-        }
-        state.npcs.push(npc);
-      },
-      () => state.systemDefinition ?? null,
-      () => state.combatState ?? null,
-      (combatState) => {
-        state.combatState = combatState;
-      },
-      (index) => {
-        if (state.npcs) {
-          state.npcs.splice(index, 1);
-        }
-      },
-      (npcName) => {
-        if (state.combatState?.initiativeOrder) {
-          const idx = state.combatState.initiativeOrder.findIndex(
-            (c) => c.name.toLowerCase() === npcName.toLowerCase() && !c.isPlayer
-          );
-          if (idx !== -1) {
-            state.combatState.initiativeOrder.splice(idx, 1);
-          }
-        }
       }
     );
 
-    // Build dynamic allowedTools list based on system presence
-    const baseTools = ["Read", "Write", "Glob", "Grep", "mcp__adventure-theme__set_theme"];
-    const rpgTools = hasRpgSystem
-      ? [
-          "mcp__adventure-theme__roll_dice",
-          "mcp__adventure-theme__get_character",
-          "mcp__adventure-theme__apply_damage",
-          "mcp__adventure-theme__create_npc",
-          "mcp__adventure-theme__update_npc",
-          "mcp__adventure-theme__remove_npc",
-          "mcp__adventure-theme__manage_combat",
-        ]
-      : [];
+    // Tools available to the GM:
+    // - File operations (Read, Write, Glob, Grep) for state management in markdown files
+    // - Bash for dice rolling (scripts/roll.sh) when System.md defines RPG rules
+    // - set_theme for UI visual updates
+    const allowedTools = [
+      "Read",
+      "Write",
+      "Glob",
+      "Grep",
+      "Bash",
+      "mcp__adventure-theme__set_theme",
+    ];
 
     // Query Claude Agent SDK with resume for conversation continuity
     const sdkQuery = query({
@@ -638,10 +466,10 @@ export class GameSession {
       options: {
         resume: state.agentSessionId ?? undefined, // Resume conversation if available
         systemPrompt,
-        // Provide set_theme and conditionally RPG tools via MCP server (keyed by server name)
+        // Provide set_theme via MCP server (keyed by server name)
         mcpServers: { "adventure-theme": themeMcpServer },
         // SDK provides tools by default; allowedTools filters to what we need
-        allowedTools: [...baseTools, ...rpgTools],
+        allowedTools,
         cwd: this.projectDirectory,
         includePartialMessages: true, // Enable token streaming
         permissionMode: "acceptEdits", // Auto-accept file edits within sandbox
