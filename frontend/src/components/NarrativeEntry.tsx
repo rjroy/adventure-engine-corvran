@@ -1,4 +1,5 @@
 import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { NarrativeEntry as NarrativeEntryType } from "../types/protocol";
 import "./NarrativeEntry.css";
 
@@ -30,7 +31,7 @@ export function NarrativeEntry({
         {isPlayerInput ? (
           <span className="narrative-entry__content--player">{displayContent}</span>
         ) : (
-          <Markdown>{displayContent ?? ""}</Markdown>
+          <Markdown remarkPlugins={[remarkGfm]}>{displayContent ?? ""}</Markdown>
         )}
         {isStreaming && <span className="streaming-cursor" />}
       </div>
