@@ -9,6 +9,7 @@ export type {
   Region,
   ThemeChangePayload,
   DiceLogEntry,
+  PlayerCharacter,
 } from "../../../shared/protocol";
 
 export {

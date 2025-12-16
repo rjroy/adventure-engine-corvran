@@ -4,10 +4,14 @@
 import { tool, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import type { AdventureState } from "./types/state";
-import type { ThemeMood, DiceLogEntry } from "./types/protocol";
+import type { ThemeMood, DiceLogEntry, PlayerCharacter } from "./types/protocol";
 import { sanitizeStateValue } from "./validation";
 import { logger } from "./logger";
 import { rollDiceTool as rollDiceToolDefinition, createRollDiceTool } from "./mcp-tools/roll-dice";
+import {
+  getCharacterToolDefinition,
+  createGetCharacterTool,
+} from "./mcp-tools/get-character";
 
 /**
  * Valid theme moods for the set_theme tool
@@ -145,17 +149,23 @@ Provide image_prompt only when you want specific generated imagery as fallback.`
 }
 
 /**
- * Create an MCP server with the set_theme and roll_dice tools
+ * Create an MCP server with the set_theme, roll_dice, and get_character tools
  * @param onThemeChange Callback invoked when theme should change
  * @param diceLog Reference to adventure state's dice log array
+ * @param getPlayerCharacter Function to get current player character state
  */
-export function createThemeMcpServer(onThemeChange: ThemeChangeHandler, diceLog: DiceLogEntry[]) {
+export function createThemeMcpServer(
+  onThemeChange: ThemeChangeHandler,
+  diceLog: DiceLogEntry[],
+  getPlayerCharacter: () => PlayerCharacter
+) {
   const setThemeTool = createSetThemeTool(onThemeChange);
   const rollDiceTool = createRollDiceTool(diceLog);
+  const getCharacterTool = createGetCharacterTool(getPlayerCharacter);
   return createSdkMcpServer({
     name: "adventure-theme",
     version: "1.0.0",
-    tools: [setThemeTool, rollDiceTool],
+    tools: [setThemeTool, rollDiceTool, getCharacterTool],
   });
 }
 
@@ -163,6 +173,11 @@ export function createThemeMcpServer(onThemeChange: ThemeChangeHandler, diceLog:
  * Export the static roll_dice tool definition for external use
  */
 export const rollDiceTool = rollDiceToolDefinition;
+
+/**
+ * Export the static get_character tool definition for external use
+ */
+export const getCharacterTool = getCharacterToolDefinition;
 
 /** Structural boundary for separating system instructions from game data */
 const BOUNDARY = "════════════════════════════════════════";
