@@ -98,7 +98,7 @@ const backgroundImageService = new BackgroundImageService(
   imageCatalogService,
   imageGeneratorService,
   {
-    baseUrl: "http://localhost:3000/backgrounds",
+    baseUrl: "/backgrounds",
     verbose: true,
   }
 );
