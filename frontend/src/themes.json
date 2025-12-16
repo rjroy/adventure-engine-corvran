@@ -17,7 +17,11 @@
         "gmBg": "#f5f5f5",
         "gmBorder": "#757575",
         "error": "#721c24",
-        "errorBg": "#f8d7da"
+        "errorBg": "#f8d7da",
+        "codeBg": "#e3f2fd",
+        "codeText": "#1565c0",
+        "preBg": "#263238",
+        "preText": "#eceff1"
       },
       "fonts": {
         "family": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
@@ -45,7 +49,11 @@
         "gmBg": "#ffe0b2",
         "gmBorder": "#b33a00",
         "error": "#8b0000",
-        "errorBg": "#ffccbc"
+        "errorBg": "#ffccbc",
+        "codeBg": "#fff3e0",
+        "codeText": "#bf360c",
+        "preBg": "#3e2723",
+        "preText": "#efebe9"
       },
       "fonts": {
         "family": "'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif"
@@ -73,7 +81,11 @@
         "gmBg": "#1f1520",
         "gmBorder": "#9c27b0",
         "error": "#ff6b6b",
-        "errorBg": "#4a1a1a"
+        "errorBg": "#4a1a1a",
+        "codeBg": "#4a148c",
+        "codeText": "#e1bee7",
+        "preBg": "#12001a",
+        "preText": "#ce93d8"
       },
       "fonts": {
         "family": "'Garamond', 'Georgia', serif"
@@ -101,7 +113,11 @@
         "gmBg": "#fffef7",
         "gmBorder": "#cc7000",
         "error": "#b71c1c",
-        "errorBg": "#ffebee"
+        "errorBg": "#ffebee",
+        "codeBg": "#fff8e1",
+        "codeText": "#8b6914",
+        "preBg": "#3e2723",
+        "preText": "#fff8e1"
       },
       "fonts": {
         "family": "'Palatino Linotype', 'Book Antiqua', Palatino, serif"
@@ -129,7 +145,11 @@
         "gmBg": "#1a1f2e",
         "gmBorder": "#9c27b0",
         "error": "#ff5252",
-        "errorBg": "#3d1a1a"
+        "errorBg": "#3d1a1a",
+        "codeBg": "#006064",
+        "codeText": "#e0f7fa",
+        "preBg": "#000a12",
+        "preText": "#80deea"
       },
       "fonts": {
         "family": "'Courier New', Courier, monospace"

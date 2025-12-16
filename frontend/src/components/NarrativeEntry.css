@@ -83,15 +83,16 @@
 }
 
 .narrative-entry__content blockquote {
-  border-left: 3px solid #ccc;
+  border-left: 3px solid var(--color-border);
   margin: 0.5em 0;
   padding-left: 1em;
-  color: #555;
+  color: var(--color-text-secondary);
   font-style: italic;
 }
 
 .narrative-entry__content code {
-  background-color: #e8e8e8;
+  background-color: var(--color-code-bg);
+  color: var(--color-code-text);
   padding: 0.1em 0.3em;
   border-radius: 3px;
   font-family: monospace;
@@ -99,8 +100,8 @@
 }
 
 .narrative-entry__content pre {
-  background-color: #2d2d2d;
-  color: #f8f8f2;
+  background-color: var(--color-pre-bg);
+  color: var(--color-pre-text);
   padding: 1em;
   border-radius: var(--radius-sm);
   overflow-x: auto;
