@@ -472,6 +472,7 @@ export class GameSession {
         // SDK provides tools by default; allowedTools filters to what we need
         allowedTools,
         cwd: this.projectDirectory,
+        settingSources: ["project", "user"],
         includePartialMessages: true, // Enable token streaming
         permissionMode: "acceptEdits", // Auto-accept file edits within sandbox
         model: "claude-sonnet-4-5", // Use latest Sonnet for quality
