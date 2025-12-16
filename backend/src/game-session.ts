@@ -512,7 +512,14 @@ export class GameSession {
       },
       state.diceLog,
       () => state.playerCharacter,
-      () => state.npcs ?? []
+      () => state.npcs ?? [],
+      (npc) => {
+        if (!state.npcs) {
+          state.npcs = [];
+        }
+        state.npcs.push(npc);
+      },
+      () => state.systemDefinition ?? null
     );
 
     // Query Claude Agent SDK with resume for conversation continuity
@@ -524,7 +531,7 @@ export class GameSession {
         // Provide set_theme and roll_dice tools via MCP server (keyed by server name)
         mcpServers: { "adventure-theme": themeMcpServer },
         // SDK provides tools by default; allowedTools filters to what we need
-        allowedTools: ["Read", "Write", "Glob", "Grep", "mcp__adventure-theme__set_theme", "mcp__adventure-theme__roll_dice", "mcp__adventure-theme__get_character", "mcp__adventure-theme__apply_damage"],
+        allowedTools: ["Read", "Write", "Glob", "Grep", "mcp__adventure-theme__set_theme", "mcp__adventure-theme__roll_dice", "mcp__adventure-theme__get_character", "mcp__adventure-theme__apply_damage", "mcp__adventure-theme__create_npc"],
         cwd: this.projectDirectory,
         includePartialMessages: true, // Enable token streaming
         permissionMode: "acceptEdits", // Auto-accept file edits within sandbox

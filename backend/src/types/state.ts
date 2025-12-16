@@ -13,6 +13,9 @@ import type {
   PlayerCharacter,
 } from "../../../shared/protocol";
 
+// Re-export types needed by other modules
+export type { SystemDefinition } from "../../../shared/protocol";
+
 /**
  * Adventure state stored in state.json
  * Contains current world state, scene info, and player character data

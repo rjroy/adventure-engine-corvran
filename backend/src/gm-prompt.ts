@@ -3,7 +3,7 @@
 
 import { tool, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
-import type { AdventureState } from "./types/state";
+import type { AdventureState, SystemDefinition } from "./types/state";
 import type { ThemeMood, DiceLogEntry, PlayerCharacter, NPC } from "./types/protocol";
 import { sanitizeStateValue } from "./validation";
 import { logger } from "./logger";
@@ -16,6 +16,10 @@ import {
   applyDamageToolDefinition,
   createApplyDamageTool,
 } from "./mcp-tools/apply-damage";
+import {
+  createNpcToolDefinition,
+  createCreateNpcTool,
+} from "./mcp-tools/create-npc";
 
 /**
  * Valid theme moods for the set_theme tool
@@ -163,16 +167,19 @@ export function createThemeMcpServer(
   onThemeChange: ThemeChangeHandler,
   diceLog: DiceLogEntry[],
   getPlayerCharacter: () => PlayerCharacter,
-  getNpcs: () => NPC[]
+  getNpcs: () => NPC[],
+  addNpc: (npc: NPC) => void,
+  getSystemDefinition: () => SystemDefinition | null
 ) {
   const setThemeTool = createSetThemeTool(onThemeChange);
   const rollDiceTool = createRollDiceTool(diceLog);
   const getCharacterTool = createGetCharacterTool(getPlayerCharacter);
   const applyDamageTool = createApplyDamageTool(getPlayerCharacter, getNpcs);
+  const createNpcTool = createCreateNpcTool(getNpcs, addNpc, getSystemDefinition);
   return createSdkMcpServer({
     name: "adventure-theme",
     version: "1.0.0",
-    tools: [setThemeTool, rollDiceTool, getCharacterTool, applyDamageTool],
+    tools: [setThemeTool, rollDiceTool, getCharacterTool, applyDamageTool, createNpcTool],
   });
 }
 
@@ -190,6 +197,11 @@ export const getCharacterTool = getCharacterToolDefinition;
  * Export the static apply_damage tool definition for external use
  */
 export const applyDamageTool = applyDamageToolDefinition;
+
+/**
+ * Export the static create_npc tool definition for external use
+ */
+export const createNpcTool = createNpcToolDefinition;
 
 /** Structural boundary for separating system instructions from game data */
 const BOUNDARY = "════════════════════════════════════════";
