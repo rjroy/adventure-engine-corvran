@@ -184,10 +184,10 @@ export class HistoryCompactor {
         };
       }
 
-      // Step 2: Generate summary
+      // Step 2: Generate summary (include previous summary for continuity)
       let summary: HistorySummary | null = null;
       try {
-        const summaryText = await this.generateSummary(entriesToArchive);
+        const summaryText = await this.generateSummary(entriesToArchive, history.summary?.text);
         const dateRange = this.getDateRange(entriesToArchive);
 
         summary = {
@@ -200,7 +200,8 @@ export class HistoryCompactor {
         this.log.info({ entriesArchived: archiveCount }, "Summary generated successfully");
       } catch (error) {
         // Summarization failure is non-fatal - we still have the archive
-        this.log.warn({ error }, "Failed to generate summary, proceeding without");
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.log.warn({ error: errorMessage }, "Failed to generate summary, proceeding without");
         summary = null;
       }
 
@@ -248,17 +249,29 @@ export class HistoryCompactor {
 
   /**
    * Generate a summary of the archived entries using Claude.
+   * If a previous summary exists, it's included for continuity.
    *
    * @param entries - Entries to summarize
+   * @param previousSummary - Optional previous summary to build upon
    * @returns Summary text
    */
-  private async generateSummary(entries: NarrativeEntry[]): Promise<string> {
+  private async generateSummary(entries: NarrativeEntry[], previousSummary?: string): Promise<string> {
     const historyText = this.formatEntriesForSummary(entries);
-    const prompt = SUMMARIZATION_PROMPT + historyText;
+
+    // Build prompt with previous summary if available
+    let prompt = SUMMARIZATION_PROMPT;
+    if (previousSummary) {
+      prompt += `PREVIOUS SUMMARY (incorporate and build upon this):
+${previousSummary}
+
+NEW EVENTS TO INCORPORATE:
+`;
+    }
+    prompt += historyText;
 
     if (this.useMockSdk) {
       // Mock mode: return a simple summary
-      return this.mockSummarize(entries);
+      return this.mockSummarize(entries, previousSummary);
     }
 
     // Initialize SDK if needed
@@ -272,7 +285,12 @@ export class HistoryCompactor {
     const sdkQuery = query({
       prompt,
       options: {
-        systemPrompt: "You are a narrative summarizer for interactive adventures.",
+        systemPrompt: `You are a narrative summarizer. Your ONLY task is to write a summary.
+
+IMPORTANT: Do NOT use any tools. Do NOT mention tools. Do NOT say you will use tools.
+Simply write the summary directly as your response.
+
+You are a narrative summarizer for interactive adventures.`,
         model: this.config.model,
         maxTurns: 1,
         allowedTools: [], // No tools needed for summarization
@@ -324,15 +342,19 @@ export class HistoryCompactor {
   /**
    * Mock summarization for testing without API calls.
    */
-  private mockSummarize(entries: NarrativeEntry[]): string {
+  private mockSummarize(entries: NarrativeEntry[], previousSummary?: string): string {
     const playerInputs = entries.filter(e => e.type === "player_input");
     const gmResponses = entries.filter(e => e.type === "gm_response");
+
+    const previousContext = previousSummary
+      ? `\n\n[Previous summary incorporated: ${previousSummary.slice(0, 50)}...]`
+      : "";
 
     return `Previously in your adventure...
 
 You embarked on a journey through this interactive narrative. Over the course of ${playerInputs.length} actions and ${gmResponses.length} Game Master responses, your story unfolded.
 
-[This is a mock summary generated for testing. In production, Claude will generate a detailed narrative recap of your adventure's key events, character developments, and world state changes.]
+[This is a mock summary generated for testing. In production, Claude will generate a detailed narrative recap of your adventure's key events, character developments, and world state changes.]${previousContext}
 
 The adventure continues from where you left off.`;
   }

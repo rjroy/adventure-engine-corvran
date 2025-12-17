@@ -39,7 +39,7 @@ export interface EnvConfig {
   compactionCharThreshold: number;
   /** Number of entries to retain after compaction (default 20) */
   retainedEntryCount: number;
-  /** Model to use for summarization (default "claude-haiku-3") */
+  /** Model to use for summarization (default "claude-3-5-haiku-latest") */
   compactionSummaryModel: string;
 }
 
@@ -285,7 +285,7 @@ export function validateEnvironment(rawEnv: RawEnv = process.env): ValidationRes
     // History compaction
     compactionCharThreshold,
     retainedEntryCount,
-    compactionSummaryModel: rawEnv.COMPACTION_SUMMARY_MODEL || "claude-haiku-3",
+    compactionSummaryModel: rawEnv.COMPACTION_SUMMARY_MODEL || "claude-3-5-haiku-latest",
   };
 
   return { errors, warnings, config };
