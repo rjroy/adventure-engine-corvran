@@ -674,7 +674,7 @@ app.get("*", serveStatic({ root: STATIC_ROOT, path: "index.html" }));
 const HEARTBEAT_INTERVAL = 30_000;
 const HEARTBEAT_TIMEOUT = 60_000;
 
-setInterval(() => {
+const heartbeatInterval = setInterval(() => {
   const now = Date.now();
   for (const [connId, conn] of connections.entries()) {
     if (now - conn.lastPing > HEARTBEAT_TIMEOUT) {
@@ -698,7 +698,33 @@ function getConnectionCount(): number {
   return connections.size;
 }
 
-// Export for testing
+/**
+ * Drain all WebSocket connections during graceful shutdown.
+ * Sends shutdown message to clients before closing.
+ * @param reason Close reason string
+ */
+function drainConnections(reason: string): void {
+  for (const [connId, conn] of connections.entries()) {
+    logger.debug({ connId, adventureId: conn.adventureId }, "Draining connection");
+    try {
+      const shutdownMsg: ServerMessage = {
+        type: "error",
+        payload: {
+          code: "SERVER_SHUTDOWN",
+          message: "Server is shutting down. Please reconnect.",
+          retryable: true,
+        },
+      };
+      conn.ws.send(JSON.stringify(shutdownMsg));
+      conn.ws.close(1012, reason); // 1012 = Service Restart
+    } catch {
+      // Ignore errors during shutdown - connection may already be closed
+    }
+    connections.delete(connId);
+  }
+}
+
+// Export for testing and shutdown
 export {
   app,
   connections,
@@ -706,4 +732,7 @@ export {
   ALLOWED_ORIGINS,
   MAX_CONNECTIONS,
   getConnectionCount,
+  heartbeatInterval,
+  imageGeneratorService,
+  drainConnections,
 };

@@ -15,6 +15,7 @@ export const ErrorCodeSchema = z.enum([
   "GM_ERROR",
   "STATE_CORRUPTED",
   "PROCESSING_TIMEOUT",
+  "SERVER_SHUTDOWN",
 ]);
 
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
