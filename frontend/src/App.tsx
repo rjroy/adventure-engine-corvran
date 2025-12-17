@@ -28,7 +28,7 @@ function generateUUID(): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
-interface AdventureSession {
+export interface AdventureSession {
   adventureId: string;
   sessionToken: string;
 }
@@ -39,13 +39,15 @@ interface StreamingMessage {
   content: string;
 }
 
-function GameView({
-  session,
-  onQuit,
-}: {
+export interface GameViewProps {
   session: AdventureSession;
   onQuit: () => void;
-}) {
+}
+
+export function GameView({
+  session,
+  onQuit,
+}: GameViewProps) {
   const [narrativeHistory, setNarrativeHistory] = useState<NarrativeEntry[]>(
     []
   );
