@@ -297,4 +297,47 @@ If you have proficiency in a skill, add your Proficiency Bonus to ability checks
 
 ---
 
+## Experience and Advancement
+
+Characters gain Experience Points (XP) by overcoming challenges. When your XP total reaches a threshold, you gain a level.
+
+### Character Advancement Table
+
+| Level | XP Required | Proficiency Bonus |
+|-------|-------------|-------------------|
+| 1     | 0           | +2                |
+| 2     | 300         | +2                |
+| 3     | 900         | +2                |
+| 4     | 2,700       | +2                |
+| 5     | 6,500       | +3                |
+| 6     | 14,000      | +3                |
+| 7     | 23,000      | +3                |
+| 8     | 34,000      | +3                |
+| 9     | 48,000      | +4                |
+| 10    | 64,000      | +4                |
+| 11    | 85,000      | +4                |
+| 12    | 100,000     | +4                |
+| 13    | 120,000     | +5                |
+| 14    | 140,000     | +5                |
+| 15    | 165,000     | +5                |
+| 16    | 195,000     | +5                |
+| 17    | 225,000     | +6                |
+| 18    | 265,000     | +6                |
+| 19    | 305,000     | +6                |
+| 20    | 355,000     | +6                |
+
+### Gaining a Level
+
+When you reach enough XP to level up:
+
+1. **Roll Hit Points**: Roll your class's Hit Die + CON modifier (minimum 1), add to HP maximum. Alternatively, use the fixed value: (die average + 1) + CON modifier.
+
+2. **Record New Features**: Check your class table for features gained at this level. Make any choices offered (subclass, spells known, fighting style, etc.).
+
+3. **Update Proficiency Bonus**: If your Proficiency Bonus increased (see table above), update all numbers that include it: attack bonuses, saving throws, skill checks, spell save DC.
+
+4. **Ability Score Improvements**: At certain levels (typically 4, 8, 12, 16, 19), you may increase ability scores or take a feat. Update modifiers and derived values accordingly.
+
+---
+
 *This document is derived from the SRD 5.2.1 and is licensed under CC-BY-4.0.*
