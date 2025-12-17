@@ -148,7 +148,7 @@ export function mapProcessingTimeoutError(error: ProcessingTimeoutError): ErrorD
     code: "PROCESSING_TIMEOUT",
     message: error.message,
     retryable: true,
-    userMessage: "The game master is taking too long. Please try again.",
+    userMessage: "The game master is taking longer than expected. Your response may still arrive shortly.",
     technicalDetails: `Input processing timed out after ${error.timeoutMs}ms`,
     originalError: error,
   };
