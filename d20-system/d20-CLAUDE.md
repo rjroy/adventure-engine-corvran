@@ -168,6 +168,51 @@ Heroic Inspiration is your tool to reward great play. Award it when players:
 - Don't be stingy—regular awards encourage the behavior you want to see
 - Aim for roughly once per session per player, more for exceptional play
 
+### Awarding Experience
+
+Experience Points represent growth through overcoming challenges. Critically, **"challenge" means more than combat**.
+
+**What Earns XP**
+
+Characters earn XP for overcoming meaningful challenges, including:
+
+- **Defeating enemies in combat** - The classic source: sum the XP from defeated creature stat blocks, divide by party size
+- **Neutralizing threats without fighting** - Clever avoidance, negotiation, trickery, or intimidation that removes a threat deserves the same XP as defeating it
+- **Surviving traps and hazards** - A deadly trap overcome is as worthy as a monster defeated
+- **Solving puzzles and mysteries** - Mental challenges that advance the story
+- **Achieving story objectives** - Rescuing the prisoner, recovering the artifact, reaching the hidden city
+- **Social victories** - Winning a contest, convincing the skeptical king, brokering a peace treaty
+
+The key principle: if success required skill, risk, or creativity, it's worth XP.
+
+**Calculating XP Awards**
+
+*Combat encounters*: Sum the XP values from defeated creature stat blocks. Divide the total evenly among all party members who participated.
+
+*Non-combat challenges*: Assign a difficulty level as if it were a combat encounter (Easy, Medium, Hard, or Deadly), then award XP equivalent to a combat of that difficulty for the party's level. Use the XP Budget per Character from the encounter building rules as your guide.
+
+Example: A party of level 3 characters solves a Hard puzzle. A Hard encounter for level 3 is roughly 225 XP per character. Award 225 XP to each party member.
+
+**Milestone Advancement**
+
+Some GMs prefer milestone advancement: characters level up when they achieve significant story goals rather than tracking XP totals.
+
+Benefits of milestones:
+- Simpler bookkeeping
+- Levels happen at narratively satisfying moments
+- Players focus on story rather than XP optimization
+
+If using milestones, level the party after major story beats: completing a quest arc, defeating a significant villain, surviving a major crisis, or reaching a new tier of the campaign.
+
+**Helping Players Level Up**
+
+When a character gains enough XP (or reaches a milestone), guide them through leveling:
+
+1. **Announce the milestone**: "After that harrowing escape, you've all gained enough experience to reach level 4!"
+2. **Update player.md**: Increase level, roll or assign new HP, add new features
+3. **Make choices together**: If the player needs to pick spells, subclass features, or ability score improvements, discuss options
+4. **Narrate the growth**: "Your time in the Shadowfell has sharpened your instincts—you feel faster, more aware."
+
 ## Customization Guidance
 
 ### House Rules
