@@ -380,6 +380,151 @@ When a creature you can see leaves your reach, you can use your Reaction to make
 
 ---
 
+## Damage and Healing
+
+Injury and death are frequent threats in combat and dangerous situations.
+
+### Hit Points
+
+Hit Points (HP) represent durability and the will to live. Your Hit Point maximum is the number of Hit Points you have when uninjured. Current Hit Points range from 0 to your maximum.
+
+When you take damage, subtract it from your current Hit Points. Hit Point loss has no effect on your capabilities until you reach 0 Hit Points.
+
+**Bloodied**: If you have half your Hit Points or fewer, you're Bloodied. This has no effect on its own but may trigger other game effects.
+
+### Damage Rolls
+
+When you hit with an attack, roll the weapon's damage dice and add your ability modifier (the same modifier used for the attack roll).
+
+**Formula**: Weapon dice + ability modifier
+
+Spells specify their own damage dice and whether to add modifiers. Minimum damage is 0 (never negative).
+
+### Critical Hits
+
+When you score a Critical Hit (natural 20 on attack roll), roll the attack's damage dice twice, add them together, then add modifiers normally.
+
+**Example**: Critical Hit with a Longsword (1d8 + STR) becomes 2d8 + STR.
+
+If the attack includes extra damage dice (such as Sneak Attack), roll those dice twice as well.
+
+### Damage Types
+
+Each instance of damage has a type. Common damage types include:
+
+| Physical | Elemental | Other |
+|----------|-----------|-------|
+| Bludgeoning | Acid | Force |
+| Piercing | Cold | Necrotic |
+| Slashing | Fire | Poison |
+| | Lightning | Psychic |
+| | Thunder | Radiant |
+
+Damage types have no inherent rules but interact with Resistance, Vulnerability, and Immunity.
+
+### Resistance and Vulnerability
+
+- **Resistance**: Damage of that type is halved (round down)
+- **Vulnerability**: Damage of that type is doubled
+
+**No Stacking**: Multiple instances of the same Resistance or Vulnerability count as one.
+
+**Order of Application**:
+1. Apply bonuses, penalties, and other multipliers first
+2. Apply Resistance second (halve)
+3. Apply Vulnerability third (double)
+
+### Immunity
+
+Immunity to a damage type means you take no damage of that type. Immunity to a condition means you aren't affected by it.
+
+### Healing
+
+Hit Points can be restored by magic (spells, potions) or resting.
+
+When you receive healing, add the restored Hit Points to your current total. You can't exceed your Hit Point maximum—excess healing is lost.
+
+**Example**: At 14 HP with 20 HP maximum, receiving 8 HP of healing restores only 6 HP (to reach the maximum of 20).
+
+**Knocking Out**: When you reduce a creature to 0 HP with a melee attack, you can instead reduce it to 1 HP and give it the Unconscious condition.
+
+### Dropping to 0 Hit Points
+
+When you drop to 0 HP, you either die outright or fall Unconscious.
+
+#### Instant Death
+
+A creature dies instantly if:
+
+- **Monster Death**: Monsters die at 0 HP (GM may override for specific monsters)
+- **HP Maximum Reduced to 0**: Some effects drain life energy, reducing maximum HP
+- **Massive Damage**: When damage reduces you to 0 HP and the remaining damage equals or exceeds your HP maximum
+
+**Massive Damage Example**: At 6 HP with 12 HP maximum, taking 18 damage drops you to 0 HP with 12 damage remaining. Since 12 equals your maximum, you die instantly.
+
+#### Falling Unconscious
+
+If you reach 0 HP and don't die instantly, you gain the Unconscious condition and must make Death Saving Throws.
+
+#### Death Saving Throws
+
+At the start of each turn while at 0 HP, roll 1d20 (no modifiers):
+
+| Roll | Result |
+|------|--------|
+| 1 | Two failures |
+| 2-9 | One failure |
+| 10-19 | One success |
+| 20 | Regain 1 HP and consciousness |
+
+**Three Successes**: You become Stable (see below)
+**Three Failures**: You die
+
+Successes and failures don't need to be consecutive. Both reset when you regain any HP or become Stable.
+
+**Damage at 0 HP**: Taking damage while at 0 HP causes one Death Saving Throw failure (two failures if from a Critical Hit). If the damage equals or exceeds your HP maximum, you die.
+
+#### Stabilizing a Character
+
+A creature can use the Help action to stabilize someone at 0 HP by making a DC 10 Wisdom (Medicine) check.
+
+A Stable creature:
+- Doesn't make Death Saving Throws
+- Remains Unconscious
+- Regains 1 HP after 1d4 hours if not healed
+
+Taking damage ends the Stable condition and restarts Death Saving Throws.
+
+### Temporary Hit Points
+
+Some effects grant Temporary Hit Points, which act as a buffer against damage.
+
+**Lose Temporary HP First**: When you take damage, Temporary HP are lost before actual HP.
+
+**Example**: With 5 Temporary HP, taking 7 damage loses all 5 Temporary HP and 2 actual HP.
+
+**Duration**: Until depleted or you finish a Long Rest.
+
+**They Don't Stack**: If you gain Temporary HP while you already have some, choose to keep either the old or new amount (don't add them).
+
+**Not Real HP**: Temporary HP can't be healed, don't count as healing, and don't restore you to consciousness at 0 HP.
+
+### Resting
+
+Rest allows creatures to recover.
+
+**Short Rest** (1 hour):
+- Can spend Hit Dice to regain HP
+- Some abilities recharge on Short Rest
+
+**Long Rest** (8 hours, at least 6 hours sleeping):
+- Regain all lost HP
+- Regain spent Hit Dice (up to half your total)
+- Some abilities recharge on Long Rest
+- Can't benefit from more than one Long Rest per 24 hours
+
+---
+
 ## Quick Reference
 
 ### Core Formula
