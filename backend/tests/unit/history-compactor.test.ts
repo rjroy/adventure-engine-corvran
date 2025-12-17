@@ -223,4 +223,28 @@ describe("HistoryCompactor", () => {
       expect(result.archivePath).toMatch(/history\/\d{4}-\d{2}-\d{2}-\d{6}\.md$/);
     });
   });
+
+  describe("summary continuity", () => {
+    test("incorporates previous summary in new summary", async () => {
+      // First compaction - no previous summary
+      const history1 = createTestHistory(30);
+      const result1 = await compactor.compact(history1);
+
+      expect(result1.success).toBe(true);
+      expect(result1.summary?.text).toBeDefined();
+
+      // Second compaction - with previous summary
+      const history2 = {
+        entries: createTestHistory(30).entries,
+        summary: result1.summary!, // Use the summary from first compaction
+      };
+
+      const result2 = await compactor.compact(history2);
+
+      expect(result2.success).toBe(true);
+      expect(result2.summary?.text).toBeDefined();
+      // Mock summary should include reference to previous summary
+      expect(result2.summary?.text).toContain("Previous summary incorporated");
+    });
+  });
 });
