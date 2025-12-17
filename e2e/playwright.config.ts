@@ -50,14 +50,14 @@ export default defineConfig({
   webServer: [
     {
       // Start backend with mock mode
-      command: `cd ../backend && MOCK_SDK=true bun src/index.ts`,
+      command: `cd ../backend && MOCK_SDK=true bun run start`,
       url: "http://localhost:3000",
       reuseExistingServer: !process.env.CI,
       timeout: 30_000,
     },
     {
       // Start frontend dev server
-      command: "cd ../frontend && npm run dev -- --port 5173",
+      command: "cd ../frontend && bun run dev -- --port 5173",
       url: "http://localhost:5173",
       reuseExistingServer: !process.env.CI,
       timeout: 30_000,
