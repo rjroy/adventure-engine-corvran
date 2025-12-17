@@ -14,11 +14,12 @@
 import { Glob } from "bun";
 import { existsSync } from "fs";
 import type { ThemeMood, Genre, Region } from "../../../shared/protocol";
+import { DEFAULT_PATHS } from "../paths";
 
 /**
- * Default backgrounds directory (relative to backend root)
+ * Default backgrounds directory (absolute path computed at startup)
  */
-const DEFAULT_BACKGROUNDS_DIR = "./assets/backgrounds";
+const DEFAULT_BACKGROUNDS_DIR = DEFAULT_PATHS.backgrounds;
 
 /**
  * Service for finding background images by mood/genre/region using directory glob patterns.

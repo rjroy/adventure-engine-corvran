@@ -244,8 +244,16 @@ describe("validateEnvironment", () => {
     expect(result.config.logLevel).toBe("info");
     expect(result.config.logFile).toBe(true);
     expect(result.config.mockSdk).toBe(false);
-    expect(result.config.adventuresDir).toBe("./adventures");
-    expect(result.config.staticRoot).toBe("../frontend/dist");
+    // Default paths are now absolute (computed from backend root)
+    expect(result.config.adventuresDir).toMatch(/\/adventures$/);
+    expect(result.config.staticRoot).toMatch(/\/frontend\/dist$/);
+    expect(result.config.logsDir).toMatch(/\/logs$/);
+    expect(result.config.backgroundsDir).toMatch(/\/assets\/backgrounds$/);
+    // All default paths should be absolute (start with /)
+    expect(result.config.adventuresDir).toMatch(/^\//);
+    expect(result.config.staticRoot).toMatch(/^\//);
+    expect(result.config.logsDir).toMatch(/^\//);
+    expect(result.config.backgroundsDir).toMatch(/^\//);
   });
 
   test("warns when REPLICATE_API_TOKEN is missing", () => {
@@ -292,6 +300,8 @@ describe("validateEnvironment", () => {
       LOG_FILE: "false",
       NODE_ENV: "production",
       STATIC_ROOT: "/var/www/static",
+      LOGS_DIR: "/var/log/adventure",
+      BACKGROUNDS_DIR: "/var/data/backgrounds",
       MOCK_SDK: "true",
       REPLICATE_API_TOKEN: "r8_abc123",
     });
@@ -309,6 +319,8 @@ describe("validateEnvironment", () => {
       logFile: false,
       nodeEnv: "production",
       staticRoot: "/var/www/static",
+      logsDir: "/var/log/adventure",
+      backgroundsDir: "/var/data/backgrounds",
       mockSdk: true,
       replicateApiToken: "r8_abc123",
       compactionCharThreshold: 100000,
@@ -324,7 +336,8 @@ describe("validateEnvironment", () => {
 
     expect(result.config.port).toBe(3000);
     expect(result.config.host).toBe("localhost");
-    expect(result.config.adventuresDir).toBe("./adventures");
+    // Default paths are now absolute
+    expect(result.config.adventuresDir).toMatch(/\/adventures$/);
     expect(result.config.allowedOrigins).toEqual([
       "http://localhost:5173",
       "http://localhost:3000",
@@ -334,7 +347,9 @@ describe("validateEnvironment", () => {
     expect(result.config.logLevel).toBe("info");
     expect(result.config.logFile).toBe(true);
     expect(result.config.nodeEnv).toBeUndefined();
-    expect(result.config.staticRoot).toBe("../frontend/dist");
+    expect(result.config.staticRoot).toMatch(/\/frontend\/dist$/);
+    expect(result.config.logsDir).toMatch(/\/logs$/);
+    expect(result.config.backgroundsDir).toMatch(/\/assets\/backgrounds$/);
     expect(result.config.mockSdk).toBe(false);
   });
 

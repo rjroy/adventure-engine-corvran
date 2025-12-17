@@ -25,8 +25,8 @@ export class AdventureStateManager {
   private history: NarrativeHistory = { entries: [] };
 
   constructor(adventuresDir?: string) {
-    // Use environment variable for consistency between server and tests
-    this.adventuresDir = adventuresDir ?? process.env.ADVENTURES_DIR ?? "./adventures";
+    // Use validated env config for default path (absolute, computed at startup)
+    this.adventuresDir = adventuresDir ?? env.adventuresDir;
   }
 
   /**

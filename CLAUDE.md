@@ -100,15 +100,20 @@ Catalog-first strategy: `ImageCatalogService` searches `/assets/backgrounds` bef
 
 **Backend**:
 - `PORT` (default 3000)
-- `ADVENTURES_DIR` (default ./adventures)
+- `ADVENTURES_DIR` (default `{backend}/adventures`) - Adventure save data directory
+- `STATIC_ROOT` (default `{project}/frontend/dist`) - Frontend static files
+- `LOGS_DIR` (default `{backend}/logs`) - Log file output directory
+- `BACKGROUNDS_DIR` (default `{backend}/assets/backgrounds`) - Background images directory
 - `REPLICATE_API_TOKEN` (required for image generation)
 - `MOCK_SDK` (set "true" for testing without Agent SDK)
 - `ALLOWED_ORIGINS` (comma-separated list, defaults to `http://localhost:5173,http://localhost:3000`)
 - `LOG_LEVEL` (default "info") - Set log verbosity: "debug", "info", "warn", "error"
-- `LOG_FILE` (default enabled) - Set to "false" to disable rotating file logs in `backend/logs/`
+- `LOG_FILE` (default enabled) - Set to "false" to disable rotating file logs
 - `NODE_ENV` (default unset) - Set to "production" for JSON log output, otherwise uses pretty format
 - `MAX_CONNECTIONS` (default 100) - Maximum concurrent WebSocket connections
 - `INPUT_TIMEOUT` (default 60000) - Timeout in milliseconds for input processing (minimum 1000ms)
+
+Note: All path defaults are computed as absolute paths at startup, so the server works correctly regardless of the current working directory.
 
 ## Critical Dependencies
 

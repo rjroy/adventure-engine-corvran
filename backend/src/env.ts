@@ -17,6 +17,7 @@
  */
 
 import { logger } from "./logger";
+import { DEFAULT_PATHS } from "./paths";
 
 /**
  * Validated environment configuration
@@ -32,6 +33,8 @@ export interface EnvConfig {
   logFile: boolean;
   nodeEnv: string | undefined;
   staticRoot: string;
+  logsDir: string;
+  backgroundsDir: string;
   mockSdk: boolean;
   replicateApiToken: string | undefined;
   // History compaction settings
@@ -164,6 +167,8 @@ export interface RawEnv {
   LOG_FILE?: string;
   NODE_ENV?: string;
   STATIC_ROOT?: string;
+  LOGS_DIR?: string;
+  BACKGROUNDS_DIR?: string;
   MOCK_SDK?: string;
   REPLICATE_API_TOKEN?: string;
   // History compaction
@@ -272,14 +277,16 @@ export function validateEnvironment(rawEnv: RawEnv = process.env): ValidationRes
   const config: EnvConfig = {
     port,
     host: rawEnv.HOST || "localhost",
-    adventuresDir: rawEnv.ADVENTURES_DIR || "./adventures",
+    adventuresDir: rawEnv.ADVENTURES_DIR || DEFAULT_PATHS.adventures,
     allowedOrigins: parseAllowedOrigins(rawEnv.ALLOWED_ORIGINS),
     maxConnections,
     inputTimeout,
     logLevel,
     logFile: rawEnv.LOG_FILE !== "false",
     nodeEnv: rawEnv.NODE_ENV,
-    staticRoot: rawEnv.STATIC_ROOT || "../frontend/dist",
+    staticRoot: rawEnv.STATIC_ROOT || DEFAULT_PATHS.staticRoot,
+    logsDir: rawEnv.LOGS_DIR || DEFAULT_PATHS.logs,
+    backgroundsDir: rawEnv.BACKGROUNDS_DIR || DEFAULT_PATHS.backgrounds,
     mockSdk: parseBoolean(rawEnv.MOCK_SDK, false),
     replicateApiToken,
     // History compaction

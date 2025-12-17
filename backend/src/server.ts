@@ -3,6 +3,7 @@
 
 import { Hono } from "hono";
 import { logger, createRequestLogger } from "./logger";
+import { env } from "./env";
 import { createBunWebSocket } from "hono/bun";
 import { serveStatic } from "hono/bun";
 import type { WSContext } from "hono/ws";
@@ -51,8 +52,8 @@ const { upgradeWebSocket, websocket } = createBunWebSocket();
 // Initialize Hono app
 const app = new Hono();
 
-// Adventures directory - configurable via environment for testing
-const ADVENTURES_DIR = process.env.ADVENTURES_DIR || "./adventures";
+// Adventures directory - uses validated env config
+const ADVENTURES_DIR = env.adventuresDir;
 
 // Allowed origins for WebSocket CSRF protection
 // Configurable via comma-separated ALLOWED_ORIGINS env var
@@ -655,13 +656,12 @@ async function validateAndLoadAdventure(
   logger.debug({ adventureId, mood: theme.mood }, "Sent stored theme");
 }
 
-// Serve static frontend files from ../frontend/dist
-// This serves the built Vite React app
-const STATIC_ROOT = process.env.STATIC_ROOT || "../frontend/dist";
+// Serve static frontend files - uses validated env config
+const STATIC_ROOT = env.staticRoot;
 
-// Serve background images from ./assets/backgrounds at /backgrounds/*
+// Serve background images at /backgrounds/*
 // This must come before SPA fallback to avoid conflicts
-app.use("/backgrounds/*", serveStatic({ root: "./assets/backgrounds", rewriteRequestPath: (path) => path.replace(/^\/backgrounds/, "") }));
+app.use("/backgrounds/*", serveStatic({ root: env.backgroundsDir, rewriteRequestPath: (path) => path.replace(/^\/backgrounds/, "") }));
 
 // Serve static assets (JS, CSS, images, etc.)
 app.use("/assets/*", serveStatic({ root: STATIC_ROOT }));
