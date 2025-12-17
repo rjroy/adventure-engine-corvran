@@ -11,10 +11,14 @@
  */
 
 import pino from "pino";
+import { join } from "node:path";
+import { DEFAULT_PATHS } from "./paths";
 
 const level = process.env.LOG_LEVEL || "info";
 const isProduction = process.env.NODE_ENV === "production";
 const enableFileLogging = process.env.LOG_FILE !== "false";
+// Compute logs directory before env.ts is loaded (logger runs first due to import order)
+const logsDir = process.env.LOGS_DIR || DEFAULT_PATHS.logs;
 
 /**
  * Build pino transport configuration.
@@ -33,11 +37,11 @@ function buildTransport(): pino.TransportSingleOptions | pino.TransportMultiOpti
           options: { destination: 1 }, // stdout
           level,
         },
-        // Rotating file logs in ./logs/
+        // Rotating file logs
         {
           target: "pino-roll",
           options: {
-            file: "./logs/app",
+            file: join(logsDir, "app"),
             frequency: "daily",
             size: "10m",
             mkdir: true,

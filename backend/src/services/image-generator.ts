@@ -21,13 +21,14 @@ import { resolve } from "path";
 import { existsSync, mkdirSync } from "fs";
 import type { ThemeMood, Genre, Region } from "../../../shared/protocol";
 import { logger } from "../logger";
+import { DEFAULT_PATHS } from "../paths";
 
 /**
  * Default configuration for image generation
  */
 const DEFAULT_CONFIG = {
   /** Directory where generated images are saved (must match server static route) */
-  outputDirectory: "./assets/backgrounds",
+  outputDirectory: DEFAULT_PATHS.backgrounds,
   /** Timeout for image generation in milliseconds (30 seconds) */
   timeout: 30000,
   /** Maximum number of generations allowed per session */
