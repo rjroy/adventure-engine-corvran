@@ -143,6 +143,31 @@ For extended challenges (chases, negotiations, heists):
 - Let different characters contribute different skills
 - Each roll should advance the narrative
 
+### Awarding Heroic Inspiration
+
+Heroic Inspiration is your tool to reward great play. Award it when players:
+
+**Act Heroically**
+- Take significant risks to help others
+- Sacrifice personal advantage for the group
+- Face danger despite fear or consequence
+
+**Stay In Character**
+- Make decisions true to their character's personality, even when suboptimal
+- Roleplay their flaws, bonds, or ideals meaningfully
+- React authentically to story moments
+
+**Enhance the Game**
+- Come up with creative solutions you didn't anticipate
+- Make everyone laugh or create memorable moments
+- Drive the narrative forward in interesting ways
+
+**Timing Tips**
+- Award immediately after the inspiring moment (don't wait)
+- If the player already has Heroic Inspiration, remind them they can gift it to another player
+- Don't be stingy—regular awards encourage the behavior you want to see
+- Aim for roughly once per session per player, more for exceptional play
+
 ## Customization Guidance
 
 ### House Rules

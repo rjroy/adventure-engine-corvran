@@ -158,6 +158,29 @@ When you have Advantage or Disadvantage and can reroll (such as with Heroic Insp
 
 ---
 
+## Heroic Inspiration
+
+Heroic Inspiration is a reward the GM can give to recognize heroic, in-character, or entertaining play.
+
+### Using Heroic Inspiration
+
+If you have Heroic Inspiration, you can expend it to reroll any die immediately after rolling it. You must use the new roll.
+
+### Only One at a Time
+
+You can never have more than one instance of Heroic Inspiration. If something would give you Heroic Inspiration and you already have it, you can give it to another player character in your group who lacks it.
+
+### Gaining Heroic Inspiration
+
+Your GM can give you Heroic Inspiration for a variety of reasons:
+- Doing something particularly heroic
+- Acting true to your character
+- Making the game more entertaining for everyone
+
+Some character features grant Heroic Inspiration automatically. For example, Human characters start each day with Heroic Inspiration.
+
+---
+
 ## Proficiency
 
 Proficiency reflects training and experience. All creatures have a Proficiency Bonus based on their level or Challenge Rating.
