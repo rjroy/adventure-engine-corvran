@@ -277,6 +277,109 @@ If you have proficiency in a skill, add your Proficiency Bonus to ability checks
 
 ---
 
+## Combat
+
+Combat organizes action into rounds and turns. A round represents about 6 seconds in the game world.
+
+### Combat Step by Step
+
+1. **Establish Positions**: The GM determines where all characters and creatures are located.
+2. **Roll Initiative**: Everyone rolls 1d20 + DEX modifier. Higher results act first.
+3. **Take Turns**: Each participant acts in Initiative order. When everyone has acted, the round ends.
+4. **Repeat**: Continue until one side is defeated, surrenders, or flees.
+
+### Initiative
+
+- Roll 1d20 + DEX modifier when combat starts
+- **Surprise**: If unaware that combat is starting, roll Initiative with Disadvantage
+- **Ties**: Players decide order among themselves; GM decides for monsters
+
+### Your Turn
+
+On your turn, you can:
+- **Move** up to your Speed
+- **Take one Action** (see Actions table)
+- **Take one Bonus Action** (only if a feature grants one)
+- **Interact** with one object for free (open door, draw weapon)
+
+You can split movement before and after your action.
+
+### Actions
+
+| Action    | Effect |
+|-----------|--------|
+| Attack    | Make one weapon attack or Unarmed Strike |
+| Dash      | Gain extra movement equal to your Speed |
+| Disengage | Your movement doesn't provoke Opportunity Attacks this turn |
+| Dodge     | Attacks against you have Disadvantage; DEX saves have Advantage (until your next turn) |
+| Help      | Give an ally Advantage on their next ability check or attack roll |
+| Hide      | Make a Dexterity (Stealth) check to become hidden |
+| Influence | Make a Charisma check to alter a creature's attitude |
+| Magic     | Cast a spell or use a magic item |
+| Ready     | Prepare an action to trigger on a specific condition (uses Reaction) |
+| Search    | Make a Wisdom (Perception, Insight, or Survival) check |
+| Study     | Make an Intelligence (Arcana, History, Investigation, Nature, or Religion) check |
+| Utilize   | Use a nonmagical object |
+
+### Reactions
+
+You get one Reaction per round, which resets at the start of your turn. The most common Reaction is an Opportunity Attack.
+
+### Movement and Position
+
+- **Difficult Terrain**: Costs 1 extra foot per foot moved (rubble, undergrowth, stairs)
+- **Moving Through Creatures**: You can move through allies, Incapacitated creatures, Tiny creatures, or creatures two sizes larger/smaller than you. You can't end your move in an occupied space. Non-ally spaces count as Difficult Terrain
+- **Dropping Prone**: Free; standing up costs half your Speed
+
+#### Creature Size and Space
+
+| Size       | Space         |
+|------------|---------------|
+| Tiny       | 2½ × 2½ ft    |
+| Small      | 5 × 5 ft      |
+| Medium     | 5 × 5 ft      |
+| Large      | 10 × 10 ft    |
+| Huge       | 15 × 15 ft    |
+| Gargantuan | 20 × 20 ft    |
+
+### Making Attacks
+
+1. **Choose a Target** within your attack's range
+2. **Determine Modifiers**: Check for cover, Advantage/Disadvantage
+3. **Roll Attack**: d20 + ability modifier + Proficiency Bonus vs target's AC
+4. **Roll Damage** on hit: Weapon dice + ability modifier
+
+### Cover
+
+| Cover           | Benefit |
+|-----------------|---------|
+| Half            | +2 AC, +2 DEX saves (behind creature or object covering half) |
+| Three-Quarters  | +5 AC, +5 DEX saves (behind object covering ¾) |
+| Total           | Can't be targeted directly (fully concealed) |
+
+### Ranged Attacks
+
+- **Normal Range**: No penalty
+- **Long Range**: Disadvantage on attack roll
+- **Beyond Long Range**: Can't attack
+- **Close Combat**: Disadvantage when enemy is within 5 feet (unless Incapacitated)
+
+### Melee Attacks
+
+- **Reach**: Most creatures have 5-foot reach; some weapons or creatures have longer reach
+- **Unarmed Strike**: 1 + STR modifier bludgeoning damage
+
+### Opportunity Attacks
+
+When a creature you can see leaves your reach, you can use your Reaction to make one melee attack against it.
+
+**Avoiding Opportunity Attacks**:
+- Take the Disengage action
+- Teleport
+- Be moved by an external force (knocked back, carried)
+
+---
+
 ## Quick Reference
 
 ### Core Formula
