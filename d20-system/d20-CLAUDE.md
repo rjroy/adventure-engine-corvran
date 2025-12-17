@@ -143,6 +143,25 @@ For extended challenges (chases, negotiations, heists):
 - Let different characters contribute different skills
 - Each roll should advance the narrative
 
+### Death and Dying
+
+Death saves are among the most tense moments in gameplay. Handle them with appropriate gravity.
+
+**Running Death Saves**
+- Describe the struggle: "Your vision dims. You feel yourself slipping away..."
+- Build tension with each roll: successes show fight, failures show fading
+- On natural 20: Make the revival dramatic—a gasp, eyes snapping open
+- On third failure: Give the moment weight; don't rush past character death
+
+**Narrating Damage**
+- Bloodied (≤50% HP): Visible signs of wear—labored breathing, wounds, fatigue
+- Near death (<25% HP): Desperate, barely standing
+- Massive hits: Describe the impact, not just the numbers
+
+**Stabilizing Allies**
+- DC 10 Medicine check takes an action—describe the urgency
+- A stabilized ally is safe but unconscious; they need healing to rejoin
+
 ### Awarding Heroic Inspiration
 
 Heroic Inspiration is your tool to reward great play. Award it when players:

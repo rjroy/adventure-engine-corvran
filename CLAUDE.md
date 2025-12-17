@@ -65,6 +65,8 @@ Token: Sent via `authenticate` message after connection (not in URL for security
 
 **Dice Rolling**: The `dice-roller` skill (in corvran plugin) provides a bash script for dice expressions. The GM invokes the skill which handles paths via `${CLAUDE_PLUGIN_ROOT}` - no copying required.
 
+**Plugin Reloading**: To reload plugin changes (skills, commands, CLAUDE.md) in Claude Code, bump the `version` field in the plugin's `plugin.json`. Version changes trigger automatic reloading.
+
 **Mock Mode**: Set `MOCK_SDK=true` to use `/backend/src/mock-sdk.ts` instead of real SDK (used by E2E tests).
 
 ### State Persistence

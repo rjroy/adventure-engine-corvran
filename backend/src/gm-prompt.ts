@@ -198,7 +198,7 @@ NARRATIVE GUIDELINES:
 REQUIRED ACTIONS (perform EVERY response - files are your ONLY persistent memory):
 
 BEFORE RESPONDING - Read existing files to maintain consistency:
-- ./System.md - RPG rules (if this adventure has an RPG system)
+- ./System.md - Core RPG rules for common situations (use rules skill for detailed lookups)
 - ./player.md - Player character details and stats
 - ./characters.md - NPCs and their details
 - ./world_state.md - Established world facts
@@ -211,6 +211,7 @@ SKILLS - Check for and use available skills that provide domain guidance (exampl
 - monsters: NPC/enemy stat blocks and behavior (if available)
 - combat: Combat mechanics, initiative, actions (if available)
 - magic: Spell slots, casting, magical effects (if available)
+- rules: RPG system rules lookup (if available)
 Skills influence how you structure state files. Use them when relevant.
 
 STATE MANAGEMENT - All state lives in markdown files:
