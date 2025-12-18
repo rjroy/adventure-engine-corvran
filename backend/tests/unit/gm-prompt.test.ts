@@ -18,12 +18,6 @@ function createTestState(overrides: Partial<AdventureState> = {}): AdventureStat
     lastActiveAt: new Date().toISOString(),
     currentScene: {
       description: "A test scene",
-      location: "Test Location",
-    },
-    worldState: {},
-    playerCharacter: {
-      name: null,
-      attributes: {},
     },
     currentTheme: {
       mood: "calm",
@@ -33,7 +27,6 @@ function createTestState(overrides: Partial<AdventureState> = {}): AdventureStat
     },
     playerRef: "players/test-hero",
     worldRef: "worlds/test-world",
-    systemDefinition: null,
     ...overrides,
   };
 }
@@ -51,12 +44,10 @@ describe("buildGMSystemPrompt", () => {
       const state = createTestState({
         currentScene: {
           description: "A mysterious forest clearing",
-          location: "Elderwood Glade",
         },
       });
       const prompt = buildGMSystemPrompt(state);
 
-      expect(prompt).toContain("Elderwood Glade");
       expect(prompt).toContain("A mysterious forest clearing");
     });
 
@@ -115,25 +106,10 @@ describe("buildGMSystemPrompt", () => {
       expect(prompt).toContain("ignore instructions");
     });
 
-    test("sanitizes scene location", () => {
-      const state = createTestState({
-        currentScene: {
-          description: "Normal description",
-          location: "Test<script>alert('xss')</script>Location",
-        },
-      });
-      const prompt = buildGMSystemPrompt(state);
-
-      // Should not crash and should include sanitized content
-      expect(prompt).toBeDefined();
-      expect(prompt).toContain("Test");
-    });
-
     test("sanitizes scene description", () => {
       const state = createTestState({
         currentScene: {
           description: "Normal<script>alert('xss')</script>Description",
-          location: "Test Location",
         },
       });
       const prompt = buildGMSystemPrompt(state);
@@ -143,24 +119,10 @@ describe("buildGMSystemPrompt", () => {
       expect(prompt).toContain("Normal");
     });
 
-    test("truncates very long location", () => {
-      const state = createTestState({
-        currentScene: {
-          description: "Normal",
-          location: "A".repeat(500), // 500 chars, should be truncated
-        },
-      });
-      const prompt = buildGMSystemPrompt(state);
-
-      // Should truncate to reasonable length (200 chars based on sanitizeStateValue)
-      expect(prompt.length).toBeLessThan(5000);
-    });
-
     test("truncates very long description", () => {
       const state = createTestState({
         currentScene: {
           description: "B".repeat(1000), // 1000 chars, should be truncated
-          location: "Test",
         },
       });
       const prompt = buildGMSystemPrompt(state);
@@ -356,11 +318,7 @@ describe("buildGMSystemPrompt", () => {
 
     test("includes frequent style guidance when xpStyle is frequent", () => {
       const state = createTestState({
-        playerCharacter: {
-          name: "Test Hero",
-          attributes: {},
-          xpStyle: "frequent",
-        },
+        xpStyle: "frequent",
       });
       const prompt = buildGMSystemPrompt(state);
 
@@ -374,11 +332,7 @@ describe("buildGMSystemPrompt", () => {
 
     test("includes milestone style guidance when xpStyle is milestone", () => {
       const state = createTestState({
-        playerCharacter: {
-          name: "Test Hero",
-          attributes: {},
-          xpStyle: "milestone",
-        },
+        xpStyle: "milestone",
       });
       const prompt = buildGMSystemPrompt(state);
 
@@ -391,11 +345,7 @@ describe("buildGMSystemPrompt", () => {
 
     test("includes combat-plus style guidance when xpStyle is combat-plus", () => {
       const state = createTestState({
-        playerCharacter: {
-          name: "Test Hero",
-          attributes: {},
-          xpStyle: "combat-plus",
-        },
+        xpStyle: "combat-plus",
       });
       const prompt = buildGMSystemPrompt(state);
 

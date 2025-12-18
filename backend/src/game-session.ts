@@ -56,22 +56,6 @@ async function withTimeout<T>(
   }
 }
 
-/**
- * Region detection keyword mappings.
- * Order matters: first match wins when multiple keywords could match.
- */
-const REGION_KEYWORDS: [Region, string[]][] = [
-  ["city", ["city", "town"]],
-  ["village", ["village", "hamlet"]],
-  ["forest", ["forest", "woods"]],
-  ["desert", ["desert", "sand"]],
-  ["mountain", ["mountain", "peak"]],
-  ["ocean", ["ocean", "sea"]],
-  ["underground", ["underground", "cave", "dungeon"]],
-  ["castle", ["castle", "palace"]],
-  ["ruins", ["ruins", "ancient"]],
-];
-
 const DEFAULT_REGION: Region = "forest";
 
 /**
@@ -871,35 +855,20 @@ export class GameSession {
 
   /**
    * Derive genre from adventure state
-   * Checks worldState for genre hints, defaults to "high-fantasy"
+   * Returns genre from currentTheme, defaults to "high-fantasy"
    */
   private deriveGenre(state: AdventureState | null): Genre {
     if (!state) return "high-fantasy";
-
-    // Check worldState for genre property
-    const worldGenre = state.worldState.genre as Genre | undefined;
-    if (worldGenre) return worldGenre;
-
-    // Default to high-fantasy
-    return "high-fantasy";
+    return state.currentTheme.genre;
   }
 
   /**
    * Derive region from adventure state.
-   * Checks currentScene.location for region hints using REGION_KEYWORDS mapping.
+   * Returns region from currentTheme, defaults to forest.
    */
   private deriveRegion(state: AdventureState | null): Region {
     if (!state) return DEFAULT_REGION;
-
-    const location = state.currentScene.location.toLowerCase();
-
-    for (const [region, keywords] of REGION_KEYWORDS) {
-      if (keywords.some((keyword) => location.includes(keyword))) {
-        return region;
-      }
-    }
-
-    return DEFAULT_REGION;
+    return state.currentTheme.region;
   }
 
   /**

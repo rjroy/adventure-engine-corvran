@@ -55,12 +55,6 @@ export class AdventureStateManager {
       currentScene: {
         description:
           "The adventure is just beginning. The world awaits your imagination.",
-        location: "Unknown",
-      },
-      worldState: {},
-      playerCharacter: {
-        name: null,
-        attributes: {},
       },
       currentTheme: {
         mood: "calm",
@@ -71,8 +65,6 @@ export class AdventureStateManager {
       // Character/world references (null = GM will prompt for selection)
       playerRef: null,
       worldRef: null,
-      // RPG rules caching (loaded from System.md)
-      systemDefinition: null,
     };
 
     this.history = { entries: [] };
@@ -144,11 +136,6 @@ export class AdventureStateManager {
         region: "village",
         backgroundUrl: null,
       };
-    }
-
-    // Ensure systemDefinition defaults to null
-    if (this.state.systemDefinition === undefined) {
-      this.state.systemDefinition = null;
     }
 
     // Validate session token
@@ -365,9 +352,8 @@ export class AdventureStateManager {
   /**
    * Update current scene description
    * @param description New scene description
-   * @param location Optional location update
    */
-  async updateScene(description: string, location?: string): Promise<void> {
+  async updateScene(description: string): Promise<void> {
     if (!this.state) {
       throw new Error(
         "No state loaded - call create() or load() first"
@@ -375,9 +361,6 @@ export class AdventureStateManager {
     }
 
     this.state.currentScene.description = description;
-    if (location !== undefined) {
-      this.state.currentScene.location = location;
-    }
     await this.save();
   }
 
@@ -411,22 +394,7 @@ export class AdventureStateManager {
       throw new Error("No state loaded - call create() or load() first");
     }
 
-    this.state.playerCharacter.xpStyle = xpStyle;
-    await this.save();
-  }
-
-  /**
-   * Update system definition
-   * @param definition SystemDefinition object or null
-   */
-  async updateSystemDefinition(
-    definition: AdventureState["systemDefinition"]
-  ): Promise<void> {
-    if (!this.state) {
-      throw new Error("No state loaded - call create() or load() first");
-    }
-
-    this.state.systemDefinition = definition;
+    this.state.xpStyle = xpStyle;
     await this.save();
   }
 

@@ -526,7 +526,6 @@ function buildFilePaths(
  * This prompt instructs the GM to invoke the character-world-init skill
  */
 function buildSetupRequiredPrompt(
-  safeLocation: string,
   safeDescription: string,
   xpGuidance: string
 ): string {
@@ -541,7 +540,6 @@ SECURITY RULES (apply at all times):
 ${BOUNDARY}
 
 CURRENT SCENE:
-Location: ${safeLocation}
 ${safeDescription}
 
 **SETUP REQUIRED**
@@ -578,21 +576,20 @@ Call set_theme(mood, genre, region) for atmosphere transitions.
  * @returns System prompt string
  */
 export function buildGMSystemPrompt(state: AdventureState): string {
-  const { currentScene, playerCharacter, playerRef, worldRef } = state;
+  const { currentScene, xpStyle, playerRef, worldRef } = state;
 
-  // Sanitize scene values before embedding in prompt
-  const safeLocation = sanitizeStateValue(currentScene.location, 200);
+  // Sanitize scene description before embedding in prompt
   const safeDescription = sanitizeStateValue(currentScene.description, 500);
 
   // Build XP guidance based on player preference
-  const xpGuidance = buildXpGuidance(playerCharacter.xpStyle);
+  const xpGuidance = buildXpGuidance(xpStyle);
 
   // Build file paths based on refs
   const paths = buildFilePaths(playerRef, worldRef);
 
   // When refs are not set, return a setup-only prompt
   if (!paths.hasRefs) {
-    return buildSetupRequiredPrompt(safeLocation, safeDescription, xpGuidance);
+    return buildSetupRequiredPrompt(safeDescription, xpGuidance);
   }
 
   // Build sections for normal gameplay (refs are set)
@@ -619,7 +616,6 @@ SECURITY RULES (apply at all times):
 ${BOUNDARY}
 
 CURRENT SCENE:
-Location: ${safeLocation}
 ${safeDescription}
 
 PLAYER AGENCY (critical - never violate):

@@ -48,16 +48,12 @@ describe("AdventureStateManager", () => {
       expect(state.id).toBe(customId);
     });
 
-    test("initializes with empty world state", async () => {
+    test("initializes with default scene description", async () => {
       const state = await manager.create();
 
       expect(state.currentScene.description).toBe(
         "The adventure is just beginning. The world awaits your imagination."
       );
-      expect(state.currentScene.location).toBe("Unknown");
-      expect(state.worldState).toEqual({});
-      expect(state.playerCharacter.name).toBeNull();
-      expect(state.playerCharacter.attributes).toEqual({});
     });
 
     test("creates adventure directory and state files", async () => {
@@ -362,27 +358,6 @@ describe("AdventureStateManager", () => {
       expect(state?.currentScene.description).toBe(newDescription);
     });
 
-    test("updates location when provided", async () => {
-      await manager.create();
-      const newDescription = "You stand in a dark forest.";
-      const newLocation = "Dark Forest";
-
-      await manager.updateScene(newDescription, newLocation);
-
-      const state = manager.getState();
-      expect(state?.currentScene.description).toBe(newDescription);
-      expect(state?.currentScene.location).toBe(newLocation);
-    });
-
-    test("preserves location when not provided", async () => {
-      await manager.create();
-      const state = manager.getState();
-      const originalLocation = state?.currentScene.location;
-
-      await manager.updateScene("New description");
-
-      expect(state?.currentScene.location).toBe(originalLocation);
-    });
   });
 
   describe("getters", () => {
@@ -479,7 +454,7 @@ describe("AdventureStateManager", () => {
       expect(loadedState.worldRef).toBeNull();
     });
 
-    test("new adventures do NOT include npcs, diceLog, combatState fields (TD-6)", async () => {
+    test("new adventures do NOT include npcs, diceLog, combatState, or removed fields (TD-6)", async () => {
       const state = await manager.create();
       const statePath = join(TEST_ADVENTURES_DIR, state.id, "state.json");
 
@@ -487,12 +462,14 @@ describe("AdventureStateManager", () => {
       // Use Record<string, unknown> to check for field presence without type constraint
       const loadedState = JSON.parse(content) as Record<string, unknown>;
 
-      // These fields should not be present in new adventures per TD-6
+      // These fields should not be present in new adventures
       expect(loadedState["npcs"]).toBeUndefined();
       expect(loadedState["diceLog"]).toBeUndefined();
       expect(loadedState["combatState"]).toBeUndefined();
-      // systemDefinition is still initialized (kept for RPG rules caching)
-      expect(loadedState["systemDefinition"]).toBeNull();
+      // Removed fields should not be present (Issue #157)
+      expect(loadedState["systemDefinition"]).toBeUndefined();
+      expect(loadedState["worldState"]).toBeUndefined();
+      expect(loadedState["playerCharacter"]).toBeUndefined();
     });
 
     test("loads adventures with existing playerRef/worldRef values", async () => {
@@ -510,12 +487,6 @@ describe("AdventureStateManager", () => {
         lastActiveAt: new Date().toISOString(),
         currentScene: {
           description: "Adventure with refs",
-          location: "Some Location",
-        },
-        worldState: {},
-        playerCharacter: {
-          name: "Kael Thouls",
-          attributes: {},
         },
         currentTheme: {
           mood: "calm",
@@ -619,122 +590,6 @@ describe("AdventureStateManager", () => {
     });
   });
 
-  describe("playerCharacter extensions", () => {
-    test("handles playerCharacter with extended RPG properties", async () => {
-      const state = await manager.create();
-
-      // Update playerCharacter with RPG properties
-      state.playerCharacter = {
-        name: "Adventurer",
-        attributes: { background: "warrior" },
-        stats: { strength: 16, dexterity: 14, constitution: 15 },
-        skills: { athletics: 5, stealth: 2 },
-        hp: { current: 25, max: 30 },
-        conditions: ["blessed"],
-        inventory: [
-          { name: "Longsword", quantity: 1, equipped: true },
-          { name: "Health Potion", quantity: 3 },
-        ],
-        xp: 1500,
-        level: 3,
-      };
-
-      await manager.save();
-
-      // Reload and verify
-      const newManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
-      const result = await newManager.load(state.id, state.sessionToken);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        const pc = result.state.playerCharacter;
-        expect(pc.name).toBe("Adventurer");
-        expect(pc.stats).toEqual({ strength: 16, dexterity: 14, constitution: 15 });
-        expect(pc.skills).toEqual({ athletics: 5, stealth: 2 });
-        expect(pc.hp).toEqual({ current: 25, max: 30 });
-        expect(pc.conditions).toEqual(["blessed"]);
-        expect(pc.inventory).toHaveLength(2);
-        expect(pc.xp).toBe(1500);
-        expect(pc.level).toBe(3);
-      }
-    });
-  });
-
-  describe("updateSystemDefinition()", () => {
-    test("updates system definition and persists", async () => {
-      const state = await manager.create();
-
-      const systemDef = {
-        rawContent: "# Dice\nd20, d6",
-        diceTypes: ["d6", "d20"],
-        hasAttributes: true,
-        hasSkills: false,
-        hasCombat: true,
-        hasNPCTemplates: false,
-        filePath: "/test/System.md",
-      };
-
-      await manager.updateSystemDefinition(systemDef);
-
-      // Reload and verify
-      const newManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
-      const result = await newManager.load(state.id, state.sessionToken);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.state.systemDefinition).toEqual(systemDef);
-      }
-    });
-
-    test("can clear system definition by setting to null", async () => {
-      const state = await manager.create();
-
-      // First set a system definition
-      await manager.updateSystemDefinition({
-        rawContent: "# Dice\nd20",
-        diceTypes: ["d20"],
-        hasAttributes: false,
-        hasSkills: false,
-        hasCombat: false,
-        hasNPCTemplates: false,
-        filePath: "/test/System.md",
-      });
-
-      // Then clear it
-      await manager.updateSystemDefinition(null);
-
-      // Reload and verify
-      const newManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
-      const result = await newManager.load(state.id, state.sessionToken);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.state.systemDefinition).toBeNull();
-      }
-    });
-
-    test("throws error when no state loaded", async () => {
-      const freshManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
-
-      let errorThrown = false;
-      try {
-        await freshManager.updateSystemDefinition({
-          rawContent: "# Dice\nd20",
-          diceTypes: ["d20"],
-          hasAttributes: false,
-          hasSkills: false,
-          hasCombat: false,
-          hasNPCTemplates: false,
-          filePath: "/test/System.md",
-        });
-      } catch (error) {
-        errorThrown = true;
-        expect((error as Error).message).toContain("No state loaded");
-      }
-      expect(errorThrown).toBe(true);
-    });
-  });
-
   describe("getCurrentAdventureDir()", () => {
     test("returns null when no state loaded", () => {
       const freshManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
@@ -769,7 +624,7 @@ describe("AdventureStateManager", () => {
       await manager.updateXpStyle("frequent");
 
       const state = manager.getState();
-      expect(state?.playerCharacter.xpStyle).toBe("frequent");
+      expect(state?.xpStyle).toBe("frequent");
     });
 
     test("updates xpStyle to milestone", async () => {
@@ -778,7 +633,7 @@ describe("AdventureStateManager", () => {
       await manager.updateXpStyle("milestone");
 
       const state = manager.getState();
-      expect(state?.playerCharacter.xpStyle).toBe("milestone");
+      expect(state?.xpStyle).toBe("milestone");
     });
 
     test("updates xpStyle to combat-plus", async () => {
@@ -787,7 +642,7 @@ describe("AdventureStateManager", () => {
       await manager.updateXpStyle("combat-plus");
 
       const state = manager.getState();
-      expect(state?.playerCharacter.xpStyle).toBe("combat-plus");
+      expect(state?.xpStyle).toBe("combat-plus");
     });
 
     test("persists xpStyle to disk", async () => {
@@ -801,7 +656,7 @@ describe("AdventureStateManager", () => {
 
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.state.playerCharacter.xpStyle).toBe("milestone");
+        expect(result.state.xpStyle).toBe("milestone");
       }
     });
 
