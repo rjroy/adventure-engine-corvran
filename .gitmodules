@@ -1,3 +1,6 @@
 [submodule "docs/research/dndsrd5.2_markdown"]
 	path = docs/research/dndsrd5.2_markdown
 	url = https://github.com/springbov/dndsrd5.2_markdown.git
+[submodule "docs/research/daggerheart-srd"]
+	path = docs/research/daggerheart-srd
+	url = https://github.com/seansbox/daggerheart-srd.git
