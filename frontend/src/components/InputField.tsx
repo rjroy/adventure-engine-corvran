@@ -1,4 +1,9 @@
-import { useState, useCallback, type FormEvent, type KeyboardEvent } from "react";
+import {
+  useState,
+  useCallback,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import "./InputField.css";
 
 export interface InputFieldProps {
@@ -31,7 +36,7 @@ export function InputField({
   );
 
   const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLInputElement>) => {
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         handleSubmit();
@@ -42,14 +47,14 @@ export function InputField({
 
   return (
     <form onSubmit={handleFormSubmit} className="input-field">
-      <input
-        type="text"
+      <textarea
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
         disabled={disabled}
         placeholder={placeholder}
         className="input-field__input"
+        rows={3}
       />
       <button
         type="submit"
