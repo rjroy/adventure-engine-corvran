@@ -255,6 +255,31 @@ export const ThemeChangeMessageSchema = z.object({
   payload: ThemeChangePayloadSchema,
 });
 
+// ========================
+// Tool Status Types
+// ========================
+
+/**
+ * Tool status states for the status bar display.
+ * - active: A tool is currently being used
+ * - idle: No tool activity, ready for input
+ */
+export const ToolStatusStateSchema = z.enum(["active", "idle"]);
+export type ToolStatusState = z.infer<typeof ToolStatusStateSchema>;
+
+/**
+ * Tool status message for real-time feedback on tool activity.
+ * Displays vague descriptions to inform users without exposing GM internals.
+ */
+export const ToolStatusMessageSchema = z.object({
+  type: z.literal("tool_status"),
+  payload: z.object({
+    state: ToolStatusStateSchema,
+    /** User-friendly description (e.g., "Setting the scene...", "Ready") */
+    description: z.string(),
+  }),
+});
+
 export const ServerMessageSchema = z.discriminatedUnion("type", [
   GMResponseStartMessageSchema,
   GMResponseChunkMessageSchema,
@@ -263,6 +288,7 @@ export const ServerMessageSchema = z.discriminatedUnion("type", [
   ErrorMessageSchema,
   PongMessageSchema,
   ThemeChangeMessageSchema,
+  ToolStatusMessageSchema,
 ]);
 
 export type ServerMessage = z.infer<typeof ServerMessageSchema>;

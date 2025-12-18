@@ -420,6 +420,83 @@ describe("parseServerMessage()", () => {
     });
   });
 
+  describe("tool_status message", () => {
+    test("accepts valid tool_status with active state", () => {
+      const result = parseServerMessage({
+        type: "tool_status",
+        payload: {
+          state: "active",
+          description: "Setting the scene...",
+        },
+      });
+      expect(result.success).toBe(true);
+      if (result.success && result.data.type === "tool_status") {
+        expect(result.data.payload.state).toBe("active");
+        expect(result.data.payload.description).toBe("Setting the scene...");
+      }
+    });
+
+    test("accepts valid tool_status with idle state", () => {
+      const result = parseServerMessage({
+        type: "tool_status",
+        payload: {
+          state: "idle",
+          description: "Ready",
+        },
+      });
+      expect(result.success).toBe(true);
+      if (result.success && result.data.type === "tool_status") {
+        expect(result.data.payload.state).toBe("idle");
+        expect(result.data.payload.description).toBe("Ready");
+      }
+    });
+
+    test("rejects tool_status with invalid state", () => {
+      const result = parseServerMessage({
+        type: "tool_status",
+        payload: {
+          state: "processing",
+          description: "Working...",
+        },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    test("rejects tool_status without description", () => {
+      const result = parseServerMessage({
+        type: "tool_status",
+        payload: {
+          state: "active",
+        },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    test("rejects tool_status without state", () => {
+      const result = parseServerMessage({
+        type: "tool_status",
+        payload: {
+          description: "Thinking...",
+        },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    test("accepts all valid states", () => {
+      const validStates = ["active", "idle"];
+      for (const state of validStates) {
+        const result = parseServerMessage({
+          type: "tool_status",
+          payload: {
+            state,
+            description: "Test description",
+          },
+        });
+        expect(result.success).toBe(true);
+      }
+    });
+  });
+
   describe("invalid messages", () => {
     test("rejects unknown message type", () => {
       const result = parseServerMessage({
