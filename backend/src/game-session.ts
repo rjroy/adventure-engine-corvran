@@ -534,6 +534,7 @@ export class GameSession {
     // Process SDK messages and extract text content
     let assistantText = "";
     let newAgentSessionId: string | null = null;
+    let hasYieldedText = false; // Track if we've yielded text from previous blocks
 
     for await (const message of sdkQuery) {
       // Log SDK messages for debugging
@@ -548,6 +549,18 @@ export class GameSession {
       if (message.type === "stream_event") {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const event = message.event;
+
+        // Detect new text content block starting - add paragraph separator between blocks
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        if (event.type === "content_block_start") {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          if (event.content_block?.type === "text" && hasYieldedText) {
+            // Add paragraph separator between text blocks (required for Markdown)
+            assistantText += "\n\n";
+            yield "\n\n";
+          }
+        }
+
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         if (event.type === "content_block_delta") {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -556,6 +569,7 @@ export class GameSession {
             const chunk = event.delta.text as string;
             assistantText += chunk;
             yield chunk;
+            hasYieldedText = true;
           }
         }
       }
