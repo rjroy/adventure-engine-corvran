@@ -379,6 +379,15 @@ export const SystemDefinitionSchema = z.object({
 export type SystemDefinition = z.infer<typeof SystemDefinitionSchema>;
 
 /**
+ * XP award style preference.
+ * - frequent: Award XP for every notable action (combat, exploration, roleplay, clever solutions)
+ * - milestone: Award XP at story beats (quest completion, major discoveries, significant encounters)
+ * - combat-plus: Always award combat XP, plus occasional bonuses for exceptional creativity
+ */
+export const XpStyleSchema = z.enum(["frequent", "milestone", "combat-plus"]);
+export type XpStyle = z.infer<typeof XpStyleSchema>;
+
+/**
  * Extended player character type with RPG properties.
  * Backward compatible - all RPG fields are optional.
  */
@@ -396,6 +405,7 @@ export const PlayerCharacterSchema = z.object({
   inventory: z.array(InventoryItemSchema).optional(),
   xp: z.number().optional(),
   level: z.number().optional(),
+  xpStyle: XpStyleSchema.optional(),
 });
 
 export type PlayerCharacter = z.infer<typeof PlayerCharacterSchema>;

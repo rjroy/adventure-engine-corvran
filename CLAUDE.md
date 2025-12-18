@@ -61,7 +61,7 @@ Token: Sent via `authenticate` message after connection (not in URL for security
 - `./locations.md` - Known places
 - `./quests.md` - Active quests
 
-**MCP Tools**: Only `set_theme` remains (sends WebSocket messages for UI theme updates).
+**MCP Tools**: `set_theme` (UI theme updates) and `set_xp_style` (player XP preference - frequent/milestone/combat-plus).
 
 **Dice Rolling**: The `dice-roller` skill (in corvran plugin) provides a bash script for dice expressions. The GM invokes the skill which handles paths via `${CLAUDE_PLUGIN_ROOT}` - no copying required.
 

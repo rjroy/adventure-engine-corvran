@@ -5,7 +5,7 @@
 import { tool, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import type { AdventureState } from "./types/state";
-import type { ThemeMood } from "./types/protocol";
+import type { ThemeMood, XpStyle } from "./types/protocol";
 import { sanitizeStateValue } from "./validation";
 import { logger } from "./logger";
 
@@ -25,6 +25,11 @@ const VALID_GENRES = ["sci-fi", "steampunk", "low-fantasy", "high-fantasy", "hor
 const VALID_REGIONS = ["city", "village", "forest", "desert", "mountain", "ocean", "underground", "castle", "ruins"] as const;
 
 /**
+ * Valid XP award styles for player preference
+ */
+const VALID_XP_STYLES = ["frequent", "milestone", "combat-plus"] as const;
+
+/**
  * Callback type for handling theme changes
  */
 export type ThemeChangeHandler = (
@@ -34,6 +39,11 @@ export type ThemeChangeHandler = (
   forceGenerate: boolean,
   imagePrompt?: string
 ) => Promise<void>;
+
+/**
+ * Callback type for handling XP style changes
+ */
+export type XpStyleChangeHandler = (xpStyle: XpStyle) => Promise<void>;
 
 /**
  * Static tool definition for the set_theme tool
@@ -145,6 +155,53 @@ Provide image_prompt only when you want specific generated imagery as fallback.`
 }
 
 /**
+ * Create the set_xp_style tool using the SDK's tool() helper
+ * @param onXpStyleChange Callback invoked when XP style should change
+ */
+function createSetXpStyleTool(onXpStyleChange: XpStyleChangeHandler) {
+  return tool(
+    "set_xp_style",
+    `Set the player's XP award preference. Call this when the player chooses their preferred XP style.
+
+Options:
+- frequent: Award XP for every notable action (combat, exploration, roleplay, clever solutions)
+- milestone: Award XP at story beats (quest completion, major discoveries, significant encounters)
+- combat-plus: Always award combat XP, plus occasional bonuses for exceptional creativity`,
+    {
+      xp_style: z.enum(VALID_XP_STYLES).describe("The player's chosen XP style"),
+    },
+    async (args) => {
+      logger.debug({ xpStyle: args.xp_style }, "set_xp_style tool invoked");
+      await onXpStyleChange(args.xp_style);
+      return {
+        content: [{ type: "text" as const, text: `XP style set to: ${args.xp_style}` }],
+      };
+    }
+  );
+}
+
+/**
+ * Create an MCP server with GM tools (set_theme and set_xp_style)
+ * All other state management is done via file read/write
+ * @param onThemeChange Callback invoked when theme should change
+ * @param onXpStyleChange Callback invoked when XP style should change
+ */
+export function createGMMcpServer(
+  onThemeChange: ThemeChangeHandler,
+  onXpStyleChange: XpStyleChangeHandler
+) {
+  const setThemeTool = createSetThemeTool(onThemeChange);
+  const setXpStyleTool = createSetXpStyleTool(onXpStyleChange);
+
+  return createSdkMcpServer({
+    name: "adventure-gm",
+    version: "1.0.0",
+    tools: [setThemeTool, setXpStyleTool],
+  });
+}
+
+/**
+ * @deprecated Use createGMMcpServer instead
  * Create an MCP server with only the set_theme tool
  * All other state management is done via file read/write
  * @param onThemeChange Callback invoked when theme should change
@@ -163,6 +220,58 @@ export function createThemeMcpServer(onThemeChange: ThemeChangeHandler) {
 const BOUNDARY = "════════════════════════════════════════";
 
 /**
+ * Build XP guidance based on player's preference
+ * @param xpStyle The player's XP style preference (or undefined if not set)
+ * @returns XP guidance string for the GM prompt
+ */
+function buildXpGuidance(xpStyle: XpStyle | undefined): string {
+  if (!xpStyle) {
+    return `XP PREFERENCE (not yet set):
+- Early in the adventure, ask the player how they prefer XP to be awarded:
+  1. "Frequent" - XP for every notable action (combat, exploration, roleplay, clever solutions)
+  2. "Milestone" - XP at story beats (quest completion, major discoveries)
+  3. "Combat-plus" - Combat XP always, plus occasional bonuses for creativity
+- When they choose, call set_xp_style(xp_style) to save their preference
+- Once set, follow that style consistently`;
+  }
+
+  switch (xpStyle) {
+    case "frequent":
+      return `XP AWARDS (Frequent Style):
+- Award XP immediately when earned, announced explicitly
+- Combat: Use NPC Reward field (e.g., "You gain 25 XP for defeating the goblin")
+- Exploration: 25-50 XP for new locations, secrets, lore discoveries
+- Roleplay: 25 XP for meaningful NPC interactions advancing the story
+- Creativity: 25-50 XP for clever non-combat solutions
+- Quest progress: 50-100 XP for major milestones
+- Track in ./player.md; check level thresholds after awards
+- "Defeat" includes: killing, routing, capturing, or avoiding through skill`;
+
+    case "milestone":
+      return `XP AWARDS (Milestone Style):
+- Award XP at natural story beats, not individual actions
+- Quest completion: 100-300 XP based on difficulty
+- Major discoveries: 50-100 XP for significant lore or locations
+- Significant encounters: Award total XP at encounter end, not per enemy
+- Announce as narrative summary: "Your efforts have earned you 250 XP"
+- Track in ./player.md; check level thresholds after awards`;
+
+    case "combat-plus":
+      return `XP AWARDS (Combat-Plus Style):
+- Combat: Always award NPC Reward XP when enemies defeated
+- Exceptional moments: Bonus 25-50 XP for truly creative or dramatic actions
+- Keep non-combat XP rare and meaningful
+- Track in ./player.md; check level thresholds after awards`;
+
+    default: {
+      // Exhaustiveness check - this should never happen
+      const _exhaustiveCheck: never = xpStyle;
+      return _exhaustiveCheck;
+    }
+  }
+}
+
+/**
  * Build the Game Master system prompt from current adventure state
  * This prompt guides Claude to act as an interactive fiction GM
  * All state management is done via file read/write - the GM maintains state in markdown files
@@ -170,11 +279,14 @@ const BOUNDARY = "════════════════════�
  * @returns System prompt string
  */
 export function buildGMSystemPrompt(state: AdventureState): string {
-  const { currentScene } = state;
+  const { currentScene, playerCharacter } = state;
 
   // Sanitize scene values before embedding in prompt
   const safeLocation = sanitizeStateValue(currentScene.location, 200);
   const safeDescription = sanitizeStateValue(currentScene.description, 500);
+
+  // Build XP guidance based on player preference
+  const xpGuidance = buildXpGuidance(playerCharacter.xpStyle);
 
   return `You are the Game Master for an interactive text adventure.
 
@@ -202,6 +314,8 @@ NARRATIVE GUIDELINES:
 - Respond with vivid, engaging narrative maintaining consistency with files
 - Describe situations, NPC reactions, and consequences - not player actions
 - Keep responses focused and actionable
+
+${xpGuidance}
 
 REQUIRED ACTIONS (perform EVERY response - files are your ONLY persistent memory):
 

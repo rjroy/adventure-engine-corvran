@@ -708,5 +708,52 @@ describe("GameSession", () => {
       expect(call[3]).toBe("http://example.com/forest.jpg"); // backgroundUrl
     });
   });
+
+  describe("handleSetXpStyleTool", () => {
+    test("persists xpStyle to state manager", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      await (session as any).handleSetXpStyleTool("frequent");
+
+      const state = session.getState();
+      expect(state?.playerCharacter.xpStyle).toBe("frequent");
+    });
+
+    test("updates xpStyle for all valid styles", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      // Test each style
+      await (session as any).handleSetXpStyleTool("frequent");
+      expect(session.getState()?.playerCharacter.xpStyle).toBe("frequent");
+
+      await (session as any).handleSetXpStyleTool("milestone");
+      expect(session.getState()?.playerCharacter.xpStyle).toBe("milestone");
+
+      await (session as any).handleSetXpStyleTool("combat-plus");
+      expect(session.getState()?.playerCharacter.xpStyle).toBe("combat-plus");
+    });
+
+    test("calls stateManager.updateXpStyle", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      const originalUpdateXpStyle = stateManager.updateXpStyle.bind(stateManager);
+      const updateXpStyleSpy = mock(async (...args: Parameters<typeof originalUpdateXpStyle>) => {
+        return originalUpdateXpStyle(...args);
+      });
+      stateManager.updateXpStyle = updateXpStyleSpy as typeof stateManager.updateXpStyle;
+
+      await (session as any).handleSetXpStyleTool("milestone");
+
+      expect(updateXpStyleSpy).toHaveBeenCalledTimes(1);
+      const call = updateXpStyleSpy.mock.calls[0] as unknown[];
+      expect(call[0]).toBe("milestone");
+    });
+  });
   /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/require-await */
 });
