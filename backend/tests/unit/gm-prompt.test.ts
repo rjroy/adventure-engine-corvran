@@ -7,6 +7,7 @@ import type { AdventureState } from "../../src/types/state";
 
 /**
  * Create a minimal valid adventure state for testing
+ * Default includes playerRef and worldRef for normal gameplay tests
  */
 function createTestState(overrides: Partial<AdventureState> = {}): AdventureState {
   return {
@@ -30,11 +31,8 @@ function createTestState(overrides: Partial<AdventureState> = {}): AdventureStat
       region: "village",
       backgroundUrl: null,
     },
-    playerRef: null,
-    worldRef: null,
-    npcs: [],
-    diceLog: [],
-    combatState: null,
+    playerRef: "players/test-hero",
+    worldRef: "worlds/test-world",
     systemDefinition: null,
     ...overrides,
   };
@@ -66,13 +64,13 @@ describe("buildGMSystemPrompt", () => {
       const state = createTestState();
       const prompt = buildGMSystemPrompt(state);
 
-      // Should instruct reading markdown files
+      // Should instruct reading markdown files with dynamic paths
       expect(prompt).toContain("./System.md");
-      expect(prompt).toContain("./player.md");
-      expect(prompt).toContain("./characters.md");
-      expect(prompt).toContain("./world_state.md");
-      expect(prompt).toContain("./locations.md");
-      expect(prompt).toContain("./quests.md");
+      expect(prompt).toContain("./players/test-hero/sheet.md");
+      expect(prompt).toContain("./worlds/test-world/characters.md");
+      expect(prompt).toContain("./worlds/test-world/world_state.md");
+      expect(prompt).toContain("./worlds/test-world/locations.md");
+      expect(prompt).toContain("./worlds/test-world/quests.md");
     });
 
     test("includes skills section with dice-roller", () => {
@@ -168,16 +166,17 @@ describe("buildGMSystemPrompt", () => {
       const prompt = buildGMSystemPrompt(state);
 
       // Should truncate to reasonable length (500 chars based on sanitizeStateValue)
-      expect(prompt.length).toBeLessThan(5000);
+      // Prompt includes dynamic paths which add to length
+      expect(prompt.length).toBeLessThan(6000);
     });
   });
 
   describe("state instructions", () => {
-    test("instructs writing to player.md for character stats", () => {
+    test("instructs writing to player sheet for character stats", () => {
       const state = createTestState();
       const prompt = buildGMSystemPrompt(state);
 
-      expect(prompt).toContain("./player.md");
+      expect(prompt).toContain("./players/test-hero/sheet.md");
       expect(prompt).toContain("Player stats");
     });
 
@@ -185,7 +184,7 @@ describe("buildGMSystemPrompt", () => {
       const state = createTestState();
       const prompt = buildGMSystemPrompt(state);
 
-      expect(prompt).toContain("./characters.md");
+      expect(prompt).toContain("./worlds/test-world/characters.md");
       expect(prompt).toContain("NPCs");
     });
 
@@ -193,7 +192,7 @@ describe("buildGMSystemPrompt", () => {
       const state = createTestState();
       const prompt = buildGMSystemPrompt(state);
 
-      expect(prompt).toContain("./locations.md");
+      expect(prompt).toContain("./worlds/test-world/locations.md");
       expect(prompt).toContain("Locations discovered");
     });
 
@@ -208,19 +207,20 @@ describe("buildGMSystemPrompt", () => {
   });
 
   describe("dynamic paths with refs", () => {
-    test("uses legacy paths when refs are null", () => {
+    test("shows setup-required prompt when refs are null", () => {
       const state = createTestState({
         playerRef: null,
         worldRef: null,
       });
       const prompt = buildGMSystemPrompt(state);
 
-      // Should use legacy file paths
-      expect(prompt).toContain("./player.md - Player character details");
-      expect(prompt).toContain("./characters.md - NPCs");
-      expect(prompt).toContain("./world_state.md - Established world facts");
-      expect(prompt).toContain("./locations.md - Known places");
-      expect(prompt).toContain("./quests.md - Active quests");
+      // Should show setup-required prompt without file paths
+      expect(prompt).toContain("**SETUP REQUIRED**");
+      expect(prompt).toContain("character-world-init skill");
+      expect(prompt).toContain("Do NOT attempt to read or write game files until setup is complete");
+      // Should NOT contain file management instructions
+      expect(prompt).not.toContain("./player.md");
+      expect(prompt).not.toContain("STATE MANAGEMENT");
     });
 
     test("uses dynamic player paths when playerRef is set", () => {
@@ -301,17 +301,16 @@ describe("buildGMSystemPrompt", () => {
       expect(prompt).toContain(`"./worlds/realm/locations.md"`);
     });
 
-    test("uses legacy paths in file examples when refs are null", () => {
+    test("shows setup-required prompt in file examples when refs are null", () => {
       const state = createTestState({
         playerRef: null,
         worldRef: null,
       });
       const prompt = buildGMSystemPrompt(state);
 
-      // File examples should use legacy paths
-      expect(prompt).toContain(`"./player.md" with name, stats, background`);
-      expect(prompt).toContain(`"./characters.md"`);
-      expect(prompt).toContain(`"./locations.md"`);
+      // Should NOT contain file examples - setup required first
+      expect(prompt).not.toContain(`with name, stats, background`);
+      expect(prompt).toContain("**SETUP REQUIRED**");
     });
 
     test("requires both refs for dynamic paths", () => {
@@ -322,10 +321,10 @@ describe("buildGMSystemPrompt", () => {
       });
       const promptPlayerOnly = buildGMSystemPrompt(statePlayerOnly);
 
-      // Should still use legacy paths when only one ref is set
-      expect(promptPlayerOnly).toContain("./player.md");
-      expect(promptPlayerOnly).toContain("./world_state.md");
+      // Should show setup-required prompt when only one ref is set
+      expect(promptPlayerOnly).toContain("**SETUP REQUIRED**");
       expect(promptPlayerOnly).toContain("character-world-init skill");
+      expect(promptPlayerOnly).not.toContain("./players/kael/sheet.md");
 
       // Only worldRef set, playerRef null
       const stateWorldOnly = createTestState({
@@ -334,10 +333,10 @@ describe("buildGMSystemPrompt", () => {
       });
       const promptWorldOnly = buildGMSystemPrompt(stateWorldOnly);
 
-      // Should still use legacy paths when only one ref is set
-      expect(promptWorldOnly).toContain("./player.md");
-      expect(promptWorldOnly).toContain("./world_state.md");
+      // Should show setup-required prompt when only one ref is set
+      expect(promptWorldOnly).toContain("**SETUP REQUIRED**");
       expect(promptWorldOnly).toContain("character-world-init skill");
+      expect(promptWorldOnly).not.toContain("./worlds/eldoria/world_state.md");
     });
   });
 

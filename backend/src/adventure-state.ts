@@ -71,8 +71,7 @@ export class AdventureStateManager {
       // Character/world references (null = GM will prompt for selection)
       playerRef: null,
       worldRef: null,
-      // Note: npcs, diceLog, combatState are NOT initialized per TD-6
-      // systemDefinition kept for RPG rules caching
+      // RPG rules caching (loaded from System.md)
       systemDefinition: null,
     };
 
@@ -147,25 +146,7 @@ export class AdventureStateManager {
       };
     }
 
-    // Migrate old states without playerRef/worldRef (TD-3 backward compat)
-    // null indicates legacy mode - GM prompt will fall back to root-level files
-    if (this.state.playerRef === undefined) {
-      this.state.playerRef = null;
-    }
-    if (this.state.worldRef === undefined) {
-      this.state.worldRef = null;
-    }
-
-    // Migrate old states without RPG fields
-    if (this.state.npcs === undefined) {
-      this.state.npcs = [];
-    }
-    if (this.state.diceLog === undefined) {
-      this.state.diceLog = [];
-    }
-    if (this.state.combatState === undefined) {
-      this.state.combatState = null;
-    }
+    // Ensure systemDefinition defaults to null
     if (this.state.systemDefinition === undefined) {
       this.state.systemDefinition = null;
     }

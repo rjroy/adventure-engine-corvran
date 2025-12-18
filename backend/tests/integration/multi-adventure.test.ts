@@ -196,14 +196,14 @@ describe("Multi-Adventure Support", () => {
     });
   });
 
-  describe("Backward compatibility", () => {
-    test("legacy adventure without refs loads successfully", async () => {
+  describe("New adventure (null refs)", () => {
+    test("new adventure starts with null refs", async () => {
       // Create adventure
       const state = await stateManager.create();
       const adventureId = state.id;
       const sessionToken = state.sessionToken;
 
-      // Load adventure - should work even without refs
+      // Load adventure - refs should be null for new adventures
       const newManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
       const result = await newManager.load(adventureId, sessionToken);
 
@@ -213,17 +213,18 @@ describe("Multi-Adventure Support", () => {
       expect(loadedState?.worldRef).toBeNull();
     });
 
-    test("GameSession works with legacy adventure (null refs)", async () => {
+    test("GameSession works with new adventure (null refs)", async () => {
       const { ws, messages } = createMockWS();
-      const state = await stateManager.create();
+      await stateManager.create();
 
-      // Initialize session with legacy state (null refs)
+      // Initialize session with new state (null refs)
       const session = new GameSession(ws, stateManager);
+      const state = stateManager.getState()!;
       const result = await session.initialize(state.id, state.sessionToken);
 
       expect(result.success).toBe(true);
 
-      // Should be able to handle input
+      // Should be able to handle input (GM will use setup-required prompt)
       await session.handleInput("Hello world");
 
       // Should receive response messages
