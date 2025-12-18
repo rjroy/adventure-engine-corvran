@@ -196,7 +196,7 @@ describe("Error Handler", () => {
       expect(result.code).toBe("PROCESSING_TIMEOUT");
       expect(result.retryable).toBe(true);
       expect(result.userMessage).toBe(
-        "The game master is taking too long. Please try again."
+        "The game master is taking longer than expected. Your response may still arrive shortly."
       );
       expect(result.technicalDetails).toContain("60000ms");
       expect(result.originalError).toBe(error);
@@ -375,7 +375,7 @@ describe("Error Handler", () => {
       const error = new ProcessingTimeoutError(60000);
       const details = mapProcessingTimeoutError(error);
       expect(details.userMessage).toBe(
-        "The game master is taking too long. Please try again."
+        "The game master is taking longer than expected. Your response may still arrive shortly."
       );
       expect(details.retryable).toBe(true);
     });
