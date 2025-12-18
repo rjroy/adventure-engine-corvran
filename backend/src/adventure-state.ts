@@ -350,6 +350,22 @@ export class AdventureStateManager {
   }
 
   /**
+   * Clear agent session ID for recovery scenarios.
+   * Sets agentSessionId to null to force a new session on the next query.
+   * Used when the SDK rejects an invalid or expired session ID.
+   */
+  async clearAgentSessionId(): Promise<void> {
+    if (!this.state) {
+      throw new Error(
+        "No state loaded - call create() or load() first"
+      );
+    }
+
+    this.state.agentSessionId = null;
+    await this.save();
+  }
+
+  /**
    * Update current scene description
    * @param description New scene description
    */

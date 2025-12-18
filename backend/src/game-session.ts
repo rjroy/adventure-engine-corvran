@@ -20,8 +20,13 @@ import {
   mapProcessingTimeoutError,
   createErrorPayload,
   ProcessingTimeoutError,
+  isSessionRecoveryNeeded,
   type ErrorDetails,
 } from "./error-handler";
+import {
+  buildRecoveryContext,
+  buildRecoveryPrompt,
+} from "./services/history-context";
 import { env } from "./env";
 import { mockQuery } from "./mock-sdk";
 import type { BackgroundImageService } from "./services/background-image";
@@ -118,6 +123,11 @@ export class GameSession {
   private lastThemeChange: { mood: ThemeMood; timestamp: number } | null = null;
   private playerManager: PlayerManager | null = null;
   private worldManager: WorldManager | null = null;
+
+  /** Track recovery attempts to prevent infinite loops */
+  private recoveryAttempt = 0;
+  /** Maximum number of recovery attempts before giving up */
+  private static readonly MAX_RECOVERY_ATTEMPTS = 1;
 
   constructor(
     ws: WSContext,
@@ -343,20 +353,49 @@ export class GameSession {
       );
 
       // Generate and stream GM response using Claude Agent SDK
+      // If session error occurs, attempt recovery with context from history
       let fullResponse = "";
-      const responseGenerator = this.generateGMResponse(input, log);
+      let responseGenerator: AsyncGenerator<string, void, unknown>;
 
-      for await (const chunk of responseGenerator) {
-        fullResponse += chunk;
+      try {
+        responseGenerator = this.generateGMResponse(input, log);
 
-        // Send chunk
-        this.sendMessage(
-          {
-            type: "gm_response_chunk",
-            payload: { messageId, text: chunk },
-          },
-          log
-        );
+        for await (const chunk of responseGenerator) {
+          fullResponse += chunk;
+
+          // Send chunk
+          this.sendMessage(
+            {
+              type: "gm_response_chunk",
+              payload: { messageId, text: chunk },
+            },
+            log
+          );
+        }
+      } catch (error) {
+        // Check if this is a session error that warrants recovery
+        if (this.shouldAttemptRecovery(error)) {
+          log.warn({ err: error }, "Session error detected, attempting recovery");
+
+          // Attempt recovery - this will stream a new response
+          const recoveryGenerator = this.attemptSessionRecovery(input, log);
+
+          for await (const chunk of recoveryGenerator) {
+            fullResponse += chunk;
+
+            // Send chunk
+            this.sendMessage(
+              {
+                type: "gm_response_chunk",
+                payload: { messageId, text: chunk },
+              },
+              log
+            );
+          }
+        } else {
+          // Not a recoverable session error, re-throw
+          throw error;
+        }
       }
 
       // Send response end
@@ -397,6 +436,9 @@ export class GameSession {
       await this.stateManager.updateScene(
         sceneUpdate.substring(0, 500)
       );
+
+      // Reset recovery attempt counter on successful response
+      this.recoveryAttempt = 0;
     } catch (error) {
       // Map error to user-friendly details
       let errorDetails: ErrorDetails;
@@ -762,6 +804,129 @@ export class GameSession {
     }
   }
 
+  /**
+   * Check if an error warrants session recovery attempt.
+   * @param error The error to check
+   * @returns true if recovery should be attempted
+   */
+  private shouldAttemptRecovery(error: unknown): boolean {
+    // Don't recover if we've already tried
+    if (this.recoveryAttempt >= GameSession.MAX_RECOVERY_ATTEMPTS) {
+      return false;
+    }
+
+    // Check for SDK errors that indicate session issues
+    if (error instanceof AgentSDKError) {
+      return isSessionRecoveryNeeded(error.code);
+    }
+
+    // Check error message content for session-related errors
+    if (error instanceof Error) {
+      return isSessionRecoveryNeeded(undefined, error.message);
+    }
+
+    return false;
+  }
+
+  /**
+   * Send recovery status to user via tool_status message.
+   * @param phase The current recovery phase
+   * @param log Logger for correlation
+   */
+  private sendRecoveryStatus(
+    phase: "starting" | "context_loaded" | "complete" | "failed",
+    log: Logger
+  ): void {
+    const descriptions: Record<typeof phase, string> = {
+      starting: "Reconnecting to your adventure...",
+      context_loaded: "Restoring conversation context...",
+      complete: "Ready",
+      failed: "Recovery failed - starting fresh",
+    };
+
+    this.sendMessage(
+      {
+        type: "tool_status",
+        payload: {
+          state: phase === "complete" ? "idle" : "active",
+          description: descriptions[phase],
+        },
+      },
+      log
+    );
+  }
+
+  /**
+   * Attempt session recovery by retrying without resume.
+   * Builds recovery context from history and prepends to the prompt.
+   *
+   * @param originalInput The original user input that triggered the error
+   * @param log Logger for correlation
+   * @returns AsyncGenerator for streaming response, or null if recovery failed
+   */
+  private async *attemptSessionRecovery(
+    originalInput: string,
+    log: Logger
+  ): AsyncGenerator<string, void, unknown> {
+    // Check if we've already tried recovery
+    if (this.recoveryAttempt >= GameSession.MAX_RECOVERY_ATTEMPTS) {
+      log.error("Max recovery attempts reached, recovery failed");
+      this.sendRecoveryStatus("failed", log);
+      return;
+    }
+
+    this.recoveryAttempt++;
+    log.warn(
+      {
+        attempt: this.recoveryAttempt,
+        agentSessionId: this.stateManager.getState()?.agentSessionId,
+      },
+      "Starting session recovery"
+    );
+
+    // Step 1: Notify user
+    this.sendRecoveryStatus("starting", log);
+
+    // Step 2: Clear the invalid session ID
+    await this.stateManager.clearAgentSessionId();
+    log.info("Cleared invalid session ID");
+
+    // Step 3: Build recovery context from history
+    const history = this.stateManager.getHistory();
+    const recoveryContext = buildRecoveryContext(history, {
+      maxEntries: 20,
+      maxChars: 12000,
+      includeSummary: true,
+    });
+
+    log.info(
+      {
+        entriesIncluded: recoveryContext.entriesIncluded,
+        hasSummary: recoveryContext.hasSummary,
+        contextLength: recoveryContext.contextPrompt.length,
+      },
+      "Recovery context built"
+    );
+
+    this.sendRecoveryStatus("context_loaded", log);
+
+    // Step 4: Build recovery prompt with context
+    const recoveryPrompt = buildRecoveryPrompt(originalInput, recoveryContext);
+
+    // Step 5: Retry query without resume (generateGMResponse will use null agentSessionId)
+    try {
+      yield* this.generateGMResponse(recoveryPrompt, log);
+
+      // Reset recovery attempt counter on success
+      this.recoveryAttempt = 0;
+      this.sendRecoveryStatus("complete", log);
+      log.info("Session recovery completed successfully");
+    } catch (recoveryError) {
+      log.error({ err: recoveryError }, "Recovery attempt failed");
+      this.sendRecoveryStatus("failed", log);
+      throw recoveryError;
+    }
+  }
 
   /**
    * Handle set_theme tool call from GM

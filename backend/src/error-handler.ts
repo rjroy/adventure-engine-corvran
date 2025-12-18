@@ -217,3 +217,36 @@ export function isStateCorruption(errorCode: ErrorCode): boolean {
 export function isRetryable(details: ErrorDetails): boolean {
   return details.retryable;
 }
+
+/**
+ * Check if an SDK error indicates a session recovery is needed.
+ * Session recovery is triggered when the Claude Agent SDK rejects
+ * a resume session ID as invalid or expired.
+ * @param sdkErrorCode The SDK error code (if available)
+ * @param errorMessage Optional error message to check for session-related keywords
+ * @returns true if session recovery should be attempted
+ */
+export function isSessionRecoveryNeeded(
+  sdkErrorCode: SDKAssistantMessageError | undefined,
+  errorMessage?: string
+): boolean {
+  // invalid_request often indicates session ID issues when resume is used
+  if (sdkErrorCode === "invalid_request") {
+    return true;
+  }
+
+  // Check error message content for session-related keywords
+  if (errorMessage) {
+    const msg = errorMessage.toLowerCase();
+    return (
+      msg.includes("session not found") ||
+      msg.includes("invalid session") ||
+      msg.includes("session expired") ||
+      msg.includes("conversation not found") ||
+      msg.includes("resume failed") ||
+      msg.includes("no conversation")
+    );
+  }
+
+  return false;
+}

@@ -727,4 +727,115 @@ describe("GameSession", () => {
     });
   });
   /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/require-await */
+
+  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/require-await */
+  describe("Session Recovery", () => {
+    test("shouldAttemptRecovery returns false when no error", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      // Access private method
+      const result = (session as any).shouldAttemptRecovery(new Error("Generic error"));
+      // Generic errors without session keywords should not trigger recovery
+      expect(result).toBe(false);
+    });
+
+    test("shouldAttemptRecovery returns true for session-related error message", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      const sessionError = new Error("Session not found");
+      const result = (session as any).shouldAttemptRecovery(sessionError);
+      expect(result).toBe(true);
+    });
+
+    test("shouldAttemptRecovery returns false after max attempts reached", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      // Manually set recovery attempt to max
+      (session as any).recoveryAttempt = 1; // MAX_RECOVERY_ATTEMPTS is 1
+
+      const sessionError = new Error("Session not found");
+      const result = (session as any).shouldAttemptRecovery(sessionError);
+      expect(result).toBe(false);
+    });
+
+    test("sendRecoveryStatus sends tool_status message", async () => {
+      const { ws, messages } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      // Access private method with mock logger
+      const mockLogger = {
+        debug: () => {},
+        info: () => {},
+        warn: () => {},
+        error: () => {},
+      };
+
+      (session as any).sendRecoveryStatus("starting", mockLogger);
+
+      const statusMessages = messages.filter((m) => m.type === "tool_status");
+      expect(statusMessages.length).toBe(1);
+
+      const statusMsg = statusMessages[0];
+      if (statusMsg.type === "tool_status") {
+        expect(statusMsg.payload.state).toBe("active");
+        expect(statusMsg.payload.description).toBe("Reconnecting to your adventure...");
+      }
+    });
+
+    test("sendRecoveryStatus sends complete status as idle", async () => {
+      const { ws, messages } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      const mockLogger = {
+        debug: () => {},
+        info: () => {},
+        warn: () => {},
+        error: () => {},
+      };
+
+      (session as any).sendRecoveryStatus("complete", mockLogger);
+
+      const statusMessages = messages.filter((m) => m.type === "tool_status");
+      expect(statusMessages.length).toBe(1);
+
+      const statusMsg = statusMessages[0];
+      if (statusMsg.type === "tool_status") {
+        expect(statusMsg.payload.state).toBe("idle");
+        expect(statusMsg.payload.description).toBe("Ready");
+      }
+    });
+
+    test("clearAgentSessionId is available on stateManager", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      // Set a fake session ID first
+      await stateManager.updateAgentSessionId("test-session-id");
+      expect(session.getState()?.agentSessionId).toBe("test-session-id");
+
+      // Clear it
+      await stateManager.clearAgentSessionId();
+      expect(session.getState()?.agentSessionId).toBeNull();
+    });
+
+    test("recovery resets attempt counter on success", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      // After a successful input, recovery attempt should be 0
+      await session.handleInput("Test input");
+      expect((session as any).recoveryAttempt).toBe(0);
+    });
+  });
+  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/require-await */
 });
