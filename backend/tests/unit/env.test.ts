@@ -362,16 +362,47 @@ describe("validateEnvironment", () => {
     expect(result.config.logFile).toBe(false);
   });
 
-  test("continues parsing after validation errors", () => {
-    // Even if PORT is invalid, other values should still be parsed
+  test("HOST validation accepts localhost", () => {
     const result = validateEnvironment({
-      PORT: "invalid",
-      HOST: "myhost",
+      HOST: "localhost",
+      REPLICATE_API_TOKEN: "token",
+    });
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.config.host).toBe("localhost");
+  });
+
+  test("HOST validation accepts 0.0.0.0", () => {
+    const result = validateEnvironment({
+      HOST: "0.0.0.0",
+      REPLICATE_API_TOKEN: "token",
+    });
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.config.host).toBe("0.0.0.0");
+  });
+
+  test("HOST validation rejects unavailable IP", () => {
+    const result = validateEnvironment({
+      HOST: "192.168.99.99",
       REPLICATE_API_TOKEN: "token",
     });
 
     expect(result.errors).toHaveLength(1);
-    expect(result.config.host).toBe("myhost");
+    expect(result.errors[0]).toContain("192.168.99.99");
+    expect(result.errors[0]).toContain("not available on any network interface");
+  });
+
+  test("continues parsing after validation errors", () => {
+    // Even if PORT is invalid, other values should still be parsed
+    const result = validateEnvironment({
+      PORT: "invalid",
+      HOST: "localhost",
+      REPLICATE_API_TOKEN: "token",
+    });
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.config.host).toBe("localhost");
     expect(result.config.replicateApiToken).toBe("token");
   });
 });

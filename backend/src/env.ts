@@ -16,6 +16,7 @@
  * ```
  */
 
+import { networkInterfaces } from "os";
 import { logger } from "./logger";
 import { DEFAULT_PATHS } from "./paths";
 
@@ -154,6 +155,57 @@ export function parseBoolean(value: string | undefined, defaultValue: boolean): 
 }
 
 /**
+ * Special hostnames that don't require network interface validation
+ */
+const SPECIAL_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::", "::1"]);
+
+/**
+ * Get all available IP addresses from network interfaces
+ */
+function getAvailableIPs(): Set<string> {
+  const ips = new Set<string>();
+  const interfaces = networkInterfaces();
+
+  for (const name in interfaces) {
+    const iface = interfaces[name];
+    if (iface) {
+      for (const info of iface) {
+        ips.add(info.address);
+      }
+    }
+  }
+
+  return ips;
+}
+
+/**
+ * Validate HOST environment variable.
+ * Ensures the specified IP address exists on a network interface.
+ * @throws Error if HOST is not available on any network interface
+ */
+export function validateHost(host: string | undefined): string {
+  const hostValue = host || "localhost";
+
+  // Special hosts are always valid
+  if (SPECIAL_HOSTS.has(hostValue)) {
+    return hostValue;
+  }
+
+  // Check if the IP exists on any network interface
+  const availableIPs = getAvailableIPs();
+  if (!availableIPs.has(hostValue)) {
+    const availableList = Array.from(availableIPs).join(", ");
+    throw new Error(
+      `HOST "${hostValue}" is not available on any network interface. ` +
+        `Available IPs: ${availableList}. ` +
+        `Use "localhost", "0.0.0.0", or a valid interface IP.`
+    );
+  }
+
+  return hostValue;
+}
+
+/**
  * Raw environment values for testing
  */
 export interface RawEnv {
@@ -249,6 +301,14 @@ export function validateEnvironment(rawEnv: RawEnv = process.env): ValidationRes
     errors.push((e as Error).message);
   }
 
+  // Validate HOST is available on a network interface
+  let host = "localhost";
+  try {
+    host = validateHost(rawEnv.HOST);
+  } catch (e) {
+    errors.push((e as Error).message);
+  }
+
   // Parse compaction settings
   let compactionCharThreshold = 100000;
   let retainedEntryCount = 20;
@@ -276,7 +336,7 @@ export function validateEnvironment(rawEnv: RawEnv = process.env): ValidationRes
   // Build config
   const config: EnvConfig = {
     port,
-    host: rawEnv.HOST || "localhost",
+    host,
     adventuresDir: rawEnv.ADVENTURES_DIR || DEFAULT_PATHS.adventures,
     allowedOrigins: parseAllowedOrigins(rawEnv.ALLOWED_ORIGINS),
     maxConnections,
