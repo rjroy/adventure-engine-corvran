@@ -476,7 +476,8 @@ export class GameSession {
         includePartialMessages: true, // Enable token streaming
         permissionMode: "acceptEdits", // Auto-accept file edits within sandbox
         model: "claude-sonnet-4-5", // Use latest Sonnet for quality
-        maxTurns: 15, // Allow multiple file reads/writes + response
+        maxTurns: 20, // Allow multiple file reads/writes + response
+        maxThinkingTokens: 10000, // Allow extensive reasoning
       },
     });
 
