@@ -94,6 +94,54 @@ export class WorldManager {
   }
 
   /**
+   * Create a world directory at a specific slug without collision detection.
+   *
+   * Use this for auto-creation when restoring from a saved worldRef.
+   * Unlike create(), this does NOT generate a new slug or check for collisions.
+   *
+   * @param slug The exact slug to use (directory name)
+   * @throws Error if slug is invalid or directory creation fails
+   */
+  async createAtSlug(slug: string): Promise<void> {
+    // Validate the slug for security
+    const validation = validateSlug(slug);
+    if (!validation.valid) {
+      throw new Error(`Invalid slug: ${validation.error}`);
+    }
+
+    // Get safe path (validates against traversal)
+    const worldPath = safeResolvePath(this.worldsDir, slug);
+    if (worldPath === null) {
+      throw new Error(`Invalid slug: path traversal detected`);
+    }
+
+    // Create directory with restrictive permissions
+    await mkdir(worldPath, { recursive: true, mode: 0o700 });
+
+    // Write template files atomically
+    const writePromises = Object.entries(WORLD_TEMPLATES).map(
+      async ([filename, content]) => {
+        const filePath = join(worldPath, filename);
+        const tempPath = join(worldPath, `.${filename}.tmp`);
+
+        try {
+          await writeFile(tempPath, content, { encoding: "utf-8", mode: 0o600 });
+          await rename(tempPath, filePath);
+        } catch (error) {
+          try {
+            await unlink(tempPath);
+          } catch {
+            /* ignore cleanup errors */
+          }
+          throw error;
+        }
+      }
+    );
+
+    await Promise.all(writePromises);
+  }
+
+  /**
    * Check if a world with the given slug exists
    *
    * @param slug World slug to check

@@ -455,4 +455,109 @@ describe("WorldManager", () => {
       expect(worlds).toHaveLength(3);
     });
   });
+
+  describe("createAtSlug()", () => {
+    test("creates directory at exact slug without collision detection", async () => {
+      // First create a world with generateSlug
+      await manager.create("Eldoria");
+      expect(await manager.exists("eldoria")).toBe(true);
+
+      // Now use createAtSlug to create at exact slug (would normally collide)
+      // This should NOT append -2, it should create at the exact path
+      await manager.createAtSlug("eldoria-exact");
+
+      expect(await manager.exists("eldoria-exact")).toBe(true);
+      expect(await manager.exists("eldoria")).toBe(true);
+    });
+
+    test("creates all four template files", async () => {
+      await manager.createAtSlug("test-world");
+
+      const worldPath = join(TEST_WORLDS_DIR, "test-world");
+      const files = await readdir(worldPath);
+
+      expect(files).toContain("world_state.md");
+      expect(files).toContain("locations.md");
+      expect(files).toContain("characters.md");
+      expect(files).toContain("quests.md");
+      expect(files.length).toBe(4);
+    });
+
+    test("creates template files with correct content", async () => {
+      await manager.createAtSlug("content-test");
+
+      const worldPath = join(TEST_WORLDS_DIR, "content-test");
+
+      const worldState = await readFile(join(worldPath, "world_state.md"), "utf-8");
+      expect(worldState).toBe("# World State\n\n*World facts will be established in adventure.*");
+
+      const locations = await readFile(join(worldPath, "locations.md"), "utf-8");
+      expect(locations).toBe("# Locations\n\n*Discovered places will be recorded here.*");
+
+      const characters = await readFile(join(worldPath, "characters.md"), "utf-8");
+      expect(characters).toBe("# Characters\n\n*NPCs and notable characters will be recorded here.*");
+
+      const quests = await readFile(join(worldPath, "quests.md"), "utf-8");
+      expect(quests).toBe("# Quests\n\n*Active and completed quests will be tracked here.*");
+    });
+
+    test("throws error for invalid slug", async () => {
+      /* eslint-disable @typescript-eslint/await-thenable -- createAtSlug returns Promise but ESLint doesn't see it */
+      await expect(manager.createAtSlug("")).rejects.toThrow("Invalid slug");
+      await expect(manager.createAtSlug("   ")).rejects.toThrow("Invalid slug");
+      await expect(manager.createAtSlug("../etc")).rejects.toThrow("Invalid slug");
+      /* eslint-enable @typescript-eslint/await-thenable */
+    });
+
+    test("throws error for path traversal attempt", async () => {
+      /* eslint-disable @typescript-eslint/await-thenable -- createAtSlug returns Promise but ESLint doesn't see it */
+      await expect(manager.createAtSlug("..")).rejects.toThrow("Invalid slug");
+      await expect(manager.createAtSlug("foo..bar")).rejects.toThrow("Invalid slug");
+      /* eslint-enable @typescript-eslint/await-thenable */
+    });
+
+    test("can recreate directory if it already exists", async () => {
+      // Create world first
+      await manager.createAtSlug("existing-world");
+      expect(await manager.exists("existing-world")).toBe(true);
+
+      // Create again at same slug - should succeed (mkdir recursive: true)
+      await manager.createAtSlug("existing-world");
+      expect(await manager.exists("existing-world")).toBe(true);
+    });
+
+    test("does not modify slug (no collision suffix)", async () => {
+      // Create "eldoria" with create() which uses collision detection
+      await manager.create("Eldoria");
+      expect(await manager.exists("eldoria")).toBe(true);
+
+      // Now manually create "eldoria" with createAtSlug
+      // This will succeed because mkdir { recursive: true } allows existing dirs
+      await manager.createAtSlug("eldoria");
+      expect(await manager.exists("eldoria")).toBe(true);
+
+      // Verify no "eldoria-2" was created
+      expect(await manager.exists("eldoria-2")).toBe(false);
+    });
+
+    test("creates directory with correct permissions", async () => {
+      await manager.createAtSlug("secure-world");
+
+      const worldPath = join(TEST_WORLDS_DIR, "secure-world");
+      const stats = await stat(worldPath);
+      const permissions = stats.mode & 0o777;
+
+      expect(permissions).toBe(0o700);
+    });
+
+    test("creates files with correct permissions", async () => {
+      await manager.createAtSlug("secure-files");
+
+      const filePath = join(TEST_WORLDS_DIR, "secure-files", "world_state.md");
+      const stats = await stat(filePath);
+      const permissions = stats.mode & 0o777;
+
+      expect(permissions).toBe(0o600);
+    });
+  });
 });
