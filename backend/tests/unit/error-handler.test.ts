@@ -12,6 +12,7 @@ import {
   createErrorPayload,
   isStateCorruption,
   isRetryable,
+  isSessionRecoveryNeeded,
   type ErrorDetails,
 } from "../../src/error-handler";
 import type { SDKAssistantMessageError } from "@anthropic-ai/claude-agent-sdk";
@@ -388,6 +389,56 @@ describe("Error Handler", () => {
       expect(payload.code).toBe("PROCESSING_TIMEOUT");
       expect(payload.retryable).toBe(true);
       expect(typeof payload.message).toBe("string");
+    });
+  });
+
+  describe("isSessionRecoveryNeeded()", () => {
+    test("returns true for invalid_request SDK error code", () => {
+      expect(isSessionRecoveryNeeded("invalid_request")).toBe(true);
+    });
+
+    test("returns false for other SDK error codes", () => {
+      expect(isSessionRecoveryNeeded("rate_limit")).toBe(false);
+      expect(isSessionRecoveryNeeded("server_error")).toBe(false);
+      expect(isSessionRecoveryNeeded("authentication_failed")).toBe(false);
+      expect(isSessionRecoveryNeeded("billing_error")).toBe(false);
+      expect(isSessionRecoveryNeeded("unknown")).toBe(false);
+    });
+
+    test("returns true for session-related error messages", () => {
+      expect(isSessionRecoveryNeeded(undefined, "Session not found")).toBe(true);
+      expect(isSessionRecoveryNeeded(undefined, "Invalid session ID")).toBe(true);
+      expect(isSessionRecoveryNeeded(undefined, "Session expired")).toBe(true);
+      expect(isSessionRecoveryNeeded(undefined, "Conversation not found")).toBe(true);
+      expect(isSessionRecoveryNeeded(undefined, "Resume failed for session")).toBe(true);
+      expect(isSessionRecoveryNeeded(undefined, "No conversation found")).toBe(true);
+    });
+
+    test("returns true for SDK process exit errors", () => {
+      expect(isSessionRecoveryNeeded(undefined, "Claude Code process exited with code 1")).toBe(true);
+      expect(isSessionRecoveryNeeded(undefined, "Process exited with code 1")).toBe(true);
+    });
+
+    test("is case-insensitive for error messages", () => {
+      expect(isSessionRecoveryNeeded(undefined, "SESSION NOT FOUND")).toBe(true);
+      expect(isSessionRecoveryNeeded(undefined, "session not found")).toBe(true);
+      expect(isSessionRecoveryNeeded(undefined, "Session Not Found")).toBe(true);
+    });
+
+    test("returns false for unrelated error messages", () => {
+      expect(isSessionRecoveryNeeded(undefined, "Network timeout")).toBe(false);
+      expect(isSessionRecoveryNeeded(undefined, "Rate limit exceeded")).toBe(false);
+      expect(isSessionRecoveryNeeded(undefined, "Authentication failed")).toBe(false);
+    });
+
+    test("returns false with no arguments", () => {
+      expect(isSessionRecoveryNeeded(undefined, undefined)).toBe(false);
+      expect(isSessionRecoveryNeeded(undefined)).toBe(false);
+    });
+
+    test("SDK error code takes precedence over message", () => {
+      // invalid_request should trigger recovery even with unrelated message
+      expect(isSessionRecoveryNeeded("invalid_request", "Some other error")).toBe(true);
     });
   });
 });
