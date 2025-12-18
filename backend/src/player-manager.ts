@@ -129,6 +129,69 @@ export class PlayerManager {
   }
 
   /**
+   * Create a player directory at a specific slug without collision detection.
+   *
+   * Use this for auto-creation when restoring from a saved playerRef.
+   * Unlike create(), this does NOT generate a new slug or check for collisions.
+   *
+   * @param slug The exact slug to use (directory name)
+   * @throws Error if slug is invalid or directory creation fails
+   */
+  async createAtSlug(slug: string): Promise<void> {
+    // Validate the slug for security
+    const validation = validateSlug(slug);
+    if (!validation.valid) {
+      throw new Error(`Invalid slug: ${validation.error}`);
+    }
+
+    const safePath = safeResolvePath(this.playersDir, slug);
+    if (safePath === null) {
+      throw new Error(`Invalid slug: path traversal detected`);
+    }
+
+    const playerDir = safePath;
+
+    // Create directory with restrictive permissions
+    await mkdir(playerDir, { recursive: true, mode: 0o700 });
+
+    const sheetPath = join(playerDir, "sheet.md");
+    const statePath = join(playerDir, "state.md");
+    const sheetTempPath = join(playerDir, ".sheet.md.tmp");
+    const stateTempPath = join(playerDir, ".state.md.tmp");
+
+    try {
+      // Atomic write for sheet.md
+      await writeFile(sheetTempPath, SHEET_TEMPLATE, {
+        encoding: "utf-8",
+        mode: 0o600,
+      });
+      await rename(sheetTempPath, sheetPath);
+
+      // Atomic write for state.md
+      await writeFile(stateTempPath, STATE_TEMPLATE, {
+        encoding: "utf-8",
+        mode: 0o600,
+      });
+      await rename(stateTempPath, statePath);
+
+      this.log.info({ slug }, "Created player directory at slug");
+    } catch (error) {
+      // Clean up temp files on error
+      try {
+        await unlink(sheetTempPath);
+      } catch {
+        /* ignore */
+      }
+      try {
+        await unlink(stateTempPath);
+      } catch {
+        /* ignore */
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Check if a player directory exists.
    *
    * @param slug Player slug (directory name)

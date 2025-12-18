@@ -133,6 +133,71 @@ describe("PlayerManager", () => {
     });
   });
 
+  describe("createAtSlug()", () => {
+    test("creates directory at exact slug without collision detection", async () => {
+      const manager = new PlayerManager(tempDir);
+
+      // First create a player with collision detection
+      await manager.create("Hero");
+      expect(manager.exists("hero")).toBe(true);
+
+      // Now use createAtSlug - should create at exact slug even if similar exists
+      await manager.createAtSlug("hero-custom");
+      expect(manager.exists("hero-custom")).toBe(true);
+      expect(manager.exists("hero")).toBe(true);
+    });
+
+    test("creates template files", async () => {
+      const manager = new PlayerManager(tempDir);
+
+      await manager.createAtSlug("template-test");
+
+      const sheetPath = join(playersDir, "template-test", "sheet.md");
+      const statePath = join(playersDir, "template-test", "state.md");
+
+      expect(existsSync(sheetPath)).toBe(true);
+      expect(existsSync(statePath)).toBe(true);
+    });
+
+    test("throws error for invalid slug", async () => {
+      const manager = new PlayerManager(tempDir);
+
+      /* eslint-disable @typescript-eslint/await-thenable -- createAtSlug returns Promise but ESLint doesn't see it */
+      await expect(manager.createAtSlug("")).rejects.toThrow("Invalid slug");
+      await expect(manager.createAtSlug("../escape")).rejects.toThrow();
+      await expect(manager.createAtSlug("with/slash")).rejects.toThrow();
+      /* eslint-enable @typescript-eslint/await-thenable */
+    });
+
+    test("can recreate directory if it already exists", async () => {
+      const manager = new PlayerManager(tempDir);
+
+      // Create directory first
+      await manager.createAtSlug("recreate-test");
+      expect(manager.exists("recreate-test")).toBe(true);
+
+      // Calling again should not throw (mkdir recursive: true)
+      await manager.createAtSlug("recreate-test");
+      expect(manager.exists("recreate-test")).toBe(true);
+    });
+
+    test("does not modify slug (no collision suffix)", async () => {
+      const manager = new PlayerManager(tempDir);
+
+      // Create "hero" first using normal create
+      await manager.create("Hero");
+
+      // createAtSlug should NOT add collision suffix
+      await manager.createAtSlug("hero");
+      // Directory already existed, so this just overwrites templates
+
+      // Only one "hero" directory should exist, no "hero-2"
+      const players = await manager.list();
+      expect(players.map((p) => p.slug)).not.toContain("hero-2");
+      expect(players.filter((p) => p.slug === "hero")).toHaveLength(1);
+    });
+  });
+
   describe("exists()", () => {
     test("returns true for existing player directory", async () => {
       const manager = new PlayerManager(tempDir);

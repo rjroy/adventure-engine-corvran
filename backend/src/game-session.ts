@@ -191,20 +191,16 @@ export class GameSession {
     this.worldManager = new WorldManager(projectDir);
 
     // Auto-create missing ref directories if refs are set but directories don't exist (TD-5)
+    // Uses createAtSlug() to preserve the exact slug from the saved state
     const state = this.stateManager.getState();
     if (state) {
       // Check playerRef
       if (state.playerRef) {
         const playerSlug = state.playerRef.replace(/^players\//, "");
         if (!this.playerManager.exists(playerSlug)) {
-          logger.info({ playerRef: state.playerRef }, "Auto-creating missing player directory from ref");
+          logger.info({ playerRef: state.playerRef, playerSlug }, "Auto-creating missing player directory from ref");
           try {
-            // Extract name from slug (convert kael-thouls to Kael Thouls)
-            const displayName = playerSlug
-              .split("-")
-              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(" ");
-            await this.playerManager.create(displayName);
+            await this.playerManager.createAtSlug(playerSlug);
           } catch (error) {
             logger.error({ err: error, playerRef: state.playerRef }, "Failed to auto-create player directory");
             // Continue anyway - GM will handle missing files
@@ -216,14 +212,9 @@ export class GameSession {
       if (state.worldRef) {
         const worldSlug = state.worldRef.replace(/^worlds\//, "");
         if (!(await this.worldManager.exists(worldSlug))) {
-          logger.info({ worldRef: state.worldRef }, "Auto-creating missing world directory from ref");
+          logger.info({ worldRef: state.worldRef, worldSlug }, "Auto-creating missing world directory from ref");
           try {
-            // Extract name from slug
-            const displayName = worldSlug
-              .split("-")
-              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(" ");
-            await this.worldManager.create(displayName);
+            await this.worldManager.createAtSlug(worldSlug);
           } catch (error) {
             logger.error({ err: error, worldRef: state.worldRef }, "Failed to auto-create world directory");
             // Continue anyway - GM will handle missing files
