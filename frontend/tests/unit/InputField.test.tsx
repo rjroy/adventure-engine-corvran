@@ -65,6 +65,18 @@ describe("InputField", () => {
       expect(onSubmit).toHaveBeenCalledWith("go north");
     });
 
+    test("Shift+Enter adds newline instead of submitting", async () => {
+      const user = userEvent.setup();
+      const onSubmit = vi.fn();
+      render(<InputField onSubmit={onSubmit} />);
+
+      const input = screen.getByRole("textbox");
+      await user.type(input, "line one{Shift>}{Enter}{/Shift}line two");
+
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(input).toHaveValue("line one\nline two");
+    });
+
     test("does not submit whitespace-only input", async () => {
       const user = userEvent.setup();
       const onSubmit = vi.fn();
