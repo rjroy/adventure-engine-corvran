@@ -204,4 +204,71 @@ describe("buildGMSystemPrompt", () => {
       expect(prompt).toContain("never /tmp/");
     });
   });
+
+  describe("XP guidance", () => {
+    test("prompts player for XP preference when xpStyle is undefined", () => {
+      const state = createTestState();
+      // xpStyle is undefined by default
+      const prompt = buildGMSystemPrompt(state);
+
+      expect(prompt).toContain("XP PREFERENCE (not yet set)");
+      expect(prompt).toContain("ask the player how they prefer XP to be awarded");
+      expect(prompt).toContain("Frequent");
+      expect(prompt).toContain("Milestone");
+      expect(prompt).toContain("Combat-plus");
+      expect(prompt).toContain("set_xp_style");
+    });
+
+    test("includes frequent style guidance when xpStyle is frequent", () => {
+      const state = createTestState({
+        playerCharacter: {
+          name: "Test Hero",
+          attributes: {},
+          xpStyle: "frequent",
+        },
+      });
+      const prompt = buildGMSystemPrompt(state);
+
+      expect(prompt).toContain("XP AWARDS (Frequent Style)");
+      expect(prompt).toContain("Award XP immediately when earned");
+      expect(prompt).toContain("Exploration: 25-50 XP");
+      expect(prompt).toContain("Roleplay: 25 XP");
+      expect(prompt).toContain("Creativity: 25-50 XP");
+      expect(prompt).not.toContain("XP PREFERENCE (not yet set)");
+    });
+
+    test("includes milestone style guidance when xpStyle is milestone", () => {
+      const state = createTestState({
+        playerCharacter: {
+          name: "Test Hero",
+          attributes: {},
+          xpStyle: "milestone",
+        },
+      });
+      const prompt = buildGMSystemPrompt(state);
+
+      expect(prompt).toContain("XP AWARDS (Milestone Style)");
+      expect(prompt).toContain("Award XP at natural story beats");
+      expect(prompt).toContain("Quest completion: 100-300 XP");
+      expect(prompt).toContain("narrative summary");
+      expect(prompt).not.toContain("XP PREFERENCE (not yet set)");
+    });
+
+    test("includes combat-plus style guidance when xpStyle is combat-plus", () => {
+      const state = createTestState({
+        playerCharacter: {
+          name: "Test Hero",
+          attributes: {},
+          xpStyle: "combat-plus",
+        },
+      });
+      const prompt = buildGMSystemPrompt(state);
+
+      expect(prompt).toContain("XP AWARDS (Combat-Plus Style)");
+      expect(prompt).toContain("Always award NPC Reward XP");
+      expect(prompt).toContain("Exceptional moments");
+      expect(prompt).toContain("rare and meaningful");
+      expect(prompt).not.toContain("XP PREFERENCE (not yet set)");
+    });
+  });
 });

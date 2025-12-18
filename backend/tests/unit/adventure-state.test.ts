@@ -734,4 +734,61 @@ describe("AdventureStateManager", () => {
       expect(adventureDir).toBe(resolve(TEST_ADVENTURES_DIR, state.id));
     });
   });
+
+  describe("updateXpStyle()", () => {
+    test("updates xpStyle to frequent", async () => {
+      await manager.create();
+
+      await manager.updateXpStyle("frequent");
+
+      const state = manager.getState();
+      expect(state?.playerCharacter.xpStyle).toBe("frequent");
+    });
+
+    test("updates xpStyle to milestone", async () => {
+      await manager.create();
+
+      await manager.updateXpStyle("milestone");
+
+      const state = manager.getState();
+      expect(state?.playerCharacter.xpStyle).toBe("milestone");
+    });
+
+    test("updates xpStyle to combat-plus", async () => {
+      await manager.create();
+
+      await manager.updateXpStyle("combat-plus");
+
+      const state = manager.getState();
+      expect(state?.playerCharacter.xpStyle).toBe("combat-plus");
+    });
+
+    test("persists xpStyle to disk", async () => {
+      const state = await manager.create();
+
+      await manager.updateXpStyle("milestone");
+
+      // Reload and verify
+      const newManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+      const result = await newManager.load(state.id, state.sessionToken);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.state.playerCharacter.xpStyle).toBe("milestone");
+      }
+    });
+
+    test("throws error when no state loaded", async () => {
+      const freshManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+
+      let errorThrown = false;
+      try {
+        await freshManager.updateXpStyle("frequent");
+      } catch (error) {
+        errorThrown = true;
+        expect((error as Error).message).toContain("No state loaded");
+      }
+      expect(errorThrown).toBe(true);
+    });
+  });
 });

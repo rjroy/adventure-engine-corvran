@@ -10,8 +10,8 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { SDKAssistantMessageError } from "@anthropic-ai/claude-agent-sdk";
 import { AdventureStateManager } from "./adventure-state";
 import type { AdventureState } from "./types/state";
-import type { ServerMessage, NarrativeEntry, ThemeMood, Genre, Region } from "./types/protocol";
-import { buildGMSystemPrompt, createThemeMcpServer } from "./gm-prompt";
+import type { ServerMessage, NarrativeEntry, ThemeMood, Genre, Region, XpStyle } from "./types/protocol";
+import { buildGMSystemPrompt, createGMMcpServer } from "./gm-prompt";
 import {
   mapSDKError,
   mapGenericError,
@@ -424,10 +424,11 @@ export class GameSession {
       return;
     }
 
-    // Create MCP server for set_theme tool (UI theme updates)
-    const themeMcpServer = createThemeMcpServer(
+    // Create MCP server for GM tools (set_theme and set_xp_style)
+    const gmMcpServer = createGMMcpServer(
+      // Theme change callback
       async (mood, genre, region, forceGenerate, imagePrompt) => {
-        log.debug({ mood, genre, region }, "MCP callback invoked");
+        log.debug({ mood, genre, region }, "set_theme MCP callback invoked");
         try {
           await this.handleSetThemeTool(
             {
@@ -439,9 +440,20 @@ export class GameSession {
             },
             log
           );
-          log.debug({ mood }, "MCP callback completed successfully");
+          log.debug({ mood }, "set_theme MCP callback completed successfully");
         } catch (error) {
-          log.error({ err: error, mood }, "MCP callback error");
+          log.error({ err: error, mood }, "set_theme MCP callback error");
+          throw error;
+        }
+      },
+      // XP style change callback
+      async (xpStyle) => {
+        log.debug({ xpStyle }, "set_xp_style MCP callback invoked");
+        try {
+          await this.handleSetXpStyleTool(xpStyle, log);
+          log.debug({ xpStyle }, "set_xp_style MCP callback completed successfully");
+        } catch (error) {
+          log.error({ err: error, xpStyle }, "set_xp_style MCP callback error");
           throw error;
         }
       }
@@ -451,6 +463,7 @@ export class GameSession {
     // - File operations (Read, Write, Glob, Grep) for state management in markdown files
     // - Bash for dice rolling (scripts/roll.sh) when System.md defines RPG rules
     // - set_theme for UI visual updates
+    // - set_xp_style for saving player's XP preference
     const allowedTools = [
       "Skill",
       "Read",
@@ -458,7 +471,8 @@ export class GameSession {
       "Glob",
       "Grep",
       "Bash",
-      "mcp__adventure-theme__set_theme",
+      "mcp__adventure-gm__set_theme",
+      "mcp__adventure-gm__set_xp_style",
     ];
 
     // Query Claude Agent SDK with resume for conversation continuity
@@ -467,8 +481,8 @@ export class GameSession {
       options: {
         resume: state.agentSessionId ?? undefined, // Resume conversation if available
         systemPrompt,
-        // Provide set_theme via MCP server (keyed by server name)
-        mcpServers: { "adventure-theme": themeMcpServer },
+        // Provide GM tools via MCP server (keyed by server name)
+        mcpServers: { "adventure-gm": gmMcpServer },
         // SDK provides tools by default; allowedTools filters to what we need
         allowedTools,
         cwd: this.projectDirectory,
@@ -618,6 +632,22 @@ export class GameSession {
       },
       log
     );
+  }
+
+  /**
+   * Handle set_xp_style tool call from GM
+   * Persists the player's XP style preference to adventure state
+   * @param xpStyle The player's chosen XP style
+   * @param requestLogger Optional request-scoped logger for log correlation
+   */
+  private async handleSetXpStyleTool(
+    xpStyle: XpStyle,
+    requestLogger?: Logger
+  ): Promise<void> {
+    const log = requestLogger ?? logger;
+    log.debug({ xpStyle }, "handleSetXpStyleTool");
+    await this.stateManager.updateXpStyle(xpStyle);
+    log.info({ xpStyle }, "XP style preference saved");
   }
 
   /**

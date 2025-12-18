@@ -12,6 +12,7 @@ export type {
   PlayerCharacter,
   NPC,
   CombatState,
+  XpStyle,
 } from "../../../shared/protocol";
 
 export {

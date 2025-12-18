@@ -4,7 +4,7 @@
 import { mkdir, writeFile, readFile, rename, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import type { NarrativeEntry } from "../../shared/protocol";
+import type { NarrativeEntry, XpStyle } from "../../shared/protocol";
 import type {
   AdventureState,
   NarrativeHistory,
@@ -408,6 +408,19 @@ export class AdventureStateManager {
     }
 
     this.state.currentTheme = { mood, genre, region, backgroundUrl };
+    await this.save();
+  }
+
+  /**
+   * Update player's XP award style preference
+   * @param xpStyle The player's chosen XP style
+   */
+  async updateXpStyle(xpStyle: XpStyle): Promise<void> {
+    if (!this.state) {
+      throw new Error("No state loaded - call create() or load() first");
+    }
+
+    this.state.playerCharacter.xpStyle = xpStyle;
     await this.save();
   }
 
