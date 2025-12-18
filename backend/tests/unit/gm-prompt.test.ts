@@ -207,6 +207,140 @@ describe("buildGMSystemPrompt", () => {
     });
   });
 
+  describe("dynamic paths with refs", () => {
+    test("uses legacy paths when refs are null", () => {
+      const state = createTestState({
+        playerRef: null,
+        worldRef: null,
+      });
+      const prompt = buildGMSystemPrompt(state);
+
+      // Should use legacy file paths
+      expect(prompt).toContain("./player.md - Player character details");
+      expect(prompt).toContain("./characters.md - NPCs");
+      expect(prompt).toContain("./world_state.md - Established world facts");
+      expect(prompt).toContain("./locations.md - Known places");
+      expect(prompt).toContain("./quests.md - Active quests");
+    });
+
+    test("uses dynamic player paths when playerRef is set", () => {
+      const state = createTestState({
+        playerRef: "players/kael-thouls",
+        worldRef: "worlds/eldoria",
+      });
+      const prompt = buildGMSystemPrompt(state);
+
+      // Should use dynamic player paths
+      expect(prompt).toContain("./players/kael-thouls/sheet.md - Player character details");
+      expect(prompt).toContain("./players/kael-thouls/state.md - Character narrative state");
+    });
+
+    test("uses dynamic world paths when worldRef is set", () => {
+      const state = createTestState({
+        playerRef: "players/kael-thouls",
+        worldRef: "worlds/eldoria",
+      });
+      const prompt = buildGMSystemPrompt(state);
+
+      // Should use dynamic world paths
+      expect(prompt).toContain("./worlds/eldoria/world_state.md - Established world facts");
+      expect(prompt).toContain("./worlds/eldoria/locations.md - Known places");
+      expect(prompt).toContain("./worlds/eldoria/characters.md - NPCs");
+      expect(prompt).toContain("./worlds/eldoria/quests.md - Active quests");
+    });
+
+    test("includes character-world-init skill instruction when refs are null", () => {
+      const state = createTestState({
+        playerRef: null,
+        worldRef: null,
+      });
+      const prompt = buildGMSystemPrompt(state);
+
+      // Should trigger skill invocation
+      expect(prompt).toContain("character-world-init skill");
+      expect(prompt).toContain("select or create a character and world");
+    });
+
+    test("does not include skill instruction when refs are set", () => {
+      const state = createTestState({
+        playerRef: "players/kael-thouls",
+        worldRef: "worlds/eldoria",
+      });
+      const prompt = buildGMSystemPrompt(state);
+
+      // Should not trigger skill when refs are set
+      expect(prompt).not.toContain("character-world-init skill");
+    });
+
+    test("uses dynamic paths in state management section", () => {
+      const state = createTestState({
+        playerRef: "players/hero",
+        worldRef: "worlds/realm",
+      });
+      const prompt = buildGMSystemPrompt(state);
+
+      // State management instructions should use dynamic paths
+      expect(prompt).toContain("Write to ./players/hero/sheet.md");
+      expect(prompt).toContain("Write to ./players/hero/state.md");
+      expect(prompt).toContain("Write to ./worlds/realm/characters.md");
+      expect(prompt).toContain("Write to ./worlds/realm/locations.md");
+      expect(prompt).toContain("Write to ./worlds/realm/quests.md");
+      expect(prompt).toContain("Write to ./worlds/realm/world_state.md");
+    });
+
+    test("uses dynamic paths in file examples section", () => {
+      const state = createTestState({
+        playerRef: "players/hero",
+        worldRef: "worlds/realm",
+      });
+      const prompt = buildGMSystemPrompt(state);
+
+      // File examples should use dynamic paths
+      expect(prompt).toContain(`"./players/hero/sheet.md" with name, stats, background`);
+      expect(prompt).toContain(`"./worlds/realm/characters.md"`);
+      expect(prompt).toContain(`"./worlds/realm/locations.md"`);
+    });
+
+    test("uses legacy paths in file examples when refs are null", () => {
+      const state = createTestState({
+        playerRef: null,
+        worldRef: null,
+      });
+      const prompt = buildGMSystemPrompt(state);
+
+      // File examples should use legacy paths
+      expect(prompt).toContain(`"./player.md" with name, stats, background`);
+      expect(prompt).toContain(`"./characters.md"`);
+      expect(prompt).toContain(`"./locations.md"`);
+    });
+
+    test("requires both refs for dynamic paths", () => {
+      // Only playerRef set, worldRef null
+      const statePlayerOnly = createTestState({
+        playerRef: "players/kael",
+        worldRef: null,
+      });
+      const promptPlayerOnly = buildGMSystemPrompt(statePlayerOnly);
+
+      // Should still use legacy paths when only one ref is set
+      expect(promptPlayerOnly).toContain("./player.md");
+      expect(promptPlayerOnly).toContain("./world_state.md");
+      expect(promptPlayerOnly).toContain("character-world-init skill");
+
+      // Only worldRef set, playerRef null
+      const stateWorldOnly = createTestState({
+        playerRef: null,
+        worldRef: "worlds/eldoria",
+      });
+      const promptWorldOnly = buildGMSystemPrompt(stateWorldOnly);
+
+      // Should still use legacy paths when only one ref is set
+      expect(promptWorldOnly).toContain("./player.md");
+      expect(promptWorldOnly).toContain("./world_state.md");
+      expect(promptWorldOnly).toContain("character-world-init skill");
+    });
+  });
+
   describe("XP guidance", () => {
     test("prompts player for XP preference when xpStyle is undefined", () => {
       const state = createTestState();

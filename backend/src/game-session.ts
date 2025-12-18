@@ -11,7 +11,9 @@ import type { SDKAssistantMessageError } from "@anthropic-ai/claude-agent-sdk";
 import { AdventureStateManager } from "./adventure-state";
 import type { AdventureState } from "./types/state";
 import type { ServerMessage, NarrativeEntry, ThemeMood, Genre, Region, XpStyle } from "./types/protocol";
-import { buildGMSystemPrompt, createGMMcpServer } from "./gm-prompt";
+import { buildGMSystemPrompt, createGMMcpServerWithCallbacks, type GMMcpCallbacks } from "./gm-prompt";
+import { PlayerManager } from "./player-manager";
+import { WorldManager } from "./world-manager";
 import {
   mapSDKError,
   mapGenericError,
@@ -80,6 +82,10 @@ function getToolDescription(toolName: string): string {
   // MCP tools
   if (toolName === "mcp__adventure-gm__set_theme") return "Setting the scene...";
   if (toolName === "mcp__adventure-gm__set_xp_style") return "Adjusting preferences...";
+  if (toolName === "mcp__adventure-gm__set_character") return "Selecting character...";
+  if (toolName === "mcp__adventure-gm__set_world") return "Selecting world...";
+  if (toolName === "mcp__adventure-gm__list_characters") return "Checking characters...";
+  if (toolName === "mcp__adventure-gm__list_worlds") return "Checking worlds...";
 
   // File operations (state management)
   if (toolName === "Read") return "Consulting records...";
@@ -126,6 +132,8 @@ export class GameSession {
   private projectDirectory: string | null = null;
   private backgroundImageService: BackgroundImageService | null = null;
   private lastThemeChange: { mood: ThemeMood; timestamp: number } | null = null;
+  private playerManager: PlayerManager | null = null;
+  private worldManager: WorldManager | null = null;
 
   constructor(
     ws: WSContext,
@@ -177,6 +185,52 @@ export class GameSession {
     // Use PROJECT_DIR for SDK sandbox - this is the adventure world directory
     // where the SDK should read/write files
     this.projectDirectory = projectDir;
+
+    // Initialize managers for character/world operations
+    this.playerManager = new PlayerManager(projectDir);
+    this.worldManager = new WorldManager(projectDir);
+
+    // Auto-create missing ref directories if refs are set but directories don't exist (TD-5)
+    const state = this.stateManager.getState();
+    if (state) {
+      // Check playerRef
+      if (state.playerRef) {
+        const playerSlug = state.playerRef.replace(/^players\//, "");
+        if (!this.playerManager.exists(playerSlug)) {
+          logger.info({ playerRef: state.playerRef }, "Auto-creating missing player directory from ref");
+          try {
+            // Extract name from slug (convert kael-thouls to Kael Thouls)
+            const displayName = playerSlug
+              .split("-")
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(" ");
+            await this.playerManager.create(displayName);
+          } catch (error) {
+            logger.error({ err: error, playerRef: state.playerRef }, "Failed to auto-create player directory");
+            // Continue anyway - GM will handle missing files
+          }
+        }
+      }
+
+      // Check worldRef
+      if (state.worldRef) {
+        const worldSlug = state.worldRef.replace(/^worlds\//, "");
+        if (!(await this.worldManager.exists(worldSlug))) {
+          logger.info({ worldRef: state.worldRef }, "Auto-creating missing world directory from ref");
+          try {
+            // Extract name from slug
+            const displayName = worldSlug
+              .split("-")
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(" ");
+            await this.worldManager.create(displayName);
+          } catch (error) {
+            logger.error({ err: error, worldRef: state.worldRef }, "Failed to auto-create world directory");
+            // Continue anyway - GM will handle missing files
+          }
+        }
+      }
+    }
 
     return { success: true };
   }
@@ -460,10 +514,10 @@ export class GameSession {
       return;
     }
 
-    // Create MCP server for GM tools (set_theme and set_xp_style)
-    const gmMcpServer = createGMMcpServer(
+    // Create MCP server for GM tools with all callbacks wired to managers
+    const callbacks: GMMcpCallbacks = {
       // Theme change callback
-      async (mood, genre, region, forceGenerate, imagePrompt) => {
+      onThemeChange: async (mood, genre, region, forceGenerate, imagePrompt) => {
         log.debug({ mood, genre, region }, "set_theme MCP callback invoked");
         try {
           await this.handleSetThemeTool(
@@ -483,7 +537,7 @@ export class GameSession {
         }
       },
       // XP style change callback
-      async (xpStyle) => {
+      onXpStyleChange: async (xpStyle) => {
         log.debug({ xpStyle }, "set_xp_style MCP callback invoked");
         try {
           await this.handleSetXpStyleTool(xpStyle, log);
@@ -492,14 +546,120 @@ export class GameSession {
           log.error({ err: error, xpStyle }, "set_xp_style MCP callback error");
           throw error;
         }
-      }
-    );
+      },
+      // Character selection/creation callback
+      onSetCharacter: async (name, isNew) => {
+        log.debug({ name, isNew }, "set_character MCP callback invoked");
+        if (!this.playerManager) {
+          throw new Error("PlayerManager not initialized");
+        }
+        try {
+          let slug: string;
+          if (isNew) {
+            // Create new character directory
+            slug = await this.playerManager.create(name);
+          } else {
+            // Use existing slug (name may be slug or display name)
+            // Check if it's a valid slug that exists (sync check)
+            if (this.playerManager.exists(name)) {
+              slug = name;
+            } else {
+              // Try to find by display name (list is async)
+              const characters = await this.playerManager.list();
+              const match = characters.find(
+                (c) => c.name.toLowerCase() === name.toLowerCase() || c.slug === name.toLowerCase()
+              );
+              if (match) {
+                slug = match.slug;
+              } else {
+                throw new Error(`Character "${name}" not found`);
+              }
+            }
+          }
+          const ref = this.playerManager.getRef(slug);
+          if (!ref) {
+            throw new Error(`Failed to get ref for character slug: ${slug}`);
+          }
+          // Update adventure state with playerRef
+          await this.stateManager.updatePlayerRef(ref);
+          log.debug({ ref }, "set_character MCP callback completed successfully");
+          return ref;
+        } catch (error) {
+          log.error({ err: error, name, isNew }, "set_character MCP callback error");
+          throw error;
+        }
+      },
+      // World selection/creation callback
+      onSetWorld: async (name, isNew) => {
+        log.debug({ name, isNew }, "set_world MCP callback invoked");
+        if (!this.worldManager) {
+          throw new Error("WorldManager not initialized");
+        }
+        try {
+          let slug: string;
+          if (isNew) {
+            // Create new world directory
+            slug = await this.worldManager.create(name);
+          } else {
+            // Use existing slug (name may be slug or display name)
+            const exists = await this.worldManager.exists(name);
+            if (exists) {
+              slug = name;
+            } else {
+              // Try to find by display name
+              const worlds = await this.worldManager.list();
+              const match = worlds.find(
+                (w) => w.name.toLowerCase() === name.toLowerCase() || w.slug === name.toLowerCase()
+              );
+              if (match) {
+                slug = match.slug;
+              } else {
+                throw new Error(`World "${name}" not found`);
+              }
+            }
+          }
+          const ref = this.worldManager.getRef(slug);
+          if (!ref) {
+            throw new Error(`Failed to get ref for world slug: ${slug}`);
+          }
+          // Update adventure state with worldRef
+          await this.stateManager.updateWorldRef(ref);
+          log.debug({ ref }, "set_world MCP callback completed successfully");
+          return ref;
+        } catch (error) {
+          log.error({ err: error, name, isNew }, "set_world MCP callback error");
+          throw error;
+        }
+      },
+      // List characters callback
+      onListCharacters: async () => {
+        log.debug("list_characters MCP callback invoked");
+        if (!this.playerManager) {
+          throw new Error("PlayerManager not initialized");
+        }
+        const characters = await this.playerManager.list();
+        log.debug({ count: characters.length }, "list_characters MCP callback completed");
+        return characters;
+      },
+      // List worlds callback
+      onListWorlds: async () => {
+        log.debug("list_worlds MCP callback invoked");
+        if (!this.worldManager) {
+          throw new Error("WorldManager not initialized");
+        }
+        const worlds = await this.worldManager.list();
+        log.debug({ count: worlds.length }, "list_worlds MCP callback completed");
+        return worlds;
+      },
+    };
+    const gmMcpServer = createGMMcpServerWithCallbacks(callbacks);
 
     // Tools available to the GM:
     // - File operations (Read, Write, Glob, Grep) for state management in markdown files
     // - Bash for dice rolling (scripts/roll.sh) when System.md defines RPG rules
     // - set_theme for UI visual updates
     // - set_xp_style for saving player's XP preference
+    // - Character/world management tools for multi-adventure support
     const allowedTools = [
       "Skill",
       "Read",
@@ -509,6 +669,10 @@ export class GameSession {
       "Bash",
       "mcp__adventure-gm__set_theme",
       "mcp__adventure-gm__set_xp_style",
+      "mcp__adventure-gm__set_character",
+      "mcp__adventure-gm__set_world",
+      "mcp__adventure-gm__list_characters",
+      "mcp__adventure-gm__list_worlds",
     ];
 
     // Query Claude Agent SDK with resume for conversation continuity

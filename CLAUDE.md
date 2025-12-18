@@ -53,17 +53,50 @@ Token: Sent via `authenticate` message after connection (not in URL for security
 
 `GameSession` (`/backend/src/game-session.ts`) uses the Agent SDK's `query()` function. System prompts are built by `buildGMSystemPrompt()` in `/backend/src/gm-prompt.ts`.
 
-**File-Based State Management**: The GM (Claude) reads and writes markdown files directly for all game state:
+**File-Based State Management**: The GM (Claude) reads and writes markdown files directly for all game state. File paths are dynamic based on the adventure's `playerRef` and `worldRef`:
+
+**When playerRef/worldRef are set** (multi-adventure mode):
 - `./System.md` - RPG rules (read-only, defines game mechanics)
-- `./player.md` - Player character sheet
-- `./characters.md` - NPCs and their details
-- `./world_state.md` - Established world facts
-- `./locations.md` - Known places
-- `./quests.md` - Active quests
+- `./{playerRef}/sheet.md` - Character sheet (stats, inventory, abilities)
+- `./{playerRef}/state.md` - Character narrative state
+- `./{worldRef}/world_state.md` - Established world facts
+- `./{worldRef}/locations.md` - Known places
+- `./{worldRef}/characters.md` - NPCs and their details
+- `./{worldRef}/quests.md` - Active quests
 
-**MCP Tools**: `set_theme` (UI theme updates) and `set_xp_style` (player XP preference - frequent/milestone/combat-plus).
+**When refs are null** (legacy/new adventure mode):
+- Uses legacy paths: `./player.md`, `./world_state.md`, etc.
+- GM invokes `character-world-init` skill to set up character/world
 
-**Dice Rolling**: The `dice-roller` skill (in corvran plugin) provides a bash script for dice expressions. The GM invokes the skill which handles paths via `${CLAUDE_PLUGIN_ROOT}` - no copying required.
+**Directory Structure** (with multi-adventure support):
+```
+{PROJECT_DIR}/
+├── System.md              # RPG rules (shared)
+├── players/
+│   ├── kael-thouls/       # Character directory
+│   │   ├── sheet.md       # Character stats
+│   │   └── state.md       # Narrative state
+│   └── other-character/
+└── worlds/
+    ├── eldoria/           # World directory
+    │   ├── world_state.md
+    │   ├── locations.md
+    │   ├── characters.md
+    │   └── quests.md
+    └── other-world/
+```
+
+**MCP Tools**:
+- `set_theme` - UI theme updates (mood, genre, region)
+- `set_xp_style` - Player XP preference (frequent/milestone/combat-plus)
+- `set_character` - Select or create a character (sets `playerRef`)
+- `set_world` - Select or create a world (sets `worldRef`)
+- `list_characters` - List available characters from `players/` directory
+- `list_worlds` - List available worlds from `worlds/` directory
+
+**Corvran Skills**:
+- `dice-roller` - Bash script for dice expressions (outputs JSON with rolls and total)
+- `character-world-init` - Guides GM through character/world setup when refs are null
 
 **Plugin Reloading**: To reload plugin changes (skills, commands, CLAUDE.md) in Claude Code, bump the `version` field in the plugin's `plugin.json`. Version changes trigger automatic reloading.
 
