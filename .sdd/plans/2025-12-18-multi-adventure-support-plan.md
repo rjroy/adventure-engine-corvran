@@ -1,6 +1,6 @@
 ---
 specification: [.sdd/specs/2025-12-17-multi-adventure-support.md](./../specs/2025-12-17-multi-adventure-support.md)
-status: Draft
+status: Approved
 version: 1.0.0
 created: 2025-12-18
 last_updated: 2025-12-18
