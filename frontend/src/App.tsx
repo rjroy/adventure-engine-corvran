@@ -4,6 +4,7 @@ import {
   NarrativeLog,
   InputField,
   ConnectionStatus,
+  ToolStatusBar,
 } from "./components";
 import { BackgroundLayer } from "./components/BackgroundLayer";
 import { useWebSocket } from "./hooks/useWebSocket";
@@ -58,6 +59,10 @@ export function GameView({
     useState<StreamingMessage | null>(null);
   const [isGMResponding, setIsGMResponding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toolStatus, setToolStatus] = useState<{
+    state: "active" | "idle";
+    description: string;
+  }>({ state: "idle", description: "Ready" });
 
   const handleMessage = useCallback((message: ServerMessage) => {
     switch (message.type) {
@@ -112,6 +117,13 @@ export function GameView({
       case "error":
         setError(message.payload.message);
         setIsGMResponding(false);
+        break;
+
+      case "tool_status":
+        setToolStatus({
+          state: message.payload.state,
+          description: message.payload.description,
+        });
         break;
 
       case "pong":
@@ -192,6 +204,8 @@ export function GameView({
           isStreaming={streamingMessage !== null}
           summary={historySummary}
         />
+
+        <ToolStatusBar state={toolStatus.state} description={toolStatus.description} />
 
         <div className="game-input-container">
           <InputField

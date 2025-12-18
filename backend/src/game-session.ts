@@ -73,6 +73,30 @@ const REGION_KEYWORDS: [Region, string[]][] = [
 const DEFAULT_REGION: Region = "forest";
 
 /**
+ * Map internal tool names to vague, user-friendly descriptions.
+ * Descriptions are intentionally generic to avoid exposing GM thinking.
+ */
+function getToolDescription(toolName: string): string {
+  // MCP tools
+  if (toolName === "mcp__adventure-gm__set_theme") return "Setting the scene...";
+  if (toolName === "mcp__adventure-gm__set_xp_style") return "Adjusting preferences...";
+
+  // File operations (state management)
+  if (toolName === "Read") return "Consulting records...";
+  if (toolName === "Write" || toolName === "Edit") return "Updating world state...";
+  if (toolName === "Glob" || toolName === "Grep") return "Searching records...";
+
+  // Bash (typically dice rolling via skill)
+  if (toolName === "Bash") return "Consulting the dice...";
+
+  // Skill invocation
+  if (toolName === "Skill") return "Consulting the dice...";
+
+  // Unknown tools - generic description
+  return "Thinking...";
+}
+
+/**
  * Custom error class for Claude Agent SDK errors
  */
 class AgentSDKError extends Error {
@@ -315,6 +339,18 @@ export class GameSession {
         log
       );
 
+      // Send idle tool status
+      this.sendMessage(
+        {
+          type: "tool_status",
+          payload: {
+            state: "idle",
+            description: "Ready",
+          },
+        },
+        log
+      );
+
       log.debug({ messageId, responseLength: fullResponse.length }, "Response complete");
 
       // Log GM response to history
@@ -543,11 +579,25 @@ export class GameSession {
             yield assistantText;
           }
 
-          // Log tool_use blocks for debugging (MCP server handles set_theme automatically)
+          // Log tool_use blocks and send status to client
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           if (block.type === "tool_use") {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             log.debug({ toolName: block.name, input: block.input }, "Tool use detected");
+
+            // Send tool status for UI feedback
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const toolName = block.name as string;
+            this.sendMessage(
+              {
+                type: "tool_status",
+                payload: {
+                  state: "active",
+                  description: getToolDescription(toolName),
+                },
+              },
+              log
+            );
           }
         }
       }

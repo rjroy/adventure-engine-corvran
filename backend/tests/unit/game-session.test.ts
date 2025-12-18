@@ -159,19 +159,28 @@ describe("GameSession", () => {
 
       await session.handleInput("Look around");
 
-      // Should have: start, multiple chunks, end
+      // Should have: start, multiple chunks, end, tool_status (idle)
       expect(messages.length).toBeGreaterThan(2);
 
       const startMsg = messages[0];
       expect(startMsg.type).toBe("gm_response_start");
 
-      const endMsg = messages[messages.length - 1];
-      expect(endMsg.type).toBe("gm_response_end");
+      // Find gm_response_end (may be followed by tool_status)
+      const endMsg = messages.find((m) => m.type === "gm_response_end");
+      expect(endMsg).toBeDefined();
+      expect(endMsg!.type).toBe("gm_response_end");
+
+      // Verify tool_status (idle) is sent last
+      const lastMsg = messages[messages.length - 1];
+      expect(lastMsg.type).toBe("tool_status");
+      if (lastMsg.type === "tool_status") {
+        expect(lastMsg.payload.state).toBe("idle");
+      }
 
       // Check that messageId is consistent
-      if (startMsg.type === "gm_response_start") {
+      if (startMsg.type === "gm_response_start" && endMsg && endMsg.type === "gm_response_end") {
         const messageId = startMsg.payload.messageId;
-        expect(endMsg.type === "gm_response_end" && endMsg.payload.messageId).toBe(messageId);
+        expect(endMsg.payload.messageId).toBe(messageId);
       }
     });
 
@@ -279,12 +288,14 @@ describe("GameSession", () => {
       await session.handleInput("Test input");
 
       const startMsg = messages[0];
-      const endMsg = messages[messages.length - 1];
+      // Find gm_response_end (may be followed by tool_status)
+      const endMsg = messages.find((m) => m.type === "gm_response_end");
 
       expect(startMsg.type).toBe("gm_response_start");
-      expect(endMsg.type).toBe("gm_response_end");
+      expect(endMsg).toBeDefined();
+      expect(endMsg!.type).toBe("gm_response_end");
 
-      if (startMsg.type === "gm_response_start" && endMsg.type === "gm_response_end") {
+      if (startMsg.type === "gm_response_start" && endMsg && endMsg.type === "gm_response_end") {
         expect(startMsg.payload.messageId).toBe(endMsg.payload.messageId);
       }
     });

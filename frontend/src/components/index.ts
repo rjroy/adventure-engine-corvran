@@ -8,3 +8,5 @@ export { InputField } from "./InputField";
 export type { InputFieldProps } from "./InputField";
 export { NarrativeEntry } from "./NarrativeEntry";
 export { NarrativeLog } from "./NarrativeLog";
+export { ToolStatusBar } from "./ToolStatusBar";
+export type { ToolStatusBarProps } from "./ToolStatusBar";
