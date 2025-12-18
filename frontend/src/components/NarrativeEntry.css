@@ -8,13 +8,17 @@
 }
 
 .narrative-entry--player {
-  background-color: color-mix(in srgb, var(--color-player-bg) 90%, transparent);
+  background-color: color-mix(in srgb, var(--color-player-bg) 50%, transparent);
   border-left-color: var(--color-player-border);
+  --webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 
 .narrative-entry--gm {
-  background-color: color-mix(in srgb, var(--color-gm-bg) 90%, transparent);
+  background-color: color-mix(in srgb, var(--color-gm-bg) 50%, transparent);
   border-left-color: var(--color-gm-border);
+  --webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 
 .narrative-entry__header {

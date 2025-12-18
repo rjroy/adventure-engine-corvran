@@ -13,7 +13,9 @@
   font-size: var(--font-size-lg);
   color: var(--color-text);
   /* Match narrative-entry--player styling */
-  background-color: color-mix(in srgb, var(--color-player-bg) 90%, transparent);
+  background-color: color-mix(in srgb, var(--color-player-bg) 50%, transparent);
+  --webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   border: 2px solid var(--color-player-border);
   border-left: 4px solid var(--color-player-border);
   border-radius: var(--radius-sm);
@@ -32,7 +34,9 @@
 }
 
 .input-field__input:disabled {
-  background-color: color-mix(in srgb, var(--color-surface) 90%, transparent);
+  background-color: color-mix(in srgb, var(--color-surface) 50%, transparent);
+  --webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   cursor: not-allowed;
 }
 
