@@ -6,9 +6,6 @@ import type {
   ThemeMood,
   Genre,
   Region,
-  NPC,
-  DiceLogEntry,
-  CombatState,
   SystemDefinition,
   PlayerCharacter,
   HistorySummary,
@@ -41,10 +38,12 @@ export interface AdventureState {
     region: Region;
     backgroundUrl: string | null;
   };
-  // RPG system fields (all optional for backward compatibility)
-  npcs?: NPC[];
-  diceLog?: DiceLogEntry[];
-  combatState?: CombatState | null;
+  // Character/world references (relative paths from PROJECT_DIR)
+  // e.g., "players/kael-thouls" or "worlds/eldoria"
+  // null indicates new adventure (GM will prompt for selection)
+  playerRef: string | null;
+  worldRef: string | null;
+  // RPG system definition (optional - loaded from System.md)
   systemDefinition?: SystemDefinition | null;
 }
 

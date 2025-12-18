@@ -460,50 +460,62 @@ describe("AdventureStateManager", () => {
     });
   });
 
-  describe("RPG system fields", () => {
-    test("new adventures initialize with empty RPG fields", async () => {
+  describe("playerRef and worldRef fields", () => {
+    test("new adventures initialize playerRef and worldRef as null", async () => {
       const state = await manager.create();
 
-      expect(state.npcs).toEqual([]);
-      expect(state.diceLog).toEqual([]);
-      expect(state.combatState).toBeNull();
-      expect(state.systemDefinition).toBeNull();
+      expect(state.playerRef).toBeNull();
+      expect(state.worldRef).toBeNull();
     });
 
-    test("new adventures persist RPG fields to disk", async () => {
+    test("new adventures persist refs to disk as null", async () => {
       const state = await manager.create();
       const statePath = join(TEST_ADVENTURES_DIR, state.id, "state.json");
 
       const content = await readFile(statePath, "utf-8");
       const loadedState = JSON.parse(content) as AdventureState;
 
-      expect(loadedState.npcs).toEqual([]);
-      expect(loadedState.diceLog).toEqual([]);
-      expect(loadedState.combatState).toBeNull();
-      expect(loadedState.systemDefinition).toBeNull();
+      expect(loadedState.playerRef).toBeNull();
+      expect(loadedState.worldRef).toBeNull();
     });
 
-    test("loads legacy adventures without RPG fields (backward compatibility)", async () => {
-      // Create an old-style state without RPG fields
-      const adventureId = "legacy-test-adventure";
+    test("new adventures do NOT include npcs, diceLog, combatState fields (TD-6)", async () => {
+      const state = await manager.create();
+      const statePath = join(TEST_ADVENTURES_DIR, state.id, "state.json");
+
+      const content = await readFile(statePath, "utf-8");
+      // Use Record<string, unknown> to check for field presence without type constraint
+      const loadedState = JSON.parse(content) as Record<string, unknown>;
+
+      // These fields should not be present in new adventures per TD-6
+      expect(loadedState["npcs"]).toBeUndefined();
+      expect(loadedState["diceLog"]).toBeUndefined();
+      expect(loadedState["combatState"]).toBeUndefined();
+      // systemDefinition is still initialized (kept for RPG rules caching)
+      expect(loadedState["systemDefinition"]).toBeNull();
+    });
+
+    test("loads adventures with existing playerRef/worldRef values", async () => {
+      // Create state with refs set
+      const adventureId = "adventure-with-refs";
       const sessionToken = randomUUID();
       const adventureDir = join(TEST_ADVENTURES_DIR, adventureId);
       await mkdir(adventureDir, { recursive: true });
 
-      const legacyState = {
+      const stateWithRefs = {
         id: adventureId,
         sessionToken,
         agentSessionId: null,
         createdAt: new Date().toISOString(),
         lastActiveAt: new Date().toISOString(),
         currentScene: {
-          description: "Legacy adventure",
-          location: "Legacy Location",
+          description: "Adventure with refs",
+          location: "Some Location",
         },
         worldState: {},
         playerCharacter: {
-          name: "Legacy Hero",
-          attributes: { strength: 10 },
+          name: "Kael Thouls",
+          attributes: {},
         },
         currentTheme: {
           mood: "calm",
@@ -511,72 +523,38 @@ describe("AdventureStateManager", () => {
           region: "village",
           backgroundUrl: null,
         },
-        // No RPG fields - simulating old state.json
+        playerRef: "players/kael-thouls",
+        worldRef: "worlds/eldoria",
       };
 
       const statePath = join(adventureDir, "state.json");
-      await writeFile(statePath, JSON.stringify(legacyState, null, 2), "utf-8");
+      await writeFile(statePath, JSON.stringify(stateWithRefs, null, 2), "utf-8");
 
-      // Load the legacy state
       const newManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
       const result = await newManager.load(adventureId, sessionToken);
 
-      // Verify successful load with migrated RPG fields
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.state.npcs).toEqual([]);
-        expect(result.state.diceLog).toEqual([]);
-        expect(result.state.combatState).toBeNull();
-        expect(result.state.systemDefinition).toBeNull();
-        // Verify original fields are preserved
-        expect(result.state.playerCharacter.name).toBe("Legacy Hero");
-        expect(result.state.playerCharacter.attributes).toEqual({ strength: 10 });
+        expect(result.state.playerRef).toBe("players/kael-thouls");
+        expect(result.state.worldRef).toBe("worlds/eldoria");
       }
     });
+  });
 
-    test("saves and reloads adventures with RPG data", async () => {
+  describe("updatePlayerRef()", () => {
+    test("updates playerRef and saves", async () => {
+      await manager.create();
+
+      await manager.updatePlayerRef("players/kael-thouls");
+
+      const state = manager.getState();
+      expect(state?.playerRef).toBe("players/kael-thouls");
+    });
+
+    test("persists playerRef to disk", async () => {
       const state = await manager.create();
 
-      // Modify state with RPG data
-      if (state.npcs) {
-        state.npcs.push({
-          id: "npc-1",
-          name: "Test Goblin",
-          stats: { strength: 8, dexterity: 14 },
-          hp: { current: 7, max: 7 },
-          conditions: [],
-          inventory: [],
-          isHostile: true,
-        });
-      }
-
-      if (state.diceLog) {
-        state.diceLog.push({
-          id: randomUUID(),
-          timestamp: new Date().toISOString(),
-          expression: "1d20+3",
-          individualRolls: [15],
-          total: 18,
-          context: "Attack roll",
-          visible: true,
-          requestedBy: "system",
-        });
-      }
-
-      if (state.combatState !== undefined) {
-        state.combatState = {
-          active: true,
-          round: 1,
-          initiativeOrder: [
-            { name: "Player", initiative: 15, isPlayer: true, conditions: [] },
-            { name: "Test Goblin", initiative: 12, isPlayer: false, conditions: [] },
-          ],
-          currentIndex: 0,
-          structure: "turn-based",
-        };
-      }
-
-      await manager.save();
+      await manager.updatePlayerRef("players/test-character");
 
       // Reload and verify
       const newManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
@@ -584,15 +562,64 @@ describe("AdventureStateManager", () => {
 
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.state.npcs).toHaveLength(1);
-        expect(result.state.npcs?.[0].name).toBe("Test Goblin");
-        expect(result.state.diceLog).toHaveLength(1);
-        expect(result.state.diceLog?.[0].expression).toBe("1d20+3");
-        expect(result.state.combatState?.active).toBe(true);
-        expect(result.state.combatState?.round).toBe(1);
+        expect(result.state.playerRef).toBe("players/test-character");
       }
     });
 
+    test("throws error when no state loaded", async () => {
+      const freshManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+
+      let errorThrown = false;
+      try {
+        await freshManager.updatePlayerRef("players/test");
+      } catch (error) {
+        errorThrown = true;
+        expect((error as Error).message).toContain("No state loaded");
+      }
+      expect(errorThrown).toBe(true);
+    });
+  });
+
+  describe("updateWorldRef()", () => {
+    test("updates worldRef and saves", async () => {
+      await manager.create();
+
+      await manager.updateWorldRef("worlds/eldoria");
+
+      const state = manager.getState();
+      expect(state?.worldRef).toBe("worlds/eldoria");
+    });
+
+    test("persists worldRef to disk", async () => {
+      const state = await manager.create();
+
+      await manager.updateWorldRef("worlds/test-world");
+
+      // Reload and verify
+      const newManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+      const result = await newManager.load(state.id, state.sessionToken);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.state.worldRef).toBe("worlds/test-world");
+      }
+    });
+
+    test("throws error when no state loaded", async () => {
+      const freshManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+
+      let errorThrown = false;
+      try {
+        await freshManager.updateWorldRef("worlds/test");
+      } catch (error) {
+        errorThrown = true;
+        expect((error as Error).message).toContain("No state loaded");
+      }
+      expect(errorThrown).toBe(true);
+    });
+  });
+
+  describe("playerCharacter extensions", () => {
     test("handles playerCharacter with extended RPG properties", async () => {
       const state = await manager.create();
 

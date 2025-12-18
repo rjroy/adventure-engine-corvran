@@ -68,10 +68,10 @@ export class AdventureStateManager {
         region: "village",
         backgroundUrl: null,
       },
-      // RPG system fields (initialized as empty/null for new adventures)
-      npcs: [],
-      diceLog: [],
-      combatState: null,
+      // Character/world references (null = GM will prompt for selection)
+      playerRef: null,
+      worldRef: null,
+      // RPG rules caching (loaded from System.md)
       systemDefinition: null,
     };
 
@@ -146,16 +146,7 @@ export class AdventureStateManager {
       };
     }
 
-    // Migrate old states without RPG fields
-    if (this.state.npcs === undefined) {
-      this.state.npcs = [];
-    }
-    if (this.state.diceLog === undefined) {
-      this.state.diceLog = [];
-    }
-    if (this.state.combatState === undefined) {
-      this.state.combatState = null;
-    }
+    // Ensure systemDefinition defaults to null
     if (this.state.systemDefinition === undefined) {
       this.state.systemDefinition = null;
     }
@@ -436,6 +427,32 @@ export class AdventureStateManager {
     }
 
     this.state.systemDefinition = definition;
+    await this.save();
+  }
+
+  /**
+   * Update player character reference
+   * @param ref Relative path from PROJECT_DIR (e.g., "players/kael-thouls")
+   */
+  async updatePlayerRef(ref: string): Promise<void> {
+    if (!this.state) {
+      throw new Error("No state loaded - call create() or load() first");
+    }
+
+    this.state.playerRef = ref;
+    await this.save();
+  }
+
+  /**
+   * Update world reference
+   * @param ref Relative path from PROJECT_DIR (e.g., "worlds/eldoria")
+   */
+  async updateWorldRef(ref: string): Promise<void> {
+    if (!this.state) {
+      throw new Error("No state loaded - call create() or load() first");
+    }
+
+    this.state.worldRef = ref;
     await this.save();
   }
 
