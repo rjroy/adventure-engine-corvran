@@ -20,6 +20,11 @@
 .game-header__title {
   margin: 0;
   font-size: 1.5rem;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: color-mix(in srgb, var(--color-surface) 80%, transparent);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--accent-shadow);
 }
 
 .game-header__subtitle {

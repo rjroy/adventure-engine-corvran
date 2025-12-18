@@ -13,6 +13,11 @@
   font-size: 2rem;
   margin: 0 0 var(--spacing-xl) 0;
   text-align: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: color-mix(in srgb, var(--color-surface) 80%, transparent);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius-md);
+  box-shadow: var(--accent-shadow);
 }
 
 .adventure-menu__actions {
