@@ -244,7 +244,9 @@ export function isSessionRecoveryNeeded(
       msg.includes("session expired") ||
       msg.includes("conversation not found") ||
       msg.includes("resume failed") ||
-      msg.includes("no conversation")
+      msg.includes("no conversation") ||
+      // SDK process crashes when resume session ID is invalid
+      msg.includes("process exited with code")
     );
   }
 

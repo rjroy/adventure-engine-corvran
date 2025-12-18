@@ -414,6 +414,11 @@ describe("Error Handler", () => {
       expect(isSessionRecoveryNeeded(undefined, "No conversation found")).toBe(true);
     });
 
+    test("returns true for SDK process exit errors", () => {
+      expect(isSessionRecoveryNeeded(undefined, "Claude Code process exited with code 1")).toBe(true);
+      expect(isSessionRecoveryNeeded(undefined, "Process exited with code 1")).toBe(true);
+    });
+
     test("is case-insensitive for error messages", () => {
       expect(isSessionRecoveryNeeded(undefined, "SESSION NOT FOUND")).toBe(true);
       expect(isSessionRecoveryNeeded(undefined, "session not found")).toBe(true);
