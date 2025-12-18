@@ -2,6 +2,7 @@
 // Prevents path traversal, prompt injection, and other attacks
 
 import { resolve, join, normalize } from "node:path";
+import { existsSync } from "node:fs";
 
 /**
  * Input flags for detected patterns in player input
@@ -223,4 +224,113 @@ export function safeResolvePath(baseDir: string, adventureId: string): string | 
   }
 
   return resolvedPath;
+}
+
+/** Maximum length for slugs before numeric suffix */
+const MAX_SLUG_LENGTH = 64;
+
+/**
+ * Generate a filesystem-safe slug from a name.
+ *
+ * Algorithm (per TD-1):
+ * 1. Truncate name to 64 chars
+ * 2. Lowercase, replace non-alphanumeric with hyphens, collapse multiple hyphens
+ * 3. Trim leading/trailing hyphens
+ * 4. Check if directory exists in existingDir
+ * 5. If collision, append "-2", "-3", etc. until unique
+ * 6. Validate result with safeResolvePath()
+ *
+ * @param name Human-readable name to slugify
+ * @param existingDir Directory to check for collisions (e.g., "players/" or "worlds/")
+ * @returns Unique, filesystem-safe slug
+ */
+export function generateSlug(name: string, existingDir: string): string {
+  // Step 1: Truncate to 64 chars
+  const truncated = name.substring(0, MAX_SLUG_LENGTH);
+
+  // Step 2: Lowercase, replace non-alphanumeric with hyphens, collapse multiple hyphens
+  let slug = truncated
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric sequences with single hyphen
+    .replace(/-+/g, "-"); // Collapse multiple hyphens (redundant but explicit)
+
+  // Step 3: Trim leading/trailing hyphens
+  slug = slug.replace(/^-+|-+$/g, "");
+
+  // Handle edge case: empty slug after processing
+  if (!slug) {
+    slug = "unnamed";
+  }
+
+  // Step 4-5: Check for collisions and append suffix if needed
+  const baseSlug = slug;
+  let suffix = 1;
+  const resolvedExistingDir = resolve(existingDir);
+
+  while (existsSync(join(resolvedExistingDir, slug))) {
+    suffix++;
+    slug = `${baseSlug}-${suffix}`;
+  }
+
+  return slug;
+}
+
+/**
+ * Validate a slug for path traversal and other security issues.
+ *
+ * Rejects:
+ * - Empty slugs
+ * - Path traversal patterns (., .., /, \)
+ * - Null bytes
+ * - URL-encoded path characters
+ *
+ * @param slug Slug to validate
+ * @returns ValidationResult indicating if slug is safe
+ */
+export function validateSlug(slug: string): ValidationResult {
+  // Check for empty/whitespace-only slug
+  if (!slug || slug.trim().length === 0) {
+    return { valid: false, error: "Slug cannot be empty" };
+  }
+
+  // Check for null bytes
+  if (slug.includes("\0")) {
+    return { valid: false, error: "Slug contains invalid characters" };
+  }
+
+  // Check for path separators
+  if (slug.includes("/") || slug.includes("\\")) {
+    return { valid: false, error: "Slug cannot contain path separators" };
+  }
+
+  // Check for directory traversal patterns
+  if (slug === "." || slug === "..") {
+    return { valid: false, error: "Slug cannot be a relative directory reference" };
+  }
+
+  // Check for double-dot sequences within slug (e.g., "foo..bar")
+  if (slug.includes("..")) {
+    return { valid: false, error: "Slug cannot contain path traversal sequences" };
+  }
+
+  // Check for URL-encoded path characters
+  try {
+    const decoded = decodeURIComponent(slug);
+    if (decoded !== slug) {
+      // If decoding changes the value, re-validate the decoded version
+      if (
+        decoded.includes("/") ||
+        decoded.includes("\\") ||
+        decoded === "." ||
+        decoded === ".." ||
+        decoded.includes("..")
+      ) {
+        return { valid: false, error: "Slug contains encoded path characters" };
+      }
+    }
+  } catch {
+    // decodeURIComponent throws on malformed input - that's fine, the raw slug is safe
+  }
+
+  return { valid: true };
 }

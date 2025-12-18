@@ -30,6 +30,8 @@ function createTestState(overrides: Partial<AdventureState> = {}): AdventureStat
       region: "village",
       backgroundUrl: null,
     },
+    playerRef: null,
+    worldRef: null,
     npcs: [],
     diceLog: [],
     combatState: null,

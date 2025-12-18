@@ -41,7 +41,14 @@ export interface AdventureState {
     region: Region;
     backgroundUrl: string | null;
   };
+  // Character/world references (relative paths from PROJECT_DIR)
+  // e.g., "players/kael-thouls" or "worlds/eldoria"
+  // null indicates new adventure (GM will prompt for selection) or legacy fallback
+  playerRef: string | null;
+  worldRef: string | null;
   // RPG system fields (all optional for backward compatibility)
+  // Note: npcs, diceLog, combatState are NOT initialized in new adventures (TD-6)
+  // They exist only for backward compatibility with existing saves
   npcs?: NPC[];
   diceLog?: DiceLogEntry[];
   combatState?: CombatState | null;
