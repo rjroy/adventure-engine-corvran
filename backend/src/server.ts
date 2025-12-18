@@ -256,7 +256,7 @@ app.get("/adventure/:id", async (c) => {
       id: string;
       createdAt: string;
       lastActiveAt: string;
-      currentScene: { description: string; location: string };
+      currentScene: { description: string };
     };
 
     return c.json({

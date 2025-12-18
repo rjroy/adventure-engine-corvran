@@ -119,13 +119,12 @@ describe("Server REST Endpoints", () => {
 
       const res = await app.request(`/adventure/${adventureId}`);
       const data = (await res.json()) as {
-        currentScene: { description: string; location: string };
+        currentScene: { description: string };
       };
 
       expect(data.currentScene.description).toBe(
         "The adventure is just beginning. The world awaits your imagination."
       );
-      expect(data.currentScene.location).toBe("Unknown");
     });
   });
 

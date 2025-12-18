@@ -6,18 +6,20 @@ import type {
   ThemeMood,
   Genre,
   Region,
-  SystemDefinition,
-  PlayerCharacter,
+  XpStyle,
   HistorySummary,
   NarrativeHistory,
 } from "../../../shared/protocol";
 
 // Re-export types needed by other modules
-export type { SystemDefinition, HistorySummary, NarrativeHistory } from "../../../shared/protocol";
+export type { HistorySummary, NarrativeHistory, XpStyle } from "../../../shared/protocol";
 
 /**
  * Adventure state stored in state.json
- * Contains current world state, scene info, and player character data
+ * Contains session info, scene context, theme, and player preferences.
+ *
+ * Note: Player character data and world state are stored in markdown files
+ * referenced by playerRef and worldRef, not in this state object.
  */
 export interface AdventureState {
   id: string; // UUID
@@ -27,10 +29,7 @@ export interface AdventureState {
   lastActiveAt: string; // ISO 8601
   currentScene: {
     description: string; // Current narrative context
-    location: string; // Where the player is
   };
-  worldState: Record<string, unknown>; // Flexible world facts
-  playerCharacter: PlayerCharacter;
   // Current visual theme (persisted for session restoration)
   currentTheme: {
     mood: ThemeMood;
@@ -43,8 +42,8 @@ export interface AdventureState {
   // null indicates new adventure (GM will prompt for selection)
   playerRef: string | null;
   worldRef: string | null;
-  // RPG system definition (optional - loaded from System.md)
-  systemDefinition?: SystemDefinition | null;
+  // XP award style preference (set via set_xp_style MCP tool)
+  xpStyle?: XpStyle;
 }
 
 // NarrativeHistory is now imported from shared/protocol.ts

@@ -458,65 +458,25 @@ describe("GameSession", () => {
 
   /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/require-await */
   describe("Theme Management", () => {
-    test("derives genre from adventure state worldState", async () => {
+    test("derives genre from currentTheme", async () => {
       const { ws } = createMockWS();
       const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
-      // Update worldState with genre
       const state = session.getState();
-      if (state) {
-        state.worldState.genre = "sci-fi";
-      }
-
       // Access private method via reflection for testing
       const genre = (session as any).deriveGenre(state);
-      expect(genre).toBe("sci-fi");
+      expect(genre).toBe("high-fantasy"); // Default from creation
     });
 
-    test("defaults to high-fantasy when no genre in worldState", async () => {
+    test("derives region from currentTheme", async () => {
       const { ws } = createMockWS();
       const session = new GameSession(ws, stateManager);
       await session.initialize(adventureId, sessionToken);
 
       const state = session.getState();
-      const genre = (session as any).deriveGenre(state);
-      expect(genre).toBe("high-fantasy");
-    });
-
-    test("derives region from location keywords", async () => {
-      const { ws } = createMockWS();
-      const session = new GameSession(ws, stateManager);
-      await session.initialize(adventureId, sessionToken);
-
-      // Create a modified state with specific location
-      const state = session.getState();
-      if (state) {
-        state.currentScene.location = "The Dark Forest of Shadows";
-        const region = (session as any).deriveRegion(state);
-        expect(region).toBe("forest");
-
-        state.currentScene.location = "The Ancient Ruins of Eldoria";
-        const region2 = (session as any).deriveRegion(state);
-        expect(region2).toBe("ruins");
-
-        state.currentScene.location = "A bustling city market";
-        const region3 = (session as any).deriveRegion(state);
-        expect(region3).toBe("city");
-      }
-    });
-
-    test("defaults to forest when no region keywords found", async () => {
-      const { ws } = createMockWS();
-      const session = new GameSession(ws, stateManager);
-      await session.initialize(adventureId, sessionToken);
-
-      const state = session.getState();
-      if (state) {
-        state.currentScene.location = "An unknown place";
-        const region = (session as any).deriveRegion(state);
-        expect(region).toBe("forest");
-      }
+      const region = (session as any).deriveRegion(state);
+      expect(region).toBe("village"); // Default from creation
     });
 
     test("debounces duplicate mood changes within 1 second", async () => {
@@ -729,7 +689,7 @@ describe("GameSession", () => {
       await (session as any).handleSetXpStyleTool("frequent");
 
       const state = session.getState();
-      expect(state?.playerCharacter.xpStyle).toBe("frequent");
+      expect(state?.xpStyle).toBe("frequent");
     });
 
     test("updates xpStyle for all valid styles", async () => {
@@ -739,13 +699,13 @@ describe("GameSession", () => {
 
       // Test each style
       await (session as any).handleSetXpStyleTool("frequent");
-      expect(session.getState()?.playerCharacter.xpStyle).toBe("frequent");
+      expect(session.getState()?.xpStyle).toBe("frequent");
 
       await (session as any).handleSetXpStyleTool("milestone");
-      expect(session.getState()?.playerCharacter.xpStyle).toBe("milestone");
+      expect(session.getState()?.xpStyle).toBe("milestone");
 
       await (session as any).handleSetXpStyleTool("combat-plus");
-      expect(session.getState()?.playerCharacter.xpStyle).toBe("combat-plus");
+      expect(session.getState()?.xpStyle).toBe("combat-plus");
     });
 
     test("calls stateManager.updateXpStyle", async () => {
