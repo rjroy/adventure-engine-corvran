@@ -914,6 +914,33 @@ Theme examples:
 - Dark forest → set_theme(mood="mysterious", genre="high-fantasy", region="forest")
 - Battle → set_theme(mood="tense", genre="high-fantasy", region="forest")
 
+PANEL GUIDANCE - Use panels for contextual info that doesn't fit in narrative:
+
+USE PANELS FOR:
+- Weather/environment status (temperature, time of day, visibility)
+- Character status warnings (low health, status effects, buffs expiring)
+- News/event tickers (town crier announcements, faction broadcasts)
+- Faction standings or reputation displays
+- Quest objectives or countdown timers
+- Ambient world info (market prices, wanted posters, rumors)
+
+DO NOT USE PANELS FOR:
+- Narrative prose, descriptions, or story content
+- NPC dialogue or player interactions
+- Action outcomes or combat narration
+- Anything that should be in the story flow
+
+POSITION CHOICES:
+- sidebar: Persistent status displays (weather, health warnings, faction standings)
+- header: Tickers and urgent alerts (breaking news, time-sensitive warnings)
+- overlay: Special displays at specific screen locations (use x/y percentages)
+
+LIMITS:
+- Maximum 5 concurrent panels - dismiss old ones when no longer relevant
+- Content max 2KB - keep displays concise
+- Update existing panels rather than creating duplicates (use update_panel)
+- Use list_panels to check what's active before creating new ones
+
 ${fileExamples}
 
 Use relative paths (./file.md), never /tmp/.`;
