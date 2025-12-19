@@ -223,6 +223,28 @@ export class GameSession {
       }
     }
 
+    // Restore panels from saved state (REQ-F-13)
+    if (state?.panels && state.panels.length > 0) {
+      const restoredCount = this.panelManager.restore(state.panels);
+      logger.debug(
+        {
+          totalPanels: state.panels.length,
+          restoredCount,
+          adventureId: state.id,
+        },
+        "Restored persistent panels from state"
+      );
+
+      // Emit panel_create messages for each restored panel to sync frontend
+      const restoredPanels = this.panelManager.list();
+      for (const panel of restoredPanels) {
+        this.sendMessage({
+          type: "panel_create",
+          payload: panel,
+        });
+      }
+    }
+
     return { success: true };
   }
 
@@ -690,6 +712,8 @@ export class GameSession {
           },
           log
         );
+        // Sync persistent panels to state (REQ-F-12)
+        void this.syncPanelsToState(log);
         log.debug({ id: input.id }, "create_panel MCP callback completed successfully");
         return Promise.resolve({ success: true as const, panel: result.data });
       },
@@ -709,6 +733,8 @@ export class GameSession {
           },
           log
         );
+        // Sync persistent panels to state (REQ-F-12)
+        void this.syncPanelsToState(log);
         log.debug({ id }, "update_panel MCP callback completed successfully");
         return Promise.resolve({ success: true as const, panel: result.data });
       },
@@ -728,6 +754,8 @@ export class GameSession {
           },
           log
         );
+        // Sync persistent panels to state (REQ-F-12)
+        void this.syncPanelsToState(log);
         log.debug({ id }, "dismiss_panel MCP callback completed successfully");
         return Promise.resolve({ success: true as const, id });
       },
@@ -1075,6 +1103,29 @@ export class GameSession {
       },
       log
     );
+  }
+
+  /**
+   * Synchronize persistent panels from PanelManager to AdventureStateManager.
+   * Runs asynchronously without blocking callback return.
+   * Only persistent panels are saved per REQ-F-11, REQ-F-12.
+   * @param requestLogger Optional request-scoped logger for log correlation
+   */
+  private async syncPanelsToState(requestLogger?: Logger): Promise<void> {
+    const log = requestLogger ?? logger;
+
+    try {
+      const persistentPanels = this.panelManager.getPersistent();
+      await this.stateManager.setPanels(persistentPanels);
+
+      log.debug(
+        { panelCount: persistentPanels.length },
+        "Synced persistent panels to state"
+      );
+    } catch (error) {
+      // Non-fatal: log but don't throw to avoid disrupting gameplay
+      log.error({ err: error }, "Failed to sync panels to state");
+    }
   }
 
   /**
