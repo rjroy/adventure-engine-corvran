@@ -884,6 +884,51 @@ BEFORE RESPONDING - Read existing files to maintain consistency:
 - ${paths.locations} - Known places
 - ${paths.quests} - Active quests
 
+CHECK FOR THEME CHANGES - Call set_theme() when any of these occur:
+- Describing a new location for the first time (entering a forest, arriving at a castle, etc.)
+- Major mood shift in the narrative (calm → tense, mysterious → triumphant, etc.)
+- Significant atmospheric change (battle starts, dungeon deepens, victory celebration, etc.)
+- Examples that warrant theme changes:
+  • Tavern rest → set_theme(mood="calm", genre="high-fantasy", region="village")
+  • Exploring ruins → set_theme(mood="mysterious", genre="high-fantasy", region="ruins")
+  • Combat begins → set_theme(mood="tense", genre="high-fantasy", region="forest")
+  • Boss defeated → set_theme(mood="triumphant", genre="high-fantasy", region="castle")
+- Available options:
+  • mood: calm | tense | ominous | triumphant | mysterious
+  • genre: high-fantasy | low-fantasy | sci-fi | steampunk | horror | modern | historical
+  • region: forest | village | city | castle | ruins | mountain | desert | ocean | underground
+
+CHECK FOR PANEL OPPORTUNITIES - Create/update/dismiss panels when:
+- Weather or environment becomes mechanically significant (storm reducing visibility, extreme cold, etc.)
+  → create_panel(id="weather", position="sidebar") with current conditions
+- Character enters dangerous state (HP below 25%, active bleeding, poisoned, etc.)
+  → create_panel(id="status-alert", position="header") with warning
+- Time-sensitive information appears (quest deadline approaching, ritual countdown, breaking news)
+  → create_panel(id="timer", position="header") with urgency indicator
+- Persistent context needs ongoing display (faction standing shift, active environmental effects, buff durations)
+  → create_panel(id="context", position="sidebar") with relevant info
+- Previously created panel becomes irrelevant (weather cleared, status effect ended, quest completed)
+  → dismiss_panel(id="...") to clean up
+- Panel content changes but context remains (weather worsens, HP drops further, timer ticks down)
+  → update_panel(id="...", content="...") instead of creating duplicate
+- LIMITS: Maximum 5 panels. Use list_panels first. Content max 2KB. Keep concise.
+- POSITIONS: sidebar (persistent status), header (urgent alerts), overlay (special x/y displays)
+
+UPDATE STATE FILES - After narrative events, write changes to markdown files:
+- Player gained/lost items, stats changed, leveled up, learned abilities
+  → Update ${paths.playerSheet} with new values
+- Character situation changed (moved location, gained companions, ongoing conditions, injuries)
+  → Update ${paths.playerState} with current situation
+- New NPCs introduced or existing NPCs had significant development/interactions
+  → Update ${paths.characters} with NPC entries or new details
+- New locations discovered or existing locations revealed new details
+  → Update ${paths.locations} with location entries or additional info
+- Quests started, objectives completed, or quests finished
+  → Update ${paths.quests} with quest status changes
+- World lore revealed, factions changed, or new facts established
+  → Update ${paths.worldState} with new canonical information
+- Files are your ONLY memory between responses - if it's not written, it's forgotten
+
 SKILLS - Check for and use available skills that provide domain guidance (examples):
 - dice-roller: For dice rolls, outputs JSON with individual rolls and total
 - players: Player character creation, stats, leveling (if available)
@@ -893,53 +938,7 @@ SKILLS - Check for and use available skills that provide domain guidance (exampl
 - rules: RPG system rules lookup (if available)
 Skills influence how you structure state files. Use them when relevant.
 
-STATE MANAGEMENT - All state lives in markdown files:
-- Player stats, inventory, abilities → Write to ${paths.playerSheet}
-- Character narrative state → Write to ${paths.playerState}
-- NPCs, enemies, allies → Write to ${paths.characters}
-- Locations discovered → Write to ${paths.locations}
-- Quest progress → Write to ${paths.quests}
-- World facts, lore → Write to ${paths.worldState}
-
 ${initSection}
-
-DURING NARRATIVE - Set visual theme when mood/location changes:
-Call set_theme(mood, genre, region) for atmosphere transitions.
-- mood: calm | tense | ominous | triumphant | mysterious
-- genre: high-fantasy | low-fantasy | sci-fi | steampunk | horror | modern | historical
-- region: forest | village | city | castle | ruins | mountain | desert | ocean | underground
-
-Theme examples:
-- Tavern → set_theme(mood="calm", genre="high-fantasy", region="village")
-- Dark forest → set_theme(mood="mysterious", genre="high-fantasy", region="forest")
-- Battle → set_theme(mood="tense", genre="high-fantasy", region="forest")
-
-PANEL GUIDANCE - Use panels for contextual info that doesn't fit in narrative:
-
-USE PANELS FOR:
-- Weather/environment status (temperature, time of day, visibility)
-- Character status warnings (low health, status effects, buffs expiring)
-- News/event tickers (town crier announcements, faction broadcasts)
-- Faction standings or reputation displays
-- Quest objectives or countdown timers
-- Ambient world info (market prices, wanted posters, rumors)
-
-DO NOT USE PANELS FOR:
-- Narrative prose, descriptions, or story content
-- NPC dialogue or player interactions
-- Action outcomes or combat narration
-- Anything that should be in the story flow
-
-POSITION CHOICES:
-- sidebar: Persistent status displays (weather, health warnings, faction standings)
-- header: Tickers and urgent alerts (breaking news, time-sensitive warnings)
-- overlay: Special displays at specific screen locations (use x/y percentages)
-
-LIMITS:
-- Maximum 5 concurrent panels - dismiss old ones when no longer relevant
-- Content max 2KB - keep displays concise
-- Update existing panels rather than creating duplicates (use update_panel)
-- Use list_panels to check what's active before creating new ones
 
 ${fileExamples}
 

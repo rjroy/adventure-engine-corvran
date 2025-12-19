@@ -90,7 +90,7 @@ function getToolDescription(toolName: string): string {
   if (toolName === "Bash") return "Consulting the dice...";
 
   // Skill invocation
-  if (toolName === "Skill") return "Consulting the dice...";
+  if (toolName === "Skill") return "Consulting the rules...";
 
   // Unknown tools - generic description
   return "Thinking...";

@@ -91,8 +91,9 @@ describe("buildGMSystemPrompt", () => {
 
       // Should have theme usage examples
       expect(prompt).toContain("Tavern");
-      expect(prompt).toContain("Dark forest");
-      expect(prompt).toContain("Battle");
+      expect(prompt).toContain("ruins");
+      expect(prompt).toContain("Combat");
+      expect(prompt).toContain("Boss defeated");
     });
   });
 
@@ -128,8 +129,8 @@ describe("buildGMSystemPrompt", () => {
       const prompt = buildGMSystemPrompt(state);
 
       // Should truncate to reasonable length (500 chars based on sanitizeStateValue)
-      // Prompt includes dynamic paths and panel guidance which add to length
-      expect(prompt.length).toBeLessThan(7000);
+      // Prompt includes dynamic paths, theme checks, panel guidance, and state update instructions
+      expect(prompt.length).toBeLessThan(8000);
     });
   });
 
@@ -139,7 +140,7 @@ describe("buildGMSystemPrompt", () => {
       const prompt = buildGMSystemPrompt(state);
 
       expect(prompt).toContain("./players/test-hero/sheet.md");
-      expect(prompt).toContain("Player stats");
+      expect(prompt).toContain("UPDATE STATE FILES");
     });
 
     test("instructs writing to characters.md for NPCs", () => {
@@ -147,7 +148,7 @@ describe("buildGMSystemPrompt", () => {
       const prompt = buildGMSystemPrompt(state);
 
       expect(prompt).toContain("./worlds/test-world/characters.md");
-      expect(prompt).toContain("NPCs");
+      expect(prompt).toContain("UPDATE STATE FILES");
     });
 
     test("instructs writing to locations.md for discovered places", () => {
@@ -155,7 +156,7 @@ describe("buildGMSystemPrompt", () => {
       const prompt = buildGMSystemPrompt(state);
 
       expect(prompt).toContain("./worlds/test-world/locations.md");
-      expect(prompt).toContain("Locations discovered");
+      expect(prompt).toContain("UPDATE STATE FILES");
     });
 
     test("instructs using relative paths", () => {
@@ -182,7 +183,7 @@ describe("buildGMSystemPrompt", () => {
       expect(prompt).toContain("Do NOT attempt to read or write game files until setup is complete");
       // Should NOT contain file management instructions
       expect(prompt).not.toContain("./player.md");
-      expect(prompt).not.toContain("STATE MANAGEMENT");
+      expect(prompt).not.toContain("UPDATE STATE FILES");
     });
 
     test("uses dynamic player paths when playerRef is set", () => {
@@ -234,20 +235,20 @@ describe("buildGMSystemPrompt", () => {
       expect(prompt).not.toContain("character-world-init skill");
     });
 
-    test("uses dynamic paths in state management section", () => {
+    test("uses dynamic paths in update state files section", () => {
       const state = createTestState({
         playerRef: "players/hero",
         worldRef: "worlds/realm",
       });
       const prompt = buildGMSystemPrompt(state);
 
-      // State management instructions should use dynamic paths
-      expect(prompt).toContain("Write to ./players/hero/sheet.md");
-      expect(prompt).toContain("Write to ./players/hero/state.md");
-      expect(prompt).toContain("Write to ./worlds/realm/characters.md");
-      expect(prompt).toContain("Write to ./worlds/realm/locations.md");
-      expect(prompt).toContain("Write to ./worlds/realm/quests.md");
-      expect(prompt).toContain("Write to ./worlds/realm/world_state.md");
+      // UPDATE STATE FILES section should use dynamic paths
+      expect(prompt).toContain("Update ./players/hero/sheet.md");
+      expect(prompt).toContain("Update ./players/hero/state.md");
+      expect(prompt).toContain("Update ./worlds/realm/characters.md");
+      expect(prompt).toContain("Update ./worlds/realm/locations.md");
+      expect(prompt).toContain("Update ./worlds/realm/quests.md");
+      expect(prompt).toContain("Update ./worlds/realm/world_state.md");
     });
 
     test("uses dynamic paths in file examples section", () => {
