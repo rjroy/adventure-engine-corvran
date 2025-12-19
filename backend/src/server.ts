@@ -104,13 +104,26 @@ const backgroundImageService = new BackgroundImageService(
   }
 );
 
-// Initialize image generator service
-try {
-  imageGeneratorService.initialize();
-} catch (err) {
-  logger.warn({ err }, "Image generator initialization failed");
-  logger.warn("Image generation will be unavailable, catalog/fallback only");
+/**
+ * Initialize image services at startup.
+ * Catalog initialization is required (throws on failure).
+ * Generator initialization is optional (logs warning on failure).
+ */
+async function initializeImageServices(): Promise<void> {
+  // Initialize catalog (required - throws on failure)
+  await imageCatalogService.initialize();
+
+  // Initialize generator (optional - logs warning on failure)
+  try {
+    await imageGeneratorService.initialize();
+  } catch (err) {
+    logger.warn({ err }, "Image generator initialization failed");
+    logger.warn("Image generation will be unavailable, catalog/fallback only");
+  }
 }
+
+// Initialize image services before server starts
+await initializeImageServices();
 
 // Health check (used by launch script to verify server is ready)
 app.get("/api/health", (c) => c.text("Adventure Engine Backend"));

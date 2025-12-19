@@ -14,8 +14,14 @@ describe("ImageCatalogService", () => {
     // Create test backgrounds directory
     await mkdir(TEST_BACKGROUNDS_DIR, { recursive: true });
 
+    // Create fallback image to satisfy validation
+    await writeFile(`${TEST_BACKGROUNDS_DIR}/calm.jpg`, "fallback");
+
     // Create service instance with test directory
     service = new ImageCatalogService(TEST_BACKGROUNDS_DIR);
+
+    // Initialize the service
+    await service.initialize();
   });
 
   afterEach(async () => {
@@ -34,6 +40,76 @@ describe("ImageCatalogService", () => {
     });
   });
 
+  describe("initialize()", () => {
+    test("succeeds when directory exists with fallback", async () => {
+      const testDir = "./test-data/init-test-1";
+      await mkdir(testDir, { recursive: true });
+      await writeFile(`${testDir}/calm.jpg`, "fallback");
+
+      const testService = new ImageCatalogService(testDir);
+      // eslint-disable-next-line @typescript-eslint/await-thenable
+      await expect(testService.initialize()).resolves.toBeUndefined();
+
+      await rm(testDir, { recursive: true, force: true });
+    });
+
+    test("throws when directory does not exist", async () => {
+      const testService = new ImageCatalogService("./nonexistent-test-dir");
+      // eslint-disable-next-line @typescript-eslint/await-thenable
+      await expect(testService.initialize()).rejects.toThrow(
+        "Backgrounds directory not found"
+      );
+    });
+
+    test("pre-loads file cache", async () => {
+      const testDir = "./test-data/init-test-2";
+      await mkdir(testDir, { recursive: true });
+      await writeFile(`${testDir}/calm.jpg`, "fallback");
+      await writeFile(
+        `${testDir}/test-calm-low-fantasy-forest-123.png`,
+        "data"
+      );
+
+      const testService = new ImageCatalogService(testDir);
+      await testService.initialize();
+
+      // Cache should be populated - findImage should work immediately
+      const result = testService.findImage("calm", "low-fantasy", "forest");
+      expect(result).toBeNull(); // No "calm-low-fantasy-forest" file exists
+
+      await rm(testDir, { recursive: true, force: true });
+    });
+
+    test("warns when fallback image missing but still initializes", async () => {
+      const testDir = "./test-data/init-test-3";
+      await mkdir(testDir, { recursive: true });
+      // Don't create calm.jpg
+
+      const testService = new ImageCatalogService(testDir);
+      // Should not throw, but should log warning
+      // eslint-disable-next-line @typescript-eslint/await-thenable
+      await expect(testService.initialize()).resolves.toBeUndefined();
+
+      await rm(testDir, { recursive: true, force: true });
+    });
+
+    test("logs file count on successful initialization", async () => {
+      const testDir = "./test-data/init-test-4";
+      await mkdir(testDir, { recursive: true });
+      await writeFile(`${testDir}/calm.jpg`, "fallback");
+      await writeFile(`${testDir}/file1.png`, "data");
+      await writeFile(`${testDir}/file2.png`, "data");
+
+      const testService = new ImageCatalogService(testDir);
+      await testService.initialize();
+
+      // Verify initialization completed (no throw means success)
+      expect(true).toBe(true);
+
+      await rm(testDir, { recursive: true, force: true });
+    });
+  });
+
   describe("findImage()", () => {
     test("returns null when no matching image exists", () => {
       const result = service.findImage("calm", "low-fantasy", "forest");
@@ -44,6 +120,10 @@ describe("ImageCatalogService", () => {
       // Create a test image file
       const filePath = `${TEST_BACKGROUNDS_DIR}/tense-sci-fi-city-12345.png`;
       await writeFile(filePath, "fake image data");
+
+      // Re-initialize to pick up the new file
+      service.invalidateCache();
+      await service.initialize();
 
       const result = service.findImage("tense", "sci-fi", "city");
       expect(result).toBe(filePath);
@@ -84,6 +164,10 @@ describe("ImageCatalogService", () => {
       const filePath = `${TEST_BACKGROUNDS_DIR}/ominous-horror-ruins-${timestamp}.png`;
       await writeFile(filePath, "fake image data");
 
+      // Re-initialize to pick up the new file
+      service.invalidateCache();
+      await service.initialize();
+
       const result = service.findImage("ominous", "horror", "ruins");
       expect(result).toBe(filePath);
     });
@@ -103,6 +187,10 @@ describe("ImageCatalogService", () => {
         "fake image 3"
       );
 
+      // Re-initialize to pick up the new files
+      service.invalidateCache();
+      await service.initialize();
+
       const result = service.findImage("calm", "high-fantasy", "forest");
 
       // Should return one of the matching images
@@ -117,6 +205,10 @@ describe("ImageCatalogService", () => {
         `${TEST_BACKGROUNDS_DIR}/mysterious-steampunk-underground-42.png`,
         "data"
       );
+
+      // Re-initialize to pick up the new file
+      service.invalidateCache();
+      await service.initialize();
 
       const result = service.findImage(
         "mysterious",
@@ -182,6 +274,10 @@ describe("ImageCatalogService", () => {
         "data"
       );
 
+      // Re-initialize to pick up the new files
+      service.invalidateCache();
+      await service.initialize();
+
       // Should only find village, not forest
       const villageResult = service.findImage(
         "calm",
@@ -216,12 +312,16 @@ describe("ImageCatalogService", () => {
   });
 
   describe("caching", () => {
-    test("caches file list after first findImage call", async () => {
+    test("caches file list at initialization", async () => {
       // Create initial file
       await writeFile(
         `${TEST_BACKGROUNDS_DIR}/calm-high-fantasy-forest-1.png`,
         "data"
       );
+
+      // Re-initialize to pick up the new file
+      service.invalidateCache();
+      await service.initialize();
 
       // First call should find the image
       const result1 = service.findImage("calm", "high-fantasy", "forest");
@@ -239,26 +339,18 @@ describe("ImageCatalogService", () => {
     });
 
     test("invalidateCache allows new files to be discovered", async () => {
-      // Create initial file
-      await writeFile(
-        `${TEST_BACKGROUNDS_DIR}/calm-high-fantasy-forest-1.png`,
-        "data"
-      );
-
-      // First call populates cache
-      service.findImage("calm", "high-fantasy", "forest");
-
-      // Add a new file
+      // Add a new file after initialization
       await writeFile(
         `${TEST_BACKGROUNDS_DIR}/tense-sci-fi-city-2.png`,
         "data"
       );
 
-      // Without invalidation, new file is not found
+      // Without invalidation and re-initialization, new file is not found
       expect(service.findImage("tense", "sci-fi", "city")).toBeNull();
 
-      // Invalidate cache
+      // Invalidate cache and re-initialize
       service.invalidateCache();
+      await service.initialize();
 
       // Now new file should be found
       const result = service.findImage("tense", "sci-fi", "city");
@@ -276,6 +368,10 @@ describe("ImageCatalogService", () => {
         "data"
       );
 
+      // Re-initialize to pick up the new files
+      service.invalidateCache();
+      await service.initialize();
+
       // Multiple calls should work from cached file list
       expect(service.findImage("calm", "high-fantasy", "forest")).toContain(
         "calm-high-fantasy-forest"
@@ -290,23 +386,18 @@ describe("ImageCatalogService", () => {
     });
 
     test("cache is per-instance", async () => {
-      // Create a file
-      await writeFile(
-        `${TEST_BACKGROUNDS_DIR}/calm-high-fantasy-forest-1.png`,
-        "data"
-      );
-
-      // First service instance populates its cache
-      service.findImage("calm", "high-fantasy", "forest");
-
-      // Add a new file
+      // Add a new file after first service is initialized
       await writeFile(
         `${TEST_BACKGROUNDS_DIR}/tense-sci-fi-city-2.png`,
         "data"
       );
 
-      // New service instance should have fresh cache
+      // First service instance doesn't see the new file
+      expect(service.findImage("tense", "sci-fi", "city")).toBeNull();
+
+      // New service instance should have fresh cache after initialization
       const service2 = new ImageCatalogService(TEST_BACKGROUNDS_DIR);
+      await service2.initialize();
       const result = service2.findImage("tense", "sci-fi", "city");
       expect(result).toContain("tense-sci-fi-city-2.png");
     });

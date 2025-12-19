@@ -107,7 +107,24 @@ Backend triggers `theme_change` messages during narrative. Frontend (`/frontend/
 
 ### Image Generation
 
-Catalog-first strategy: `ImageCatalogService` searches `/assets/backgrounds` before `ImageGeneratorService` generates via Replicate API (`REPLICATE_API_TOKEN` required).
+The server uses a two-tier image system initialized at startup:
+
+1. **Image Catalog** (required): Pre-loads and validates background images from `BACKGROUNDS_DIR`
+   - Server startup fails if directory doesn't exist
+   - Logs warning if `calm.jpg` fallback is missing
+   - Pre-caches all PNG filenames for fast lookup
+
+2. **Image Generator** (optional): Enables AI generation via Replicate API
+   - Server starts normally if `REPLICATE_API_TOKEN` is not set
+   - Logs warning and continues in catalog-only mode
+   - Generation requests fail gracefully, falling back to catalog images
+
+**Startup Behavior**:
+- Missing `BACKGROUNDS_DIR`: Server fails with error
+- Missing `REPLICATE_API_TOKEN`: Server starts with warning, catalog-only mode
+- Both present: Full functionality (catalog + generation)
+
+Catalog-first strategy: `ImageCatalogService` searches `/assets/backgrounds` before `ImageGeneratorService` generates via Replicate API.
 
 ## Adding New Features
 
@@ -129,8 +146,8 @@ Catalog-first strategy: `ImageCatalogService` searches `/assets/backgrounds` bef
 - `ADVENTURES_DIR` (default `{backend}/adventures`) - Adventure save data directory
 - `STATIC_ROOT` (default `{project}/frontend/dist`) - Frontend static files
 - `LOGS_DIR` (default `{backend}/logs`) - Log file output directory
-- `BACKGROUNDS_DIR` (default `{backend}/assets/backgrounds`) - Background images directory
-- `REPLICATE_API_TOKEN` (required for image generation)
+- `BACKGROUNDS_DIR` (default `{backend}/assets/backgrounds`) - **Required**: Background images directory - Directory must exist at startup with at least `calm.jpg` fallback image
+- `REPLICATE_API_TOKEN` (optional for image generation) - Server starts without this, but AI image generation will be disabled
 - `MOCK_SDK` (set "true" for testing without Agent SDK)
 - `ALLOWED_ORIGINS` (comma-separated list, defaults to `http://localhost:5173,http://localhost:3000`)
 - `LOG_LEVEL` (default "info") - Set log verbosity: "debug", "info", "warn", "error"

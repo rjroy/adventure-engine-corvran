@@ -15,6 +15,7 @@ import { Glob } from "bun";
 import { existsSync } from "fs";
 import type { ThemeMood, Genre, Region } from "../../../shared/protocol";
 import { DEFAULT_PATHS } from "../paths";
+import { logger } from "../logger";
 
 /**
  * Default backgrounds directory (absolute path computed at startup)
@@ -39,15 +40,51 @@ export class ImageCatalogService {
   }
 
   /**
+   * Initialize the catalog by validating directory and pre-loading file cache.
+   *
+   * @throws Error if backgrounds directory does not exist or is unreadable
+   */
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async initialize(): Promise<void> {
+    // Validate directory exists
+    if (!existsSync(this.backgroundsDir)) {
+      throw new Error(
+        `Backgrounds directory not found: ${this.backgroundsDir}. ` +
+          `Set BACKGROUNDS_DIR environment variable or create the directory.`
+      );
+    }
+
+    // Pre-load cache
+    const glob = new Glob("*.png");
+    this.cachedFiles = [...glob.scanSync(this.backgroundsDir)];
+
+    // Validate fallback exists (warning only, not fatal)
+    const fallbackPath = `${this.backgroundsDir}/calm.jpg`;
+    if (!existsSync(fallbackPath)) {
+      logger.warn(
+        `Fallback image not found: ${fallbackPath}. ` +
+          `Image service may fail if no matching images exist.`
+      );
+    }
+
+    logger.info(
+      { count: this.cachedFiles.length, dir: this.backgroundsDir },
+      "Image catalog initialized"
+    );
+  }
+
+  /**
    * Load and cache all PNG files from the backgrounds directory.
    * Performs a single directory scan and caches the results.
    *
    * @returns Array of PNG filenames (without directory path)
    */
   private loadCache(): string[] {
+    // Cache should be populated by initialize()
+    // If null, return empty array (initialization wasn't called)
     if (this.cachedFiles === null) {
-      const glob = new Glob("*.png");
-      this.cachedFiles = [...glob.scanSync(this.backgroundsDir)];
+      logger.warn("Image catalog cache not initialized, returning empty list");
+      return [];
     }
     return this.cachedFiles;
   }
