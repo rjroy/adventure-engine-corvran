@@ -1,7 +1,7 @@
 ---
 specification: [.sdd/specs/2025-12-18-alternative-feedback-windows.md](./../specs/2025-12-18-alternative-feedback-windows.md)
 status: Approved
-version: 1.0.0
+version: 1.1.0
 created: 2025-12-18
 last_updated: 2025-12-18
 authored_by:
@@ -140,16 +140,6 @@ The system prioritizes simplicity (static display only), security (markdown sani
 - Validation uses `Buffer.byteLength()` for accurate UTF-8 size
 - Error returned immediately without modifying state
 
-### TD-10: System.md Panel Types Deferred to Post-MVP
-**Choice**: Defer REQ-F-8, REQ-F-9, REQ-F-10 (System.md panel type definitions) to a future enhancement
-**Requirements**: REQ-F-8, REQ-F-9, REQ-F-10 (deferred)
-**Rationale**:
-- Core panel functionality (create, update, dismiss) provides immediate value
-- System.md parsing adds complexity: markdown parsing, schema validation, default merging
-- GM can achieve same results with explicit parameters - no capability loss
-- Deferral allows faster MVP delivery; types can be added when usage patterns emerge
-- Alternative (implement now) delays core feature for optional enhancement
-
 ## Data Model
 
 ### Panel Schema (shared/protocol.ts)
@@ -269,31 +259,6 @@ const listPanelsTool = tool(
 );
 ```
 
-### System.md Panel Types (Optional)
-
-```markdown
-## Feedback Panels
-
-Available panel types for this genre:
-
-### weather
-- position: sidebar
-- persistent: false
-- Use for: Current weather conditions in the adventure world
-
-### faction-standing
-- position: sidebar
-- persistent: true
-- Use for: Player's reputation with various factions
-
-### news-ticker
-- position: header
-- persistent: false
-- Use for: Scrolling announcements or rumors
-```
-
-When GM references a type defined in System.md, the tool auto-fills defaults from the definition.
-
 ## Integration Points
 
 ### GameSession (game-session.ts)
@@ -398,16 +363,6 @@ When GM references a type defined in System.md, the tool auto-fills defaults fro
 
 ### Team
 - **None**: Self-contained feature, no external dependencies
-
-## Deferred Features
-
-The following spec requirements are deferred to post-MVP:
-
-- **REQ-F-8**: System.md can define a `## Feedback Panels` section
-- **REQ-F-9**: GM can reference panel types by name to create with defaults
-- **REQ-F-10**: GM can override default properties for system-defined panels
-
-See TD-10 for rationale. These features can be added in a follow-up enhancement once core panel functionality is validated.
 
 ## Open Questions
 

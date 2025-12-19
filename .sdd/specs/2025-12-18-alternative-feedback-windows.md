@@ -1,5 +1,5 @@
 ---
-version: 1.1.0
+version: 1.2.0
 status: Approved
 created: 2025-12-18
 last_updated: 2025-12-18
@@ -51,12 +51,6 @@ As a **player**, I want to see genre-appropriate status displays (weather, ticke
 - **REQ-F-6**: Panel content supports basic markdown (bold, italic, lists) for formatting
 - **REQ-F-7**: Overlay panels include optional `x`, `y` coordinates (percentage-based positioning)
 
-### System Integration
-
-- **REQ-F-8**: System.md can define a `## Feedback Panels` section listing available panel types with default properties
-- **REQ-F-9**: When System.md defines panel types, GM can reference them by name to create with defaults
-- **REQ-F-10**: GM can override any default property when creating a system-defined panel
-
 ### Persistence
 
 - **REQ-F-11**: Panels marked `persistent: true` are saved to adventure state and restored on reload
@@ -97,8 +91,9 @@ As a **player**, I want to see genre-appropriate status displays (weather, ticke
 - Do NOT allow panels to contain interactive elements (buttons, inputs) - display only
 - Do NOT auto-scroll or animate panel content - static display updated on command
 - Do NOT allow panels to play audio or trigger notifications
-- Do NOT exceed 5 concurrent panels regardless of System.md definitions
+- Do NOT exceed 5 concurrent panels
 - Do NOT allow panel content larger than 2KB (prevents abuse)
+- Do NOT add System.md panel type definitions - GM specifies all parameters explicitly
 
 ## Technical Context
 
@@ -120,11 +115,10 @@ As a **player**, I want to see genre-appropriate status displays (weather, ticke
 3. **Dismiss Panel**: GM calls `dismiss_panel` with id="weather" → Panel removed from UI
 4. **Persistence**: Create panel with persistent=true, reload adventure → Panel restored with same content
 5. **Limit Enforcement**: Create 5 panels, attempt 6th → Error returned, 5 panels unchanged
-6. **System.md Integration**: System.md defines "ticker" panel type, GM creates panel type="ticker" → Panel created with System.md defaults
-7. **Theme Inheritance**: Change theme to "ominous" → Active panels update styling to match
-8. **Error - Duplicate ID**: Create panel id="weather", then create another panel id="weather" → Error returned, original panel unchanged
-9. **Multi-panel Stacking**: Create 3 sidebar panels → All three visible, stacked in creation order
-10. **Player Minimize**: Player clicks minimize on panel → Panel collapses to icon; click again → Panel expands
+6. **Theme Inheritance**: Change theme to "ominous" → Active panels update styling to match
+7. **Error - Duplicate ID**: Create panel id="weather", then create another panel id="weather" → Error returned, original panel unchanged
+8. **Multi-panel Stacking**: Create 3 sidebar panels → All three visible, stacked in creation order
+9. **Player Minimize**: Player clicks minimize on panel → Panel collapses to icon; click again → Panel expands
 
 ## Out of Scope
 
