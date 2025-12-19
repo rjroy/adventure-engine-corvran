@@ -7,9 +7,15 @@ import {
   ToolStatusBar,
 } from "./components";
 import { BackgroundLayer } from "./components/BackgroundLayer";
+import {
+  SidebarPanelZone,
+  HeaderPanelZone,
+  OverlayPanelContainer,
+} from "./components/PanelZones";
 import { useWebSocket } from "./hooks/useWebSocket";
 import type { ServerMessage, NarrativeEntry, HistorySummary } from "../../shared/protocol";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { PanelProvider } from "./contexts/PanelContext";
 import "./App.css";
 
 // Fallback UUID generator for insecure contexts (non-HTTPS, non-localhost)
@@ -198,6 +204,8 @@ export function GameView({
         </div>
       )}
 
+      <HeaderPanelZone />
+
       <main className="game-main">
         <NarrativeLog
           entries={displayEntries}
@@ -221,6 +229,9 @@ export function GameView({
           />
         </div>
       </main>
+
+      <SidebarPanelZone />
+      <OverlayPanelContainer />
     </div>
   );
 }
@@ -241,12 +252,14 @@ function App() {
 
   return (
     <ThemeProvider>
-      <BackgroundLayer />
-      {!session ? (
-        <AdventureMenu onAdventureStart={handleAdventureStart} />
-      ) : (
-        <GameView session={session} onQuit={handleQuit} />
-      )}
+      <PanelProvider>
+        <BackgroundLayer />
+        {!session ? (
+          <AdventureMenu onAdventureStart={handleAdventureStart} />
+        ) : (
+          <GameView session={session} onQuit={handleQuit} />
+        )}
+      </PanelProvider>
     </ThemeProvider>
   );
 }
