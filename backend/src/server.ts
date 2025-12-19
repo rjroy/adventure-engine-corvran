@@ -626,6 +626,20 @@ async function validateAndLoadAdventure(
       logger.info({ adventureId, connId }, "GameSession initialized");
     } else {
       logger.error({ adventureId, connId, error: initResult.error }, "Failed to initialize GameSession");
+
+      // Send error to client
+      const errorMsg: ServerMessage = {
+        type: "error",
+        payload: {
+          code: "GM_ERROR",
+          message: `Failed to initialize game session: ${initResult.error}`,
+          retryable: false,
+        },
+      };
+      ws.send(JSON.stringify(errorMsg));
+      ws.close(1011, "GameSession initialization failed");
+      connections.delete(connId);
+      return;
     }
   }
 
@@ -640,6 +654,14 @@ async function validateAndLoadAdventure(
   };
 
   ws.send(JSON.stringify(loadedMsg));
+
+  // Send authenticated confirmation
+  const authenticatedMsg: ServerMessage = {
+    type: "authenticated",
+    payload: { adventureId: result.state.id },
+  };
+  ws.send(JSON.stringify(authenticatedMsg));
+  logger.debug({ adventureId, connId }, "Sent authenticated confirmation");
 
   // Send stored theme from state (or defaults for migrated adventures)
   const theme = result.state.currentTheme;

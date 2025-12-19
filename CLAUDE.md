@@ -28,18 +28,6 @@ bun run typecheck
 bun run lint
 ```
 
-**E2E** (in `/e2e`, uses Playwright with Node.js via mise):
-```bash
-cd e2e
-mise exec -- bun test            # Run tests (starts backend + frontend automatically)
-mise exec -- bun run test:headed # Visible browser
-mise exec -- bun run test:debug  # Debug mode
-mise exec -- bun run test:list   # List all tests
-
-# Note: mise.toml in /e2e provides Node.js 22, required for Playwright
-# Commands must be run from /e2e directory for mise to activate
-```
-
 **Development Workflow**: Run backend (`cd backend && bun run dev`) and frontend (`cd frontend && bun run dev`) in separate terminals.
 
 ## Architecture

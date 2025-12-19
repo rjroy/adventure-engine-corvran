@@ -315,6 +315,13 @@ export const ThemeChangeMessageSchema = z.object({
   payload: ThemeChangePayloadSchema,
 });
 
+export const AuthenticatedMessageSchema = z.object({
+  type: z.literal("authenticated"),
+  payload: z.object({
+    adventureId: z.string(),
+  }),
+});
+
 // ========================
 // Panel Messages (Server → Client)
 // ========================
@@ -406,6 +413,7 @@ export const ServerMessageSchema = z.discriminatedUnion("type", [
   GMResponseChunkMessageSchema,
   GMResponseEndMessageSchema,
   AdventureLoadedMessageSchema,
+  AuthenticatedMessageSchema,
   ErrorMessageSchema,
   PongMessageSchema,
   ThemeChangeMessageSchema,
