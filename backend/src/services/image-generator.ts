@@ -148,16 +148,20 @@ export class ImageGeneratorService {
    *
    * @throws Error if API token is not set
    */
-  initialize(): void {
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async initialize(): Promise<void> {
     if (!this.apiToken) {
       throw new Error(
-        "REPLICATE_API_TOKEN environment variable is required for image generation"
+        "REPLICATE_API_TOKEN environment variable is required for image generation. " +
+          "Set this variable to enable AI-powered background generation, or use catalog-only mode."
       );
     }
 
     this.replicate = new Replicate({
       auth: this.apiToken,
     });
+
+    logger.info("Image generator initialized with Replicate API");
   }
 
   /**

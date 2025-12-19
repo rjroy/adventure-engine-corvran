@@ -108,34 +108,35 @@ describe("ImageGeneratorService", () => {
   });
 
   describe("initialize()", () => {
-    test("creates Replicate client", () => {
-      service.initialize();
+    test("creates Replicate client", async () => {
+      await service.initialize();
       // If no error thrown, client was created successfully
       expect(true).toBe(true);
     });
 
-    test("throws error if no API token", () => {
+    test("throws error if no API token", async () => {
       const noTokenService = new ImageGeneratorService({
         outputDirectory: TEST_OUTPUT_DIR,
       });
 
-      expect(() => noTokenService.initialize()).toThrow(
+      // eslint-disable-next-line @typescript-eslint/await-thenable
+      await expect(noTokenService.initialize()).rejects.toThrow(
         "REPLICATE_API_TOKEN environment variable is required"
       );
     });
 
-    test("can be called multiple times safely", () => {
-      service.initialize();
+    test("can be called multiple times safely", async () => {
+      await service.initialize();
       service.close();
-      service.initialize();
+      await service.initialize();
       // If no error thrown, test passes
       expect(true).toBe(true);
     });
   });
 
   describe("generateImage()", () => {
-    beforeEach(() => {
-      service.initialize();
+    beforeEach(async () => {
+      await service.initialize();
     });
 
     test("generates image with mood, genre, and region", async () => {
@@ -325,7 +326,7 @@ describe("ImageGeneratorService", () => {
     });
 
     test("returns correct count after generations", async () => {
-      service.initialize();
+      await service.initialize();
 
       await service.generateImage("calm", "low-fantasy", "forest");
       expect(service.getGenerationCount()).toBe(1);
@@ -341,7 +342,7 @@ describe("ImageGeneratorService", () => {
     });
 
     test("decrements after each generation", async () => {
-      service.initialize();
+      await service.initialize();
 
       await service.generateImage("calm", "low-fantasy", "forest");
       expect(service.getRemainingGenerations()).toBe(2);
@@ -354,7 +355,7 @@ describe("ImageGeneratorService", () => {
     });
 
     test("never goes below 0", async () => {
-      service.initialize();
+      await service.initialize();
 
       // Exhaust limit
       await service.generateImage("calm", "low-fantasy", "forest");
@@ -375,15 +376,15 @@ describe("ImageGeneratorService", () => {
   });
 
   describe("close()", () => {
-    test("clears Replicate client", () => {
-      service.initialize();
+    test("clears Replicate client", async () => {
+      await service.initialize();
       service.close();
       // If no error thrown, test passes
       expect(true).toBe(true);
     });
 
-    test("can be called multiple times safely", () => {
-      service.initialize();
+    test("can be called multiple times safely", async () => {
+      await service.initialize();
       service.close();
       service.close();
       // If no error thrown, test passes
@@ -399,8 +400,8 @@ describe("ImageGeneratorService", () => {
   });
 
   describe("prompt construction", () => {
-    beforeEach(() => {
-      service.initialize();
+    beforeEach(async () => {
+      await service.initialize();
     });
 
     test("includes all mood types correctly", async () => {
@@ -425,7 +426,7 @@ describe("ImageGeneratorService", () => {
           maxGenerationsPerSession: 10,
           apiToken: TEST_API_TOKEN,
         });
-        service.initialize();
+        await service.initialize();
       }
     });
 
@@ -453,7 +454,7 @@ describe("ImageGeneratorService", () => {
           maxGenerationsPerSession: 10,
           apiToken: TEST_API_TOKEN,
         });
-        service.initialize();
+        await service.initialize();
       }
     });
 
@@ -483,7 +484,7 @@ describe("ImageGeneratorService", () => {
           maxGenerationsPerSession: 15,
           apiToken: TEST_API_TOKEN,
         });
-        service.initialize();
+        await service.initialize();
       }
     });
 
