@@ -891,21 +891,28 @@ Call set_theme() when any of these occur:
   • region: forest | village | city | castle | ruins | mountain | desert | ocean | underground
 
 ## CHECK FOR PANEL OPPORTUNITIES:
-Create/update/dismiss panels when:
+Panels enhance atmosphere and provide useful feedback without interrupting narrative flow.
+
+**When to use panels**:
 - Weather or environment becomes mechanically significant (storm reducing visibility, extreme cold, etc.)
-  → create_panel(id="weather", position="sidebar") with current conditions
 - Character enters dangerous state (HP below 25%, active bleeding, poisoned, etc.)
-  → create_panel(id="status-alert", position="header") with warning
 - Time-sensitive information appears (quest deadline approaching, ritual countdown, breaking news)
-  → create_panel(id="timer", position="header") with urgency indicator
-- Persistent context needs ongoing display (faction standing shift, active environmental effects, buff durations)
-  → create_panel(id="context", position="sidebar") with relevant info
-- Previously created panel becomes irrelevant (weather cleared, status effect ended, quest completed)
-  → dismiss_panel(id="...") to clean up
-- Panel content changes but context remains (weather worsens, HP drops further, timer ticks down)
-  → update_panel(id="...", content="...") instead of creating duplicate
-- LIMITS: Maximum 5 panels. Use list_panels first. Content max 2KB. Keep concise.
-- POSITIONS: sidebar (persistent status), header (urgent alerts), overlay (special x/y displays)
+- Persistent context needs ongoing display (faction standing, environmental effects, resources)
+- Location-based atmospheric enhancement (tavern gossip, dungeon depth, city news)
+
+**For panel pattern ideas**, use the **panel-patterns** skill:
+- Provides pre-defined patterns by context (location, genre, game state)
+- Examples: weather tracking, status alerts, timers, gossip feeds, ship status, sanity trackers
+- Use as inspiration, adapt to current situation
+
+**Panel operations**:
+- create_panel(id, title, content, position, persistent) - Make new panel
+- update_panel(id, content) - Change existing panel (same context, new info)
+- dismiss_panel(id) - Remove when no longer relevant
+- list_panels() - Check before creating (avoid duplicates)
+
+**Limits**: Maximum 5 panels. Content max 2KB. Keep concise.
+**Positions**: sidebar (persistent status), header (urgent alerts), overlay (special x/y displays)
 
 ## UPDATE STATE FILES:
 After narrative events, write changes to markdown files:
@@ -935,11 +942,12 @@ Use relative paths (./file.md), never /tmp/.
 ## REMEMBER SKILLS:
 Check for and use available skills that provide domain guidance (examples):
 - dice-roller: For dice rolls, outputs JSON with individual rolls and total
+- panel-patterns: Panel creation ideas by context (location, genre, game state)
 - players: Player character creation, stats, leveling (if available)
 - monsters: NPC/enemy stat blocks and behavior (if available)
 - combat: Combat mechanics, initiative, actions (if available)
 - magic: Spell slots, casting, magical effects (if available)
 - rules: RPG system rules lookup (if available)
 
-Skills influence how you structure state files. Use them always when relevant.`;
+Skills influence how you structure state files and enhance atmosphere. Use them always when relevant.`;
 }
