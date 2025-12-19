@@ -654,6 +654,18 @@ async function validateAndLoadAdventure(
   };
   ws.send(JSON.stringify(initialTheme));
   logger.debug({ adventureId, mood: theme.mood }, "Sent stored theme");
+
+  // For new adventures (empty history), trigger initial GM response
+  if (result.history.entries.length === 0) {
+    logger.info({ adventureId }, "New adventure detected, triggering initial GM response");
+    const conn = connections.get(connId);
+    if (conn?.gameSession) {
+      // Create request-scoped logger for the initial input
+      const { logger: reqLogger } = createRequestLogger(connId, adventureId);
+      // Trigger initial GM response with character/world setup prompt
+      void conn.gameSession.handleInput("help me with my character and world", reqLogger);
+    }
+  }
 }
 
 // Serve static frontend files - uses validated env config

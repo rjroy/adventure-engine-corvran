@@ -82,7 +82,7 @@ describe("ThemeContext", () => {
 
       expect(result.current.currentMood).toBe("calm");
       expect(result.current.isTransitioning).toBe(false);
-      expect(result.current.backgroundUrl).toBeNull();
+      expect(result.current.backgroundUrl).toBe("/backgrounds/corvran-engine-background.webp");
     });
   });
 
@@ -362,7 +362,7 @@ describe("ThemeContext", () => {
         result.current.resetToDefault();
       });
 
-      expect(result.current.backgroundUrl).toBeNull();
+      expect(result.current.backgroundUrl).toBe("/backgrounds/corvran-engine-background.webp");
     });
 
     test("cancels pending debounced theme changes", () => {

@@ -125,7 +125,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return {
       currentMood: DEFAULT_MOOD,
       pendingMood: null,
-      backgroundUrl: null,
+      backgroundUrl: "/backgrounds/corvran-engine-background.webp",
       isTransitioning: false,
       transitionDuration: DEFAULT_TRANSITION_DURATION,
       lastChangeTime: Date.now(),
@@ -214,8 +214,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       debounceTimerRef.current = null;
     }
 
-    // Apply default theme immediately
-    applyThemeImmediate(DEFAULT_MOOD, null, DEFAULT_TRANSITION_DURATION);
+    // Apply default theme with default background
+    applyThemeImmediate(DEFAULT_MOOD, "/backgrounds/corvran-engine-background.webp", DEFAULT_TRANSITION_DURATION);
   }, [applyThemeImmediate]);
 
   // Cleanup debounce timer on unmount
