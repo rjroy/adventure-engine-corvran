@@ -68,15 +68,6 @@
   color: white;
 }
 
-.error-alert {
-  padding: var(--spacing-md);
-  background-color: var(--color-error-bg);
-  color: var(--color-error);
-  border-radius: var(--radius-sm);
-  margin-bottom: var(--spacing-lg);
-  flex-shrink: 0;
-}
-
 .game-main {
   flex: 1;
   display: flex;

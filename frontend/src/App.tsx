@@ -6,6 +6,7 @@ import {
   ConnectionStatus,
   ToolStatusBar,
 } from "./components";
+import { ErrorPanel } from "./components/ErrorPanel";
 import { BackgroundLayer } from "./components/BackgroundLayer";
 import {
   SidebarPanelZone,
@@ -13,8 +14,8 @@ import {
   OverlayPanelContainer,
 } from "./components/PanelZones";
 import { useWebSocket } from "./hooks/useWebSocket";
-import type { ServerMessage, NarrativeEntry, HistorySummary } from "../../shared/protocol";
-import { ThemeProvider } from "./contexts/ThemeContext";
+import type { ServerMessage, NarrativeEntry, HistorySummary, ErrorCode, ThemeMood } from "../../shared/protocol";
+import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { PanelProvider } from "./contexts/PanelContext";
 import "./App.css";
 
@@ -46,6 +47,13 @@ interface StreamingMessage {
   content: string;
 }
 
+// Error state with full error metadata
+interface ErrorState {
+  code: ErrorCode;
+  message: string;
+  retryable: boolean;
+}
+
 export interface GameViewProps {
   session: AdventureSession;
   onQuit: () => void;
@@ -55,6 +63,8 @@ export function GameView({
   session,
   onQuit,
 }: GameViewProps) {
+  const { currentMood, applyTheme } = useTheme();
+
   const [narrativeHistory, setNarrativeHistory] = useState<NarrativeEntry[]>(
     []
   );
@@ -64,7 +74,9 @@ export function GameView({
   const [streamingMessage, setStreamingMessage] =
     useState<StreamingMessage | null>(null);
   const [isGMResponding, setIsGMResponding] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorState | null>(null);
+  const [lastPlayerInput, setLastPlayerInput] = useState<string>("");
+  const [previousMood, setPreviousMood] = useState<ThemeMood>("calm");
   const [toolStatus, setToolStatus] = useState<{
     state: "active" | "idle";
     description: string;
@@ -87,6 +99,11 @@ export function GameView({
         });
         setIsGMResponding(true);
         setError(null);
+
+        // Restore previous theme if error mood is active
+        if (currentMood === "tense" || currentMood === "ominous") {
+          applyTheme({ mood: previousMood });
+        }
         break;
 
       case "gm_response_chunk":
@@ -120,10 +137,21 @@ export function GameView({
         setIsGMResponding(false);
         break;
 
-      case "error":
-        setError(message.payload.message);
+      case "error": {
+        // Store full error state
+        setError({
+          code: message.payload.code,
+          message: message.payload.message,
+          retryable: message.payload.retryable,
+        });
         setIsGMResponding(false);
+
+        // Apply theme based on error severity
+        const errorMood: ThemeMood = message.payload.retryable ? "tense" : "ominous";
+        setPreviousMood(currentMood); // Save current mood for restoration
+        applyTheme({ mood: errorMood });
         break;
+      }
 
       case "tool_status":
         setToolStatus({
@@ -146,6 +174,9 @@ export function GameView({
 
   const handleSubmit = useCallback(
     (text: string) => {
+      // Track for retry functionality
+      setLastPlayerInput(text);
+
       // Add player input to history immediately
       const playerEntry: NarrativeEntry = {
         id: generateUUID(),
@@ -163,6 +194,19 @@ export function GameView({
     },
     [sendMessage]
   );
+
+  const handleRetry = useCallback(() => {
+    if (!lastPlayerInput || isGMResponding) return;
+
+    setError(null); // Clear error
+    applyTheme({ mood: previousMood }); // Restore previous theme
+    sendMessage({ type: "player_input", payload: { text: lastPlayerInput } });
+  }, [lastPlayerInput, isGMResponding, previousMood, sendMessage, applyTheme]);
+
+  const handleDismissError = useCallback(() => {
+    setError(null);
+    applyTheme({ mood: previousMood }); // Restore previous theme
+  }, [previousMood, applyTheme]);
 
   // Combine history with streaming message for display
   const displayEntries = useMemo(() => {
@@ -199,9 +243,14 @@ export function GameView({
       </header>
 
       {error && (
-        <div className="error-alert" role="alert" data-testid="error-message">
-          {error}
-        </div>
+        <ErrorPanel
+          code={error.code}
+          message={error.message}
+          retryable={error.retryable}
+          onRetry={handleRetry}
+          onDismiss={handleDismissError}
+          isRetrying={isGMResponding}
+        />
       )}
 
       <HeaderPanelZone />
