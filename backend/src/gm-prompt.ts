@@ -8,6 +8,7 @@ import type { AdventureState } from "./types/state";
 import type { ThemeMood, XpStyle } from "./types/protocol";
 import type { PlayerInfo } from "./player-manager";
 import type { WorldInfo } from "./world-manager";
+import type { Panel, PanelPosition } from "./types/protocol";
 import { sanitizeStateValue } from "./validation";
 import { logger } from "./logger";
 
@@ -30,6 +31,11 @@ const VALID_REGIONS = ["city", "village", "forest", "desert", "mountain", "ocean
  * Valid XP award styles for player preference
  */
 const VALID_XP_STYLES = ["frequent", "milestone", "combat-plus"] as const;
+
+/**
+ * Valid panel positions for info panels
+ */
+const VALID_POSITIONS = ["sidebar", "header", "overlay"] as const;
 
 /**
  * Callback type for handling theme changes
@@ -76,6 +82,54 @@ export type ListCharactersHandler = () => Promise<PlayerInfo[]>;
 export type ListWorldsHandler = () => Promise<WorldInfo[]>;
 
 /**
+ * Input for creating a new panel via MCP tool
+ */
+export interface CreatePanelInput {
+  id: string;
+  title: string;
+  content: string;
+  position: PanelPosition;
+  persistent: boolean;
+  x?: number;
+  y?: number;
+}
+
+/**
+ * Result type for panel operations
+ */
+export type PanelOperationResult =
+  | { success: true; panel?: Panel; panels?: Panel[]; id?: string }
+  | { success: false; error: string };
+
+/**
+ * Callback type for creating a panel
+ * @param input Panel creation parameters
+ * @returns Result with created panel or error
+ */
+export type CreatePanelHandler = (input: CreatePanelInput) => Promise<PanelOperationResult>;
+
+/**
+ * Callback type for updating a panel
+ * @param id Panel ID to update
+ * @param content New content
+ * @returns Result with updated panel or error
+ */
+export type UpdatePanelHandler = (id: string, content: string) => Promise<PanelOperationResult>;
+
+/**
+ * Callback type for dismissing a panel
+ * @param id Panel ID to dismiss
+ * @returns Result with dismissed panel ID or error
+ */
+export type DismissPanelHandler = (id: string) => Promise<PanelOperationResult>;
+
+/**
+ * Callback type for listing all active panels
+ * @returns Array of all active panels
+ */
+export type ListPanelsHandler = () => Promise<Panel[]>;
+
+/**
  * Callbacks for all MCP tool handlers
  * GameSession will implement this interface to wire tools to managers
  */
@@ -86,6 +140,10 @@ export interface GMMcpCallbacks {
   onSetWorld: SetWorldHandler;
   onListCharacters: ListCharactersHandler;
   onListWorlds: ListWorldsHandler;
+  onCreatePanel: CreatePanelHandler;
+  onUpdatePanel: UpdatePanelHandler;
+  onDismissPanel: DismissPanelHandler;
+  onListPanels: ListPanelsHandler;
 }
 
 /**
@@ -358,6 +416,179 @@ Use this to present world selection options to the player.`,
 }
 
 /**
+ * Create the create_panel tool using the SDK's tool() helper
+ * Creates a new info panel for displaying contextual information
+ * @param onCreatePanel Callback invoked to create a panel
+ */
+function createCreatePanelTool(onCreatePanel: CreatePanelHandler) {
+  return tool(
+    "create_panel",
+    `Create a new info panel to display contextual information.
+Panels appear in designated UI zones without interrupting narrative flow.
+Use for weather, status displays, tickers, alerts, faction standings, etc.
+
+POSITIONS:
+- sidebar: Right side of screen, for persistent status (weather, health, inventory summary)
+- header: Top of screen, for tickers and alerts (news, time, urgent warnings)
+- overlay: Floating panel at specific coordinates (for special displays, use x/y percentages)
+
+LIMITS: Maximum 5 concurrent panels. Content max 2KB.
+If you need to modify an existing panel, use update_panel instead.`,
+    {
+      id: z.string().min(1).max(32).regex(/^[a-zA-Z0-9-]+$/).describe("Unique panel identifier (alphanumeric + hyphens only)"),
+      title: z.string().min(1).max(64).describe("Panel header text"),
+      content: z.string().max(2048).describe("Markdown content for the panel body"),
+      position: z.enum(VALID_POSITIONS).describe("Panel display position"),
+      persistent: z.boolean().describe("If true, panel survives session reload"),
+      x: z.number().min(0).max(100).optional().describe("Overlay X position as percentage from left (0-100)"),
+      y: z.number().min(0).max(100).optional().describe("Overlay Y position as percentage from top (0-100)"),
+    },
+    async (args) => {
+      logger.debug({ id: args.id, position: args.position, persistent: args.persistent }, "create_panel tool invoked");
+      const result = await onCreatePanel({
+        id: args.id,
+        title: args.title,
+        content: args.content,
+        position: args.position,
+        persistent: args.persistent,
+        x: args.x,
+        y: args.y,
+      });
+
+      if (!result.success) {
+        return {
+          content: [{
+            type: "text" as const,
+            text: `Error: ${result.error}`,
+          }],
+        };
+      }
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: `Panel "${args.id}" created at ${args.position} position`,
+        }],
+      };
+    }
+  );
+}
+
+/**
+ * Create the update_panel tool using the SDK's tool() helper
+ * Updates an existing panel's content
+ * @param onUpdatePanel Callback invoked to update a panel
+ */
+function createUpdatePanelTool(onUpdatePanel: UpdatePanelHandler) {
+  return tool(
+    "update_panel",
+    `Update an existing panel's content.
+Use for dynamic displays like weather changes, score updates, or status changes.
+Only the content can be updated - position and title remain unchanged.`,
+    {
+      id: z.string().min(1).max(32).regex(/^[a-zA-Z0-9-]+$/).describe("Panel ID to update"),
+      content: z.string().max(2048).describe("New markdown content"),
+    },
+    async (args) => {
+      logger.debug({ id: args.id, contentPreview: args.content.slice(0, 50) }, "update_panel tool invoked");
+      const result = await onUpdatePanel(args.id, args.content);
+
+      if (!result.success) {
+        return {
+          content: [{
+            type: "text" as const,
+            text: `Error: ${result.error}`,
+          }],
+        };
+      }
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: `Panel "${args.id}" updated`,
+        }],
+      };
+    }
+  );
+}
+
+/**
+ * Create the dismiss_panel tool using the SDK's tool() helper
+ * Removes a panel from the UI
+ * @param onDismissPanel Callback invoked to dismiss a panel
+ */
+function createDismissPanelTool(onDismissPanel: DismissPanelHandler) {
+  return tool(
+    "dismiss_panel",
+    `Remove a panel from the UI.
+Use when information is no longer relevant or needs to be cleared.`,
+    {
+      id: z.string().min(1).max(32).regex(/^[a-zA-Z0-9-]+$/).describe("Panel ID to dismiss"),
+    },
+    async (args) => {
+      logger.debug({ id: args.id }, "dismiss_panel tool invoked");
+      const result = await onDismissPanel(args.id);
+
+      if (!result.success) {
+        return {
+          content: [{
+            type: "text" as const,
+            text: `Error: ${result.error}`,
+          }],
+        };
+      }
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: `Panel "${args.id}" dismissed`,
+        }],
+      };
+    }
+  );
+}
+
+/**
+ * Create the list_panels tool using the SDK's tool() helper
+ * Returns all currently active panels
+ * @param onListPanels Callback invoked to list panels
+ */
+function createListPanelsTool(onListPanels: ListPanelsHandler) {
+  return tool(
+    "list_panels",
+    `List all currently active panels.
+Returns panel IDs, positions, and content summaries.
+Use to check what panels are displayed before creating or updating.`,
+    {},
+    async () => {
+      logger.debug("list_panels tool invoked");
+      const panels = await onListPanels();
+
+      if (panels.length === 0) {
+        return {
+          content: [{
+            type: "text" as const,
+            text: "No active panels.",
+          }],
+        };
+      }
+
+      const list = panels.map((p) => {
+        const contentPreview = p.content.length > 50 ? p.content.slice(0, 50) + "..." : p.content;
+        return `- ${p.id} (${p.position}${p.persistent ? ", persistent" : ""}): "${p.title}" - ${contentPreview}`;
+      }).join("\n");
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: `Active panels (${panels.length}/5):\n${list}`,
+        }],
+      };
+    }
+  );
+}
+
+/**
  * Create an MCP server with GM tools (set_theme and set_xp_style)
  * All other state management is done via file read/write
  * @param onThemeChange Callback invoked when theme should change
@@ -380,7 +611,8 @@ export function createGMMcpServer(
 
 /**
  * Create an MCP server with all GM tools
- * Includes: set_theme, set_xp_style, set_character, set_world, list_characters, list_worlds
+ * Includes: set_theme, set_xp_style, set_character, set_world, list_characters, list_worlds,
+ *           create_panel, update_panel, dismiss_panel, list_panels
  * @param callbacks All callback handlers for tool invocations
  */
 export function createGMMcpServerWithCallbacks(callbacks: GMMcpCallbacks) {
@@ -390,10 +622,14 @@ export function createGMMcpServerWithCallbacks(callbacks: GMMcpCallbacks) {
   const setWorldTool = createSetWorldTool(callbacks.onSetWorld);
   const listCharactersTool = createListCharactersTool(callbacks.onListCharacters);
   const listWorldsTool = createListWorldsTool(callbacks.onListWorlds);
+  const createPanelTool = createCreatePanelTool(callbacks.onCreatePanel);
+  const updatePanelTool = createUpdatePanelTool(callbacks.onUpdatePanel);
+  const dismissPanelTool = createDismissPanelTool(callbacks.onDismissPanel);
+  const listPanelsTool = createListPanelsTool(callbacks.onListPanels);
 
   return createSdkMcpServer({
     name: "adventure-gm",
-    version: "2.0.0",
+    version: "3.0.0",
     tools: [
       setThemeTool,
       setXpStyleTool,
@@ -401,6 +637,10 @@ export function createGMMcpServerWithCallbacks(callbacks: GMMcpCallbacks) {
       setWorldTool,
       listCharactersTool,
       listWorldsTool,
+      createPanelTool,
+      updatePanelTool,
+      dismissPanelTool,
+      listPanelsTool,
     ],
   });
 }

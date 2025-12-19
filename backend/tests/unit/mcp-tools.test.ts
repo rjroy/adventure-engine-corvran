@@ -20,6 +20,10 @@ import {
   type SetWorldHandler,
   type ListCharactersHandler,
   type ListWorldsHandler,
+  type CreatePanelHandler,
+  type UpdatePanelHandler,
+  type DismissPanelHandler,
+  type ListPanelsHandler,
 } from "../../src/gm-prompt";
 import type { PlayerInfo } from "../../src/player-manager";
 import type { WorldInfo } from "../../src/world-manager";
@@ -35,6 +39,10 @@ function createMockCallbacks(): GMMcpCallbacks {
     onSetWorld: mock<SetWorldHandler>(() => Promise.resolve("worlds/test-world")),
     onListCharacters: mock<ListCharactersHandler>(() => Promise.resolve([])),
     onListWorlds: mock<ListWorldsHandler>(() => Promise.resolve([])),
+    onCreatePanel: mock<CreatePanelHandler>(() => Promise.resolve({ success: true })),
+    onUpdatePanel: mock<UpdatePanelHandler>(() => Promise.resolve({ success: true })),
+    onDismissPanel: mock<DismissPanelHandler>(() => Promise.resolve({ success: true })),
+    onListPanels: mock<ListPanelsHandler>(() => Promise.resolve([])),
   };
 }
 
@@ -88,6 +96,10 @@ describe("GMMcpCallbacks interface", () => {
       onSetWorld: () => Promise.resolve("worlds/test"),
       onListCharacters: () => Promise.resolve([]),
       onListWorlds: () => Promise.resolve([]),
+      onCreatePanel: () => Promise.resolve({ success: true }),
+      onUpdatePanel: () => Promise.resolve({ success: true }),
+      onDismissPanel: () => Promise.resolve({ success: true }),
+      onListPanels: () => Promise.resolve([]),
     };
 
     // All properties should be defined
@@ -97,6 +109,10 @@ describe("GMMcpCallbacks interface", () => {
     expect(callbacks.onSetWorld).toBeDefined();
     expect(callbacks.onListCharacters).toBeDefined();
     expect(callbacks.onListWorlds).toBeDefined();
+    expect(callbacks.onCreatePanel).toBeDefined();
+    expect(callbacks.onUpdatePanel).toBeDefined();
+    expect(callbacks.onDismissPanel).toBeDefined();
+    expect(callbacks.onListPanels).toBeDefined();
   });
 
   test("callbacks accept correct parameter types", async () => {
@@ -344,7 +360,31 @@ describe("type exports", () => {
       onSetWorld: () => Promise.resolve("worlds/test"),
       onListCharacters: () => Promise.resolve([]),
       onListWorlds: () => Promise.resolve([]),
+      onCreatePanel: () => Promise.resolve({ success: true }),
+      onUpdatePanel: () => Promise.resolve({ success: true }),
+      onDismissPanel: () => Promise.resolve({ success: true }),
+      onListPanels: () => Promise.resolve([]),
     };
     expect(callbacks).toBeDefined();
+  });
+
+  test("CreatePanelHandler type is exported", () => {
+    const handler: CreatePanelHandler = () => Promise.resolve({ success: true });
+    expect(typeof handler).toBe("function");
+  });
+
+  test("UpdatePanelHandler type is exported", () => {
+    const handler: UpdatePanelHandler = () => Promise.resolve({ success: true });
+    expect(typeof handler).toBe("function");
+  });
+
+  test("DismissPanelHandler type is exported", () => {
+    const handler: DismissPanelHandler = () => Promise.resolve({ success: true });
+    expect(typeof handler).toBe("function");
+  });
+
+  test("ListPanelsHandler type is exported", () => {
+    const handler: ListPanelsHandler = () => Promise.resolve([]);
+    expect(typeof handler).toBe("function");
   });
 });

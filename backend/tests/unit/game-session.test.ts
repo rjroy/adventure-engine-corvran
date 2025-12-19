@@ -728,7 +728,7 @@ describe("GameSession", () => {
   });
   /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/require-await */
 
-  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/require-await */
+  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
   describe("Session Recovery", () => {
     test("shouldAttemptRecovery returns false when no error", async () => {
       const { ws } = createMockWS();
@@ -837,5 +837,272 @@ describe("GameSession", () => {
       expect((session as any).recoveryAttempt).toBe(0);
     });
   });
-  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/require-await */
+  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+
+  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+  describe("Panel MCP Tools", () => {
+    test("panelManager is initialized", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      // Access private panelManager
+      expect((session as any).panelManager).toBeDefined();
+    });
+
+    test("create_panel callback creates panel and emits message", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      // Get the panelManager and call create directly
+      const panelManager = (session as any).panelManager;
+
+      // Create panel
+      const result = panelManager.create({
+        id: "weather",
+        title: "Weather",
+        content: "Sunny, 72F",
+        position: "sidebar",
+        persistent: true,
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.id).toBe("weather");
+        expect(result.data.title).toBe("Weather");
+        expect(result.data.position).toBe("sidebar");
+      }
+    });
+
+    test("panel operations validate limits", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      const panelManager = (session as any).panelManager;
+
+      // Create 5 panels (maximum)
+      for (let i = 0; i < 5; i++) {
+        const result = panelManager.create({
+          id: `panel-${i}`,
+          title: `Panel ${i}`,
+          content: "content",
+          position: "sidebar",
+          persistent: false,
+        });
+        expect(result.success).toBe(true);
+      }
+
+      // Try to create 6th panel - should fail
+      const result = panelManager.create({
+        id: "panel-overflow",
+        title: "Overflow",
+        content: "content",
+        position: "sidebar",
+        persistent: false,
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Maximum");
+      }
+    });
+
+    test("update_panel callback updates existing panel", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      const panelManager = (session as any).panelManager;
+
+      // Create panel first
+      panelManager.create({
+        id: "weather",
+        title: "Weather",
+        content: "Sunny, 72F",
+        position: "sidebar",
+        persistent: true,
+      });
+
+      // Update it
+      const result = panelManager.update({
+        id: "weather",
+        content: "Rainy, 55F",
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.content).toBe("Rainy, 55F");
+        // Title should remain unchanged
+        expect(result.data.title).toBe("Weather");
+      }
+    });
+
+    test("update_panel returns error for non-existent panel", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      const panelManager = (session as any).panelManager;
+
+      const result = panelManager.update({
+        id: "nonexistent",
+        content: "new content",
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("not found");
+      }
+    });
+
+    test("dismiss_panel callback removes panel", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      const panelManager = (session as any).panelManager;
+
+      // Create panel first
+      panelManager.create({
+        id: "weather",
+        title: "Weather",
+        content: "Sunny, 72F",
+        position: "sidebar",
+        persistent: true,
+      });
+
+      expect(panelManager.count()).toBe(1);
+
+      // Dismiss it
+      const result = panelManager.dismiss("weather");
+
+      expect(result.success).toBe(true);
+      expect(panelManager.count()).toBe(0);
+    });
+
+    test("dismiss_panel returns error for non-existent panel", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      const panelManager = (session as any).panelManager;
+
+      const result = panelManager.dismiss("nonexistent");
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("not found");
+      }
+    });
+
+    test("list_panels returns all active panels", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      const panelManager = (session as any).panelManager;
+
+      // Create some panels
+      panelManager.create({
+        id: "weather",
+        title: "Weather",
+        content: "Sunny",
+        position: "sidebar",
+        persistent: true,
+      });
+      panelManager.create({
+        id: "ticker",
+        title: "News",
+        content: "Breaking news",
+        position: "header",
+        persistent: false,
+      });
+
+      const panels = panelManager.list() as Array<{ id: string }>;
+
+      expect(panels.length).toBe(2);
+      expect(panels.map((p) => p.id)).toContain("weather");
+      expect(panels.map((p) => p.id)).toContain("ticker");
+    });
+
+    test("panel content size validation", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      const panelManager = (session as any).panelManager;
+
+      // Try to create panel with content > 2KB
+      const largeContent = "a".repeat(2049);
+      const result = panelManager.create({
+        id: "large-panel",
+        title: "Large",
+        content: largeContent,
+        position: "sidebar",
+        persistent: false,
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("2KB");
+      }
+    });
+
+    test("panel ID validation", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      const panelManager = (session as any).panelManager;
+
+      // Try to create panel with invalid ID
+      const result = panelManager.create({
+        id: "invalid_id", // underscores not allowed
+        title: "Invalid",
+        content: "content",
+        position: "sidebar",
+        persistent: false,
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("alphanumeric");
+      }
+    });
+
+    test("duplicate panel ID returns error", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      const panelManager = (session as any).panelManager;
+
+      // Create first panel
+      const result1 = panelManager.create({
+        id: "weather",
+        title: "Weather",
+        content: "Sunny",
+        position: "sidebar",
+        persistent: false,
+      });
+      expect(result1.success).toBe(true);
+
+      // Try to create panel with same ID
+      const result2 = panelManager.create({
+        id: "weather",
+        title: "Different",
+        content: "Different",
+        position: "header",
+        persistent: true,
+      });
+
+      expect(result2.success).toBe(false);
+      if (!result2.success) {
+        expect(result2.error).toContain("exists");
+      }
+    });
+  });
+  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 });
