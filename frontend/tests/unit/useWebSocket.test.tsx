@@ -1,8 +1,9 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useWebSocket } from "../../src/hooks/useWebSocket";
-import type { ServerMessage } from "../../../shared/protocol";
+import type { ServerMessage, Panel } from "../../../shared/protocol";
 import { ThemeProvider } from "../../src/contexts/ThemeContext";
+import { PanelProvider, usePanels } from "../../src/contexts/PanelContext";
 import type { ReactNode } from "react";
 
 // Get access to MockWebSocket instances
@@ -63,10 +64,12 @@ class MockWebSocket {
 // @ts-expect-error - replacing for testing
 globalThis.WebSocket = MockWebSocket;
 
-// Helper to create wrapper with ThemeProvider for theme_change tests
+// Helper to create wrapper with ThemeProvider and PanelProvider
 function createWrapper() {
   return ({ children }: { children: ReactNode }) => (
-    <ThemeProvider>{children}</ThemeProvider>
+    <ThemeProvider>
+      <PanelProvider>{children}</PanelProvider>
+    </ThemeProvider>
   );
 }
 
@@ -549,6 +552,370 @@ describe("useWebSocket", () => {
       // Verify theme was applied
       const root = document.documentElement;
       expect(root.style.getPropertyValue("--color-primary")).toBe("#ba68c8");
+    });
+  });
+
+  describe("panel message handling", () => {
+    // Type for captured panel context
+    type PanelContextValue = ReturnType<typeof usePanels>;
+
+    // Helper to create test panel data
+    const createTestPanel = (overrides: Partial<Panel> = {}): Panel => ({
+      id: "test-panel-1",
+      title: "Test Panel",
+      content: "Test content",
+      position: "sidebar",
+      persistent: false,
+      createdAt: new Date().toISOString(),
+      ...overrides,
+    });
+
+    // Shared context capture component
+    function PanelContextCapture({ onCapture }: { onCapture: (ctx: PanelContextValue) => void }) {
+      const ctx = usePanels();
+      onCapture(ctx);
+      return null;
+    }
+
+    // Helper to create wrapper with context capture
+    function createWrapperWithCapture(captureRef: { current: PanelContextValue | null }) {
+      return ({ children }: { children: ReactNode }) => (
+        <ThemeProvider>
+          <PanelProvider>
+            <PanelContextCapture onCapture={(ctx) => { captureRef.current = ctx; }} />
+            {children}
+          </PanelProvider>
+        </ThemeProvider>
+      );
+    }
+
+    test("panel_create message adds panel to context", () => {
+      const onMessage = vi.fn();
+      const panelContextRef: { current: PanelContextValue | null } = { current: null };
+
+      renderHook(
+        () => useWebSocket({ ...defaultOptions, onMessage }),
+        { wrapper: createWrapperWithCapture(panelContextRef) }
+      );
+
+      act(() => {
+        mockWebSocketInstance?.simulateOpen();
+      });
+
+      // Initial state - no panels
+      expect(panelContextRef.current!.panels).toHaveLength(0);
+
+      const testPanel = createTestPanel();
+      const panelCreateMessage: ServerMessage = {
+        type: "panel_create",
+        payload: testPanel,
+      };
+
+      act(() => {
+        mockWebSocketInstance?.simulateMessage(panelCreateMessage);
+      });
+
+      // Panel should be added
+      expect(panelContextRef.current!.panels).toHaveLength(1);
+      expect(panelContextRef.current!.panels[0].id).toBe("test-panel-1");
+      expect(panelContextRef.current!.panels[0].title).toBe("Test Panel");
+
+      // Message should be forwarded to onMessage
+      expect(onMessage).toHaveBeenCalledWith(panelCreateMessage);
+    });
+
+    test("panel_update message updates panel content", () => {
+      const onMessage = vi.fn();
+      const panelContextRef: { current: PanelContextValue | null } = { current: null };
+
+      renderHook(
+        () => useWebSocket({ ...defaultOptions, onMessage }),
+        { wrapper: createWrapperWithCapture(panelContextRef) }
+      );
+
+      act(() => {
+        mockWebSocketInstance?.simulateOpen();
+      });
+
+      // First, create a panel
+      const testPanel = createTestPanel({ content: "Original content" });
+      act(() => {
+        mockWebSocketInstance?.simulateMessage({
+          type: "panel_create",
+          payload: testPanel,
+        });
+      });
+
+      expect(panelContextRef.current!.panels[0].content).toBe("Original content");
+
+      // Now update it
+      const panelUpdateMessage: ServerMessage = {
+        type: "panel_update",
+        payload: {
+          id: "test-panel-1",
+          content: "Updated content",
+        },
+      };
+
+      act(() => {
+        mockWebSocketInstance?.simulateMessage(panelUpdateMessage);
+      });
+
+      // Content should be updated
+      expect(panelContextRef.current!.panels[0].content).toBe("Updated content");
+
+      // Message should be forwarded
+      expect(onMessage).toHaveBeenCalledWith(panelUpdateMessage);
+    });
+
+    test("panel_dismiss message removes panel from context", () => {
+      const onMessage = vi.fn();
+      const panelContextRef: { current: PanelContextValue | null } = { current: null };
+
+      renderHook(
+        () => useWebSocket({ ...defaultOptions, onMessage }),
+        { wrapper: createWrapperWithCapture(panelContextRef) }
+      );
+
+      act(() => {
+        mockWebSocketInstance?.simulateOpen();
+      });
+
+      // Create a panel first
+      const testPanel = createTestPanel();
+      act(() => {
+        mockWebSocketInstance?.simulateMessage({
+          type: "panel_create",
+          payload: testPanel,
+        });
+      });
+
+      expect(panelContextRef.current!.panels).toHaveLength(1);
+
+      // Now dismiss it
+      const panelDismissMessage: ServerMessage = {
+        type: "panel_dismiss",
+        payload: {
+          id: "test-panel-1",
+        },
+      };
+
+      act(() => {
+        mockWebSocketInstance?.simulateMessage(panelDismissMessage);
+      });
+
+      // Panel should be removed
+      expect(panelContextRef.current!.panels).toHaveLength(0);
+
+      // Message should be forwarded
+      expect(onMessage).toHaveBeenCalledWith(panelDismissMessage);
+    });
+
+    test("panel_update for non-existent panel logs warning", () => {
+      const onMessage = vi.fn();
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      renderHook(
+        () => useWebSocket({ ...defaultOptions, onMessage }),
+        { wrapper: createWrapper() }
+      );
+
+      act(() => {
+        mockWebSocketInstance?.simulateOpen();
+      });
+
+      // Update a panel that doesn't exist
+      const panelUpdateMessage: ServerMessage = {
+        type: "panel_update",
+        payload: {
+          id: "non-existent-panel",
+          content: "New content",
+        },
+      };
+
+      act(() => {
+        mockWebSocketInstance?.simulateMessage(panelUpdateMessage);
+      });
+
+      // PanelContext logs warning for non-existent panel
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("non-existent-panel")
+      );
+
+      // Message should still be forwarded
+      expect(onMessage).toHaveBeenCalledWith(panelUpdateMessage);
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    test("panel_dismiss for non-existent panel logs warning", () => {
+      const onMessage = vi.fn();
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      renderHook(
+        () => useWebSocket({ ...defaultOptions, onMessage }),
+        { wrapper: createWrapper() }
+      );
+
+      act(() => {
+        mockWebSocketInstance?.simulateOpen();
+      });
+
+      // Dismiss a panel that doesn't exist
+      const panelDismissMessage: ServerMessage = {
+        type: "panel_dismiss",
+        payload: {
+          id: "non-existent-panel",
+        },
+      };
+
+      act(() => {
+        mockWebSocketInstance?.simulateMessage(panelDismissMessage);
+      });
+
+      // PanelContext logs warning for non-existent panel
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("non-existent-panel")
+      );
+
+      // Message should still be forwarded
+      expect(onMessage).toHaveBeenCalledWith(panelDismissMessage);
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    test("malformed panel_create message is rejected at boundary", () => {
+      const onMessage = vi.fn();
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      renderHook(
+        () => useWebSocket({ ...defaultOptions, onMessage }),
+        { wrapper: createWrapper() }
+      );
+
+      act(() => {
+        mockWebSocketInstance?.simulateOpen();
+      });
+
+      // Send malformed panel_create (missing required fields)
+      const malformedMessage = {
+        type: "panel_create",
+        payload: {
+          id: "test-panel",
+          // Missing title, content, position, persistent, createdAt
+        },
+      };
+
+      act(() => {
+        mockWebSocketInstance?.simulateMessage(malformedMessage);
+      });
+
+      // Should log validation error
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Invalid server message:",
+        expect.any(String)
+      );
+
+      // Should NOT forward to onMessage (rejected at boundary)
+      expect(onMessage).not.toHaveBeenCalledWith(expect.objectContaining({
+        type: "panel_create",
+      }));
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    test("malformed panel_update message is rejected at boundary", () => {
+      const onMessage = vi.fn();
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      renderHook(
+        () => useWebSocket({ ...defaultOptions, onMessage }),
+        { wrapper: createWrapper() }
+      );
+
+      act(() => {
+        mockWebSocketInstance?.simulateOpen();
+      });
+
+      // Send malformed panel_update (invalid id format)
+      const malformedMessage = {
+        type: "panel_update",
+        payload: {
+          id: "invalid id with spaces!!!",
+          content: "New content",
+        },
+      };
+
+      act(() => {
+        mockWebSocketInstance?.simulateMessage(malformedMessage);
+      });
+
+      // Should log validation error
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Invalid server message:",
+        expect.any(String)
+      );
+
+      // Should NOT forward to onMessage
+      expect(onMessage).not.toHaveBeenCalledWith(expect.objectContaining({
+        type: "panel_update",
+      }));
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    test("multiple panels can be created and managed", () => {
+      const onMessage = vi.fn();
+      const panelContextRef: { current: PanelContextValue | null } = { current: null };
+
+      renderHook(
+        () => useWebSocket({ ...defaultOptions, onMessage }),
+        { wrapper: createWrapperWithCapture(panelContextRef) }
+      );
+
+      act(() => {
+        mockWebSocketInstance?.simulateOpen();
+      });
+
+      // Create multiple panels
+      act(() => {
+        mockWebSocketInstance?.simulateMessage({
+          type: "panel_create",
+          payload: createTestPanel({ id: "panel-1", title: "Panel 1" }),
+        });
+        mockWebSocketInstance?.simulateMessage({
+          type: "panel_create",
+          payload: createTestPanel({ id: "panel-2", title: "Panel 2" }),
+        });
+        mockWebSocketInstance?.simulateMessage({
+          type: "panel_create",
+          payload: createTestPanel({ id: "panel-3", title: "Panel 3" }),
+        });
+      });
+
+      expect(panelContextRef.current!.panels).toHaveLength(3);
+
+      // Update one
+      act(() => {
+        mockWebSocketInstance?.simulateMessage({
+          type: "panel_update",
+          payload: { id: "panel-2", content: "Updated panel 2" },
+        });
+      });
+
+      const panel2 = panelContextRef.current!.panels.find((p: Panel) => p.id === "panel-2");
+      expect(panel2?.content).toBe("Updated panel 2");
+
+      // Dismiss one
+      act(() => {
+        mockWebSocketInstance?.simulateMessage({
+          type: "panel_dismiss",
+          payload: { id: "panel-1" },
+        });
+      });
+
+      expect(panelContextRef.current!.panels).toHaveLength(2);
+      expect(panelContextRef.current!.panels.find((p: Panel) => p.id === "panel-1")).toBeUndefined();
     });
   });
 });

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import type { ClientMessage, ServerMessage, ThemeMood } from "../../../shared/protocol";
 import { parseServerMessage, formatValidationError, ThemeMoodSchema } from "../../../shared/protocol";
 import { useTheme } from "../contexts/ThemeContext";
+import { usePanels } from "../contexts/PanelContext";
 
 export type ConnectionStatus = "connected" | "disconnected" | "reconnecting";
 
@@ -48,6 +49,9 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
 
   // Access theme context for handling theme_change messages
   const { applyTheme } = useTheme();
+
+  // Access panel context for handling panel messages
+  const { addPanel, updatePanel, removePanel } = usePanels();
 
   const updateStatus = useCallback(
     (newStatus: ConnectionStatus) => {
@@ -174,6 +178,18 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
             }
           }
 
+          // Handle panel messages by updating panel context
+          if (message.type === "panel_create") {
+            console.log("[useWebSocket] Received panel_create:", message.payload.id);
+            addPanel(message.payload);
+          } else if (message.type === "panel_update") {
+            console.log("[useWebSocket] Received panel_update:", message.payload.id);
+            updatePanel(message.payload.id, message.payload.content);
+          } else if (message.type === "panel_dismiss") {
+            console.log("[useWebSocket] Received panel_dismiss:", message.payload.id);
+            removePanel(message.payload.id);
+          }
+
           // Forward message to onMessage handler for logging/other uses
           onMessage(message);
         } catch (error) {
@@ -229,6 +245,9 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     clearHeartbeat,
     clearReconnectTimer,
     applyTheme,
+    addPanel,
+    updatePanel,
+    removePanel,
   ]);
 
   const disconnect = useCallback(() => {
