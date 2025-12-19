@@ -16,6 +16,7 @@ import type { ServerMessage, ClientMessage } from "../../src/types/protocol";
 // Test configuration
 const TEST_PORT = 3098;
 const TEST_ADVENTURES_DIR = "./test-adventures-duplicate";
+const TEST_PROJECT_DIR = "./test-project-duplicate";
 const WS_TIMEOUT = 5000;
 
 // Track connections for cleanup
@@ -128,10 +129,13 @@ describe("Duplicate Connection Handling", () => {
   beforeAll(async () => {
     // Set up test environment
     process.env.ADVENTURES_DIR = TEST_ADVENTURES_DIR;
+    process.env.PROJECT_DIR = TEST_PROJECT_DIR;
     process.env.MOCK_SDK = "true";
 
     await rm(TEST_ADVENTURES_DIR, { recursive: true, force: true });
+    await rm(TEST_PROJECT_DIR, { recursive: true, force: true });
     await mkdir(TEST_ADVENTURES_DIR, { recursive: true });
+    await mkdir(TEST_PROJECT_DIR, { recursive: true });
 
     // Import server after setting env vars
     const serverModule = await import("../../src/server");
@@ -150,6 +154,7 @@ describe("Duplicate Connection Handling", () => {
       void server.stop();
     }
     await rm(TEST_ADVENTURES_DIR, { recursive: true, force: true });
+    await rm(TEST_PROJECT_DIR, { recursive: true, force: true });
   });
 
   afterEach(async () => {

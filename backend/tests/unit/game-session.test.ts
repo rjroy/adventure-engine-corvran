@@ -1356,5 +1356,220 @@ describe("GameSession", () => {
       expect(panels[2].id).toBe("third");
     });
   });
+
+  describe("Panel Persistence", () => {
+    test("restores panels from state on initialization", async () => {
+      const { ws, messages } = createMockWS();
+
+      // Create initial state with panels
+      const initialStateManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+      const state = await initialStateManager.create();
+      const testAdventureId = state.id;
+      const testSessionToken = state.sessionToken;
+
+      // Add panels to state
+      await initialStateManager.setPanels([
+        {
+          id: "persistent-panel",
+          title: "Test Panel",
+          content: "Test content",
+          position: "sidebar",
+          persistent: true,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+      await initialStateManager.save();
+
+      // Create new session and initialize
+      const session = new GameSession(ws, initialStateManager);
+      const result = await session.initialize(testAdventureId, testSessionToken);
+
+      expect(result.success).toBe(true);
+
+      // Verify panel was restored to PanelManager
+      const panelManager = (session as any).panelManager;
+      const panels = panelManager.list();
+      expect(panels.length).toBe(1);
+      expect(panels[0].id).toBe("persistent-panel");
+      expect(panels[0].title).toBe("Test Panel");
+
+      // Verify panel_create message was emitted for restored panel
+      const panelCreateMessages = messages.filter((m) => m.type === "panel_create");
+      expect(panelCreateMessages.length).toBe(1);
+      expect(panelCreateMessages[0].payload?.id).toBe("persistent-panel");
+    });
+
+    test("restores multiple panels on initialization", async () => {
+      const { ws, messages } = createMockWS();
+
+      const initialStateManager = new AdventureStateManager(TEST_ADVENTURES_DIR);
+      const state = await initialStateManager.create();
+      const testAdventureId = state.id;
+      const testSessionToken = state.sessionToken;
+
+      // Add multiple panels to state
+      await initialStateManager.setPanels([
+        {
+          id: "panel-1",
+          title: "Panel 1",
+          content: "Content 1",
+          position: "sidebar",
+          persistent: true,
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: "panel-2",
+          title: "Panel 2",
+          content: "Content 2",
+          position: "header",
+          persistent: true,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+      await initialStateManager.save();
+
+      const session = new GameSession(ws, initialStateManager);
+      await session.initialize(testAdventureId, testSessionToken);
+
+      const panelManager = (session as any).panelManager;
+      const panels = panelManager.list();
+      expect(panels.length).toBe(2);
+
+      // Verify both panel_create messages were emitted
+      const panelCreateMessages = messages.filter((m) => m.type === "panel_create");
+      expect(panelCreateMessages.length).toBe(2);
+    });
+
+    test("handles empty panels array on initialization", async () => {
+      const { ws } = createMockWS();
+
+      const session = new GameSession(ws, stateManager);
+      const result = await session.initialize(adventureId, sessionToken);
+
+      expect(result.success).toBe(true);
+
+      const panelManager = (session as any).panelManager;
+      const panels = panelManager.list();
+      expect(panels.length).toBe(0);
+    });
+
+    test("syncs persistent panels to state after create", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      const panelManager = (session as any).panelManager;
+
+      // Create persistent panel
+      panelManager.create({
+        id: "sync-test",
+        title: "Sync Test",
+        content: "Test content",
+        position: "sidebar",
+        persistent: true,
+      });
+
+      // Manually trigger sync (simulates what MCP callback does)
+      await (session as any).syncPanelsToState();
+
+      // Verify panel was synced to state
+      const currentState = stateManager.getState();
+      expect(currentState?.panels).toBeDefined();
+      expect(currentState?.panels?.length).toBe(1);
+      expect(currentState?.panels?.[0]?.id).toBe("sync-test");
+    });
+
+    test("syncs panels to state after update", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      const panelManager = (session as any).panelManager;
+
+      // Create and update panel
+      panelManager.create({
+        id: "update-test",
+        title: "Update Test",
+        content: "Initial content",
+        position: "sidebar",
+        persistent: true,
+      });
+
+      await (session as any).syncPanelsToState();
+
+      panelManager.update({
+        id: "update-test",
+        content: "Updated content",
+      });
+
+      // Manually trigger sync (simulates what MCP callback does)
+      await (session as any).syncPanelsToState();
+
+      // Verify updated panel was synced to state
+      const currentState = stateManager.getState();
+      expect(currentState?.panels?.[0]?.content).toBe("Updated content");
+    });
+
+    test("syncs panels to state after dismiss", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      const panelManager = (session as any).panelManager;
+
+      // Create and dismiss panel
+      panelManager.create({
+        id: "dismiss-test",
+        title: "Dismiss Test",
+        content: "Test content",
+        position: "sidebar",
+        persistent: true,
+      });
+
+      await (session as any).syncPanelsToState();
+
+      panelManager.dismiss("dismiss-test");
+
+      // Manually trigger sync (simulates what MCP callback does)
+      await (session as any).syncPanelsToState();
+
+      // Verify panel was removed from state
+      const currentState = stateManager.getState();
+      expect(currentState?.panels?.length).toBe(0);
+    });
+
+    test("only syncs persistent panels to state", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      const panelManager = (session as any).panelManager;
+
+      // Create both persistent and non-persistent panels
+      panelManager.create({
+        id: "persistent",
+        title: "Persistent",
+        content: "Persistent content",
+        position: "sidebar",
+        persistent: true,
+      });
+
+      panelManager.create({
+        id: "non-persistent",
+        title: "Non-Persistent",
+        content: "Non-persistent content",
+        position: "header",
+        persistent: false,
+      });
+
+      // Manually trigger sync (simulates what MCP callback does)
+      await (session as any).syncPanelsToState();
+
+      // Verify only persistent panel was synced to state
+      const currentState = stateManager.getState();
+      expect(currentState?.panels?.length).toBe(1);
+      expect(currentState?.panels?.[0]?.id).toBe("persistent");
+    });
+  });
   /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 });

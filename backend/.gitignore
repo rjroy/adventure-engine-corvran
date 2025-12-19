@@ -2,6 +2,7 @@ node_modules/
 dist/
 build/
 adventures/
+test-*-adventures/
 data/
 *.lock
 package-lock.json
