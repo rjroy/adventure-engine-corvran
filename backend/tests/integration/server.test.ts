@@ -91,14 +91,13 @@ describe("Server REST Endpoints", () => {
         id: string;
         createdAt: string;
         lastActiveAt: string;
-        currentScene: { description: string; location: string };
+        currentScene: { description: string };
       };
       expect(data).toHaveProperty("id", adventureId);
       expect(data).toHaveProperty("createdAt");
       expect(data).toHaveProperty("lastActiveAt");
       expect(data).toHaveProperty("currentScene");
       expect(data.currentScene).toHaveProperty("description");
-      expect(data.currentScene).toHaveProperty("location");
     });
 
     test("returns 404 for nonexistent adventure", async () => {

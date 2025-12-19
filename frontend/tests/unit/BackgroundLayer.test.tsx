@@ -127,14 +127,17 @@ describe("BackgroundLayer", () => {
   });
 
   describe("rendering", () => {
-    test("renders nothing when no background URL is set", () => {
+    test("renders default background on initial load", () => {
       const { container } = render(
         <Wrapper>
           <BackgroundLayer />
         </Wrapper>
       );
 
-      expect(container.querySelector(".background-layer")).toBeNull();
+      // Should have the default Corvran background
+      expect(container.querySelector(".background-layer")).not.toBeNull();
+      const img = container.querySelector("img");
+      expect(img?.src).toContain("/backgrounds/corvran-engine-background.webp");
     });
 
     test("renders container when background URL is provided", async () => {
@@ -150,8 +153,8 @@ describe("BackgroundLayer", () => {
         </TestWrapper>
       );
 
-      // Initially nothing rendered
-      expect(container.querySelector(".background-layer")).toBeNull();
+      // Initially has default background
+      expect(container.querySelector(".background-layer")).not.toBeNull();
 
       // Apply a background URL
       await applyBackgroundAndWait(
@@ -224,7 +227,23 @@ describe("BackgroundLayer", () => {
   });
 
   describe("image load sequence", () => {
-    test("first image loads directly without preloading", async () => {
+    test("default background loads directly on mount", () => {
+      const { container } = render(
+        <Wrapper>
+          <BackgroundLayer />
+        </Wrapper>
+      );
+
+      // Default Corvran background should load directly without preloading
+      const img = container.querySelector("img");
+      expect(img).not.toBeNull();
+      expect(img?.getAttribute("src")).toContain("/backgrounds/corvran-engine-background.webp");
+
+      // No MockImage instances should be created for default background
+      expect(mockImageInstances.length).toBe(0);
+    });
+
+    test("first applied image preloads since default background already exists", async () => {
       let setBackgroundUrl: ((url: string | null) => void) | null = null;
 
       const { container } = render(
@@ -237,19 +256,31 @@ describe("BackgroundLayer", () => {
         </TestWrapper>
       );
 
+      // Clear mock instances from default background load
+      mockImageInstances = [];
+
       await applyBackgroundAndWait(
         setBackgroundUrl!,
         "http://example.com/first.jpg"
       );
 
-      // First image should load directly (no Image preloading for first image)
-      const img = container.querySelector("img");
-      expect(img).not.toBeNull();
-      expect(img?.getAttribute("src")).toBe("http://example.com/first.jpg");
+      // A MockImage instance should be created for preloading
+      expect(mockImageInstances.length).toBe(1);
+      expect(mockImageInstances[0].src).toBe("http://example.com/first.jpg");
 
-      // No MockImage instances should be created for first image
-      // (component sets activeSrc directly without preloading)
-      expect(mockImageInstances.length).toBe(0);
+      // Simulate successful load
+      act(() => {
+        mockImageInstances[0].simulateLoad();
+      });
+
+      // Flush timers to allow React to process the image load and layer swap
+      await flushTimersAndMicrotasks();
+      await flushTimersAndMicrotasks(); // Second flush for nested state updates
+
+      // After preload completes, the new image should be in the active layer
+      const activeImg = container.querySelector(".background-layer__image--active");
+      expect(activeImg).not.toBeNull();
+      expect(activeImg?.getAttribute("src")).toBe("http://example.com/first.jpg");
     });
 
     test("subsequent images preload before rendering", async () => {
@@ -619,11 +650,23 @@ describe("BackgroundLayer", () => {
         </TestWrapper>
       );
 
+      // Clear mock instances from default background load
+      mockImageInstances = [];
+
       // Load first image successfully
       await applyBackgroundAndWait(
         setBackgroundUrl!,
         "http://example.com/first.jpg"
       );
+
+      // Simulate successful load of first image
+      act(() => {
+        mockImageInstances[0].simulateLoad();
+      });
+
+      // Flush timers to allow React to process the image load and layer swap
+      await flushTimersAndMicrotasks();
+      await flushTimersAndMicrotasks(); // Second flush for nested state updates
 
       mockImageInstances = [];
 
@@ -646,9 +689,9 @@ describe("BackgroundLayer", () => {
         "Failed to load background image: http://example.com/broken.jpg"
       );
 
-      // First image should still be displayed (graceful degradation)
-      const img = container.querySelector("img");
-      expect(img?.getAttribute("src")).toBe("http://example.com/first.jpg");
+      // First image should still be displayed in active layer (graceful degradation)
+      const activeImg = container.querySelector(".background-layer__image--active");
+      expect(activeImg?.getAttribute("src")).toBe("http://example.com/first.jpg");
 
       consoleWarnSpy.mockRestore();
     });
@@ -668,11 +711,23 @@ describe("BackgroundLayer", () => {
         </TestWrapper>
       );
 
+      // Clear mock instances from default background load
+      mockImageInstances = [];
+
       // Load first image
       await applyBackgroundAndWait(
         setBackgroundUrl!,
         "http://example.com/good.jpg"
       );
+
+      // Simulate successful load of first image
+      act(() => {
+        mockImageInstances[0].simulateLoad();
+      });
+
+      // Flush timers to allow React to process the image load and layer swap
+      await flushTimersAndMicrotasks();
+      await flushTimersAndMicrotasks(); // Second flush for nested state updates
 
       mockImageInstances = [];
 
@@ -686,12 +741,10 @@ describe("BackgroundLayer", () => {
         mockImageInstances[0].simulateError();
       });
 
-      // layer-a should still be active with original image
-      const layerA = container.querySelector(
-        ".background-layer__image--layer-a"
-      );
-      expect(layerA).toHaveClass("background-layer__image--active");
-      expect(layerA?.getAttribute("src")).toBe("http://example.com/good.jpg");
+      // The active layer should still show the good image (graceful degradation)
+      const activeImg = container.querySelector(".background-layer__image--active");
+      expect(activeImg).not.toBeNull();
+      expect(activeImg?.getAttribute("src")).toBe("http://example.com/good.jpg");
     });
   });
 

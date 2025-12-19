@@ -60,7 +60,7 @@ export class AdventureStateManager {
         mood: "calm",
         genre: "high-fantasy",
         region: "village",
-        backgroundUrl: null,
+        backgroundUrl: "/backgrounds/corvran-engine-background.webp",
       },
       // Character/world references (null = GM will prompt for selection)
       playerRef: null,
