@@ -164,6 +164,66 @@ export const ThemeChangePayloadSchema = z.object({
 export type ThemeChangePayload = z.infer<typeof ThemeChangePayloadSchema>;
 
 // ========================
+// Panel System Types
+// ========================
+
+/**
+ * Panel position options for info panels.
+ * - sidebar: Right side of screen, vertical stack for persistent status
+ * - header: Top of screen, horizontal flow for tickers/alerts
+ * - overlay: Floating panel with percentage-based positioning
+ */
+export const PanelPositionSchema = z.enum(["sidebar", "header", "overlay"]);
+
+export type PanelPosition = z.infer<typeof PanelPositionSchema>;
+
+/**
+ * Info panel for displaying contextual information (weather, tickers, alerts).
+ * GM can create, update, and dismiss panels via MCP tools.
+ *
+ * Constraints:
+ * - ID: alphanumeric + hyphens, max 32 chars
+ * - Title: max 64 chars
+ * - Content: markdown text, max 2KB (2048 bytes)
+ * - x/y: percentage-based positioning (0-100), overlay only
+ * - Maximum 5 concurrent panels enforced by backend
+ */
+export const PanelSchema = z.object({
+  /** Unique identifier (alphanumeric + hyphens, max 32 chars) */
+  id: z
+    .string()
+    .min(1)
+    .max(32)
+    .regex(
+      /^[a-zA-Z0-9-]+$/,
+      "Panel ID must be alphanumeric with hyphens only"
+    ),
+
+  /** Display header text (max 64 chars) */
+  title: z.string().min(1).max(64),
+
+  /** Markdown content (max 2KB / 2048 bytes) */
+  content: z.string().max(2048),
+
+  /** Panel display position */
+  position: PanelPositionSchema,
+
+  /** If true, panel survives session reload */
+  persistent: z.boolean(),
+
+  /** Overlay X position as percentage from left (0-100), overlay only */
+  x: z.number().min(0).max(100).optional(),
+
+  /** Overlay Y position as percentage from top (0-100), overlay only */
+  y: z.number().min(0).max(100).optional(),
+
+  /** ISO 8601 timestamp for creation ordering (REQ-F-22) */
+  createdAt: z.string(),
+});
+
+export type Panel = z.infer<typeof PanelSchema>;
+
+// ========================
 // Client → Server Messages
 // ========================
 
@@ -256,6 +316,67 @@ export const ThemeChangeMessageSchema = z.object({
 });
 
 // ========================
+// Panel Messages (Server → Client)
+// ========================
+
+/**
+ * Message to create a new info panel.
+ * Sent when GM invokes create_panel MCP tool.
+ * Frontend adds panel to PanelContext state.
+ */
+export const PanelCreateMessageSchema = z.object({
+  type: z.literal("panel_create"),
+  payload: PanelSchema,
+});
+
+export type PanelCreateMessage = z.infer<typeof PanelCreateMessageSchema>;
+
+/**
+ * Message to update an existing panel's content.
+ * Only content can be updated - other fields (position, title) are immutable.
+ * Sent when GM invokes update_panel MCP tool.
+ */
+export const PanelUpdateMessageSchema = z.object({
+  type: z.literal("panel_update"),
+  payload: z.object({
+    /** ID of panel to update */
+    id: z
+      .string()
+      .min(1)
+      .max(32)
+      .regex(
+        /^[a-zA-Z0-9-]+$/,
+        "Panel ID must be alphanumeric with hyphens only"
+      ),
+    /** New markdown content (max 2KB / 2048 bytes) */
+    content: z.string().max(2048),
+  }),
+});
+
+export type PanelUpdateMessage = z.infer<typeof PanelUpdateMessageSchema>;
+
+/**
+ * Message to dismiss (remove) a panel from the UI.
+ * Sent when GM invokes dismiss_panel MCP tool.
+ */
+export const PanelDismissMessageSchema = z.object({
+  type: z.literal("panel_dismiss"),
+  payload: z.object({
+    /** ID of panel to dismiss */
+    id: z
+      .string()
+      .min(1)
+      .max(32)
+      .regex(
+        /^[a-zA-Z0-9-]+$/,
+        "Panel ID must be alphanumeric with hyphens only"
+      ),
+  }),
+});
+
+export type PanelDismissMessage = z.infer<typeof PanelDismissMessageSchema>;
+
+// ========================
 // Tool Status Types
 // ========================
 
@@ -289,6 +410,9 @@ export const ServerMessageSchema = z.discriminatedUnion("type", [
   PongMessageSchema,
   ThemeChangeMessageSchema,
   ToolStatusMessageSchema,
+  PanelCreateMessageSchema,
+  PanelUpdateMessageSchema,
+  PanelDismissMessageSchema,
 ]);
 
 export type ServerMessage = z.infer<typeof ServerMessageSchema>;
