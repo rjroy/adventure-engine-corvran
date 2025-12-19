@@ -93,10 +93,45 @@ interface ManageCombatToolCall {
 }
 
 /**
+ * Create panel tool call detected from input
+ */
+interface CreatePanelToolCall {
+  name: "create_panel";
+  input: {
+    id: string;
+    title: string;
+    content: string;
+    position: "sidebar" | "header" | "overlay";
+    persistent?: boolean;
+  };
+}
+
+/**
+ * Update panel tool call detected from input
+ */
+interface UpdatePanelToolCall {
+  name: "update_panel";
+  input: {
+    id: string;
+    content: string;
+  };
+}
+
+/**
+ * Dismiss panel tool call detected from input
+ */
+interface DismissPanelToolCall {
+  name: "dismiss_panel";
+  input: {
+    id: string;
+  };
+}
+
+/**
  * Union type for all tool calls (for future use)
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-type ToolCall = ThemeToolCall | DiceToolCall | CreateNpcToolCall | ApplyDamageToolCall | ManageCombatToolCall;
+type ToolCall = ThemeToolCall | DiceToolCall | CreateNpcToolCall | ApplyDamageToolCall | ManageCombatToolCall | CreatePanelToolCall | UpdatePanelToolCall | DismissPanelToolCall;
 
 /**
  * Theme trigger rules - maps keywords to theme parameters
@@ -394,6 +429,191 @@ export function detectManageCombatTool(prompt: string): ManageCombatToolCall | n
 }
 
 /**
+ * Panel triggers for testing panel functionality
+ * Maps keywords to panel operations
+ */
+const PANEL_CREATE_TRIGGERS: Array<{
+  keyword: string;
+  id: string;
+  title: string;
+  content: string;
+  position: "sidebar" | "header" | "overlay";
+  persistent: boolean;
+}> = [
+  {
+    keyword: "show weather",
+    id: "weather-panel",
+    title: "Weather",
+    content: "**Current Conditions**\n\n- *Temperature*: 72°F\n- *Wind*: Light breeze\n- *Sky*: Clear",
+    position: "sidebar",
+    persistent: true,
+  },
+  {
+    keyword: "show quest",
+    id: "quest-tracker",
+    title: "Active Quest",
+    content: "**Find the Lost Artifact**\n\n1. Speak to the village elder\n2. Explore the ancient ruins\n3. Recover the artifact",
+    position: "sidebar",
+    persistent: true,
+  },
+  {
+    keyword: "show alert",
+    id: "danger-alert",
+    title: "Warning!",
+    content: "**Danger Ahead**\n\nGoblin scouts have been spotted nearby. Proceed with caution.",
+    position: "overlay",
+    persistent: false,
+  },
+  {
+    keyword: "show ticker",
+    id: "news-ticker",
+    title: "World News",
+    content: "The kingdom celebrates as the harvest festival begins...",
+    position: "header",
+    persistent: true,
+  },
+  {
+    keyword: "create panel 1",
+    id: "test-panel-1",
+    title: "Panel 1",
+    content: "Test panel 1 content",
+    position: "sidebar",
+    persistent: true,
+  },
+  {
+    keyword: "create panel 2",
+    id: "test-panel-2",
+    title: "Panel 2",
+    content: "Test panel 2 content",
+    position: "sidebar",
+    persistent: true,
+  },
+  {
+    keyword: "create panel 3",
+    id: "test-panel-3",
+    title: "Panel 3",
+    content: "Test panel 3 content",
+    position: "sidebar",
+    persistent: true,
+  },
+  {
+    keyword: "create panel 4",
+    id: "test-panel-4",
+    title: "Panel 4",
+    content: "Test panel 4 content",
+    position: "sidebar",
+    persistent: true,
+  },
+  {
+    keyword: "create panel 5",
+    id: "test-panel-5",
+    title: "Panel 5",
+    content: "Test panel 5 content",
+    position: "sidebar",
+    persistent: true,
+  },
+  {
+    keyword: "create panel 6",
+    id: "test-panel-6",
+    title: "Panel 6",
+    content: "Test panel 6 content",
+    position: "sidebar",
+    persistent: true,
+  },
+];
+
+/**
+ * Detect if input should trigger a create_panel tool call
+ * @param prompt - Player input (lowercase)
+ * @returns Create panel tool call or null
+ */
+export function detectCreatePanelTool(prompt: string): CreatePanelToolCall | null {
+  for (const trigger of PANEL_CREATE_TRIGGERS) {
+    if (prompt.includes(trigger.keyword)) {
+      return {
+        name: "create_panel",
+        input: {
+          id: trigger.id,
+          title: trigger.title,
+          content: trigger.content,
+          position: trigger.position,
+          persistent: trigger.persistent,
+        },
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Detect if input should trigger an update_panel tool call
+ * @param prompt - Player input (lowercase)
+ * @returns Update panel tool call or null
+ */
+export function detectUpdatePanelTool(prompt: string): UpdatePanelToolCall | null {
+  // Match "update weather" pattern
+  if (prompt.includes("update weather")) {
+    return {
+      name: "update_panel",
+      input: {
+        id: "weather-panel",
+        content: "**Current Conditions (Updated)**\n\n- *Temperature*: 68°F\n- *Wind*: Strong gusts\n- *Sky*: Cloudy",
+      },
+    };
+  }
+
+  // Match "update quest" pattern
+  if (prompt.includes("update quest")) {
+    return {
+      name: "update_panel",
+      input: {
+        id: "quest-tracker",
+        content: "**Find the Lost Artifact**\n\n1. ~~Speak to the village elder~~ ✓\n2. Explore the ancient ruins\n3. Recover the artifact",
+      },
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Detect if input should trigger a dismiss_panel tool call
+ * @param prompt - Player input (lowercase)
+ * @returns Dismiss panel tool call or null
+ */
+export function detectDismissPanelTool(prompt: string): DismissPanelToolCall | null {
+  // Match "dismiss/hide/close [panel-type]" patterns
+  if (prompt.includes("dismiss weather") || prompt.includes("hide weather") || prompt.includes("close weather")) {
+    return {
+      name: "dismiss_panel",
+      input: {
+        id: "weather-panel",
+      },
+    };
+  }
+
+  if (prompt.includes("dismiss alert") || prompt.includes("hide alert") || prompt.includes("close alert")) {
+    return {
+      name: "dismiss_panel",
+      input: {
+        id: "danger-alert",
+      },
+    };
+  }
+
+  if (prompt.includes("dismiss quest") || prompt.includes("hide quest") || prompt.includes("close quest")) {
+    return {
+      name: "dismiss_panel",
+      input: {
+        id: "quest-tracker",
+      },
+    };
+  }
+
+  return null;
+}
+
+/**
  * Mock query function that simulates Claude Agent SDK responses
  * Used when MOCK_SDK=true environment variable is set
  *
@@ -437,6 +657,22 @@ export async function* mockQuery(
     if (manageCombatCall) {
       await options.options.onToolUse(manageCombatCall.name, manageCombatCall.input);
     }
+
+    // Panel tool calls
+    const createPanelCall = detectCreatePanelTool(prompt);
+    if (createPanelCall) {
+      await options.options.onToolUse(createPanelCall.name, createPanelCall.input);
+    }
+
+    const updatePanelCall = detectUpdatePanelTool(prompt);
+    if (updatePanelCall) {
+      await options.options.onToolUse(updatePanelCall.name, updatePanelCall.input);
+    }
+
+    const dismissPanelCall = detectDismissPanelTool(prompt);
+    if (dismissPanelCall) {
+      await options.options.onToolUse(dismissPanelCall.name, dismissPanelCall.input);
+    }
   }
 
   // Determine response based on input
@@ -452,6 +688,23 @@ export async function* mockQuery(
     response = "You can try commands like 'look around', 'go north', 'inventory', or simply describe what you want to do.";
   } else if (prompt.includes("long response") || prompt.includes("tell me a story")) {
     response = generateLongResponse();
+  } else if (prompt.includes("show weather")) {
+    response = "A weather display panel appears in the corner of your vision, showing the current conditions in this region.";
+  } else if (prompt.includes("show quest")) {
+    response = "A quest tracker panel appears, reminding you of your current objectives.";
+  } else if (prompt.includes("show alert")) {
+    response = "A warning flashes before you - danger lurks nearby!";
+  } else if (prompt.includes("show ticker")) {
+    response = "News from the realm scrolls across the top of your view.";
+  } else if (prompt.includes("create panel")) {
+    const panelNum = prompt.match(/create panel (\d+)/)?.[1] || "unknown";
+    response = `A new panel (#${panelNum}) materializes before you.`;
+  } else if (prompt.includes("update weather")) {
+    response = "The weather conditions have changed, and the display updates accordingly.";
+  } else if (prompt.includes("update quest")) {
+    response = "Your quest progress has been updated!";
+  } else if (prompt.includes("dismiss") || prompt.includes("hide") || prompt.includes("close")) {
+    response = "The panel fades from view.";
   } else {
     response = generateDefaultResponse(options.prompt);
   }

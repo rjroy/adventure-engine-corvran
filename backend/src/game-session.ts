@@ -11,9 +11,10 @@ import type { SDKAssistantMessageError } from "@anthropic-ai/claude-agent-sdk";
 import { AdventureStateManager } from "./adventure-state";
 import type { AdventureState } from "./types/state";
 import type { ServerMessage, NarrativeEntry, ThemeMood, Genre, Region, XpStyle } from "./types/protocol";
-import { buildGMSystemPrompt, createGMMcpServerWithCallbacks, type GMMcpCallbacks } from "./gm-prompt";
+import { buildGMSystemPrompt, createGMMcpServerWithCallbacks, type GMMcpCallbacks, type CreatePanelInput } from "./gm-prompt";
 import { PlayerManager } from "./player-manager";
 import { WorldManager } from "./world-manager";
+import { PanelManager } from "./services/panel-manager";
 import {
   mapSDKError,
   mapGenericError,
@@ -75,6 +76,10 @@ function getToolDescription(toolName: string): string {
   if (toolName === "mcp__adventure-gm__set_world") return "Selecting world...";
   if (toolName === "mcp__adventure-gm__list_characters") return "Checking characters...";
   if (toolName === "mcp__adventure-gm__list_worlds") return "Checking worlds...";
+  if (toolName === "mcp__adventure-gm__create_panel") return "Updating display...";
+  if (toolName === "mcp__adventure-gm__update_panel") return "Updating display...";
+  if (toolName === "mcp__adventure-gm__dismiss_panel") return "Updating display...";
+  if (toolName === "mcp__adventure-gm__list_panels") return "Checking displays...";
 
   // File operations (state management)
   if (toolName === "Read") return "Consulting records...";
@@ -123,6 +128,7 @@ export class GameSession {
   private lastThemeChange: { mood: ThemeMood; timestamp: number } | null = null;
   private playerManager: PlayerManager | null = null;
   private worldManager: WorldManager | null = null;
+  private panelManager: PanelManager = new PanelManager();
 
   /** Track recovery attempts to prevent infinite loops */
   private recoveryAttempt = 0;
@@ -668,6 +674,70 @@ export class GameSession {
         log.debug({ count: worlds.length }, "list_worlds MCP callback completed");
         return worlds;
       },
+      // Create panel callback
+      onCreatePanel: (input: CreatePanelInput) => {
+        log.debug({ id: input.id, position: input.position }, "create_panel MCP callback invoked");
+        const result = this.panelManager.create(input);
+        if (!result.success) {
+          log.warn({ id: input.id, error: result.error }, "create_panel MCP callback failed");
+          return Promise.resolve({ success: false as const, error: result.error });
+        }
+        // Emit panel_create WebSocket message
+        this.sendMessage(
+          {
+            type: "panel_create",
+            payload: result.data,
+          },
+          log
+        );
+        log.debug({ id: input.id }, "create_panel MCP callback completed successfully");
+        return Promise.resolve({ success: true as const, panel: result.data });
+      },
+      // Update panel callback
+      onUpdatePanel: (id: string, content: string) => {
+        log.debug({ id, contentLength: content.length }, "update_panel MCP callback invoked");
+        const result = this.panelManager.update({ id, content });
+        if (!result.success) {
+          log.warn({ id, error: result.error }, "update_panel MCP callback failed");
+          return Promise.resolve({ success: false as const, error: result.error });
+        }
+        // Emit panel_update WebSocket message
+        this.sendMessage(
+          {
+            type: "panel_update",
+            payload: { id, content },
+          },
+          log
+        );
+        log.debug({ id }, "update_panel MCP callback completed successfully");
+        return Promise.resolve({ success: true as const, panel: result.data });
+      },
+      // Dismiss panel callback
+      onDismissPanel: (id: string) => {
+        log.debug({ id }, "dismiss_panel MCP callback invoked");
+        const result = this.panelManager.dismiss(id);
+        if (!result.success) {
+          log.warn({ id, error: result.error }, "dismiss_panel MCP callback failed");
+          return Promise.resolve({ success: false as const, error: result.error });
+        }
+        // Emit panel_dismiss WebSocket message
+        this.sendMessage(
+          {
+            type: "panel_dismiss",
+            payload: { id },
+          },
+          log
+        );
+        log.debug({ id }, "dismiss_panel MCP callback completed successfully");
+        return Promise.resolve({ success: true as const, id });
+      },
+      // List panels callback
+      onListPanels: () => {
+        log.debug("list_panels MCP callback invoked");
+        const panels = this.panelManager.list();
+        log.debug({ count: panels.length }, "list_panels MCP callback completed");
+        return Promise.resolve(panels);
+      },
     };
     const gmMcpServer = createGMMcpServerWithCallbacks(callbacks);
 
@@ -677,6 +747,7 @@ export class GameSession {
     // - set_theme for UI visual updates
     // - set_xp_style for saving player's XP preference
     // - Character/world management tools for multi-adventure support
+    // - Panel tools for info display windows
     const allowedTools = [
       "Skill",
       "Read",
@@ -690,6 +761,10 @@ export class GameSession {
       "mcp__adventure-gm__set_world",
       "mcp__adventure-gm__list_characters",
       "mcp__adventure-gm__list_worlds",
+      "mcp__adventure-gm__create_panel",
+      "mcp__adventure-gm__update_panel",
+      "mcp__adventure-gm__dismiss_panel",
+      "mcp__adventure-gm__list_panels",
     ];
 
     // Query Claude Agent SDK with resume for conversation continuity

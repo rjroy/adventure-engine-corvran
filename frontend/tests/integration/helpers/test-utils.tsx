@@ -8,6 +8,7 @@ import userEvent from "@testing-library/user-event";
 import { vi, type MockInstance } from "vitest";
 import type { ReactNode } from "react";
 import { ThemeProvider } from "../../../src/contexts/ThemeContext";
+import { PanelProvider } from "../../../src/contexts/PanelContext";
 import { GameView, type AdventureSession } from "../../../src/App";
 import type {
   ServerMessage,
@@ -335,7 +336,11 @@ export function createMockSummary(text: string): HistorySummary {
  * Wrapper component with all necessary providers.
  */
 function TestProviders({ children }: { children: ReactNode }) {
-  return <ThemeProvider>{children}</ThemeProvider>;
+  return (
+    <ThemeProvider>
+      <PanelProvider>{children}</PanelProvider>
+    </ThemeProvider>
+  );
 }
 
 /**
@@ -429,7 +434,9 @@ export function renderGameView(
 
   const result = render(
     <ThemeProvider>
-      <GameView session={session} onQuit={onQuit} />
+      <PanelProvider>
+        <GameView session={session} onQuit={onQuit} />
+      </PanelProvider>
     </ThemeProvider>
   );
 

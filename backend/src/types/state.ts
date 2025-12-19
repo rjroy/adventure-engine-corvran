@@ -9,10 +9,11 @@ import type {
   XpStyle,
   HistorySummary,
   NarrativeHistory,
+  Panel,
 } from "../../../shared/protocol";
 
 // Re-export types needed by other modules
-export type { HistorySummary, NarrativeHistory, XpStyle } from "../../../shared/protocol";
+export type { HistorySummary, NarrativeHistory, XpStyle, Panel } from "../../../shared/protocol";
 
 /**
  * Adventure state stored in state.json
@@ -44,6 +45,9 @@ export interface AdventureState {
   worldRef: string | null;
   // XP award style preference (set via set_xp_style MCP tool)
   xpStyle?: XpStyle;
+  // Active info panels (only persistent panels saved to disk)
+  // Non-persistent panels are filtered out on save
+  panels?: Panel[];
 }
 
 // NarrativeHistory is now imported from shared/protocol.ts

@@ -9,4 +9,9 @@ export type {
   Region,
   ThemeChangePayload,
   HistorySummary,
+  Panel,
+  PanelPosition,
+  PanelCreateMessage,
+  PanelUpdateMessage,
+  PanelDismissMessage,
 } from "../../../shared/protocol";

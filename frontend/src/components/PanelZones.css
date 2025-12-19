@@ -1,0 +1,161 @@
+/* Panel Zone Layout Styles */
+/* Implements TD-8: Position-Based Rendering Zones */
+/* Ensures REQ-NF-2: Panels don't obscure narrative log */
+
+/* ========================
+   Sidebar Zone
+   ======================== */
+
+/**
+ * Right-side vertical stack for sidebar panels.
+ * Uses fixed positioning to stay visible during scroll.
+ * Respects theme max-width to not extend beyond game view.
+ */
+.panel-zone--sidebar {
+  position: fixed;
+  top: var(--spacing-xl);
+  right: var(--spacing-md);
+  bottom: var(--spacing-xl);
+  width: 280px;
+  max-width: calc(100vw - var(--max-width) - var(--spacing-xl) * 2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  overflow-y: auto;
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* Enable pointer events only on panel children */
+.panel-zone--sidebar > * {
+  pointer-events: auto;
+}
+
+/* Hide sidebar scrollbar but keep functionality */
+.panel-zone--sidebar::-webkit-scrollbar {
+  width: 0;
+  background: transparent;
+}
+
+/* On smaller screens, move sidebar above game content */
+@media (max-width: 1400px) {
+  .panel-zone--sidebar {
+    position: static;
+    width: 100%;
+    max-width: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    overflow-y: visible;
+    overflow-x: auto;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    margin-bottom: var(--spacing-md);
+    pointer-events: auto;
+  }
+
+  .panel-zone--sidebar > * {
+    flex: 1 1 250px;
+    max-width: 350px;
+  }
+}
+
+/* ========================
+   Header Zone
+   ======================== */
+
+/**
+ * Top-edge horizontal flow for header panels.
+ * Wraps panels that don't fit on one line.
+ * Shrinks to fit content - doesn't reserve space when empty.
+ */
+.panel-zone--header {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+/* Header panels are compact by default */
+.panel-zone--header .info-panel {
+  flex: 1 1 200px;
+  max-width: 350px;
+}
+
+/* Limit header panel content height for ticker-style display */
+.panel-zone--header .info-panel__content {
+  max-height: 120px;
+}
+
+/* ========================
+   Overlay Zone
+   ======================== */
+
+/**
+ * Container for absolutely positioned overlay panels.
+ * Covers the full viewport with pointer-events: none
+ * so clicks pass through to underlying content.
+ */
+.panel-zone--overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 100;
+}
+
+/**
+ * Individual overlay panel wrapper.
+ * Positioned using left/top percentages from inline styles.
+ * transform: translate(-50%, -50%) centers the panel on the coordinates.
+ */
+.panel-zone__overlay-item {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  max-width: calc(100vw - var(--spacing-xl) * 2);
+  max-height: calc(100vh - var(--spacing-xl) * 2);
+}
+
+/* Overlay panels have constrained size */
+.panel-zone__overlay-item .info-panel {
+  min-width: 200px;
+  max-width: 400px;
+}
+
+/* ========================
+   Accessibility
+   ======================== */
+
+/* Focus outline for keyboard navigation */
+.panel-zone:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Ensure panel zones don't block essential UI interactions */
+.panel-zone--sidebar,
+.panel-zone--overlay {
+  /* Let clicks pass through empty areas */
+}
+
+/* ========================
+   Animation (optional)
+   ======================== */
+
+/* Subtle fade-in for panels when zone is first rendered */
+@keyframes panel-zone-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.panel-zone {
+  animation: panel-zone-fade-in 0.2s ease-out;
+}

@@ -128,8 +128,8 @@ describe("buildGMSystemPrompt", () => {
       const prompt = buildGMSystemPrompt(state);
 
       // Should truncate to reasonable length (500 chars based on sanitizeStateValue)
-      // Prompt includes dynamic paths which add to length
-      expect(prompt.length).toBeLessThan(6000);
+      // Prompt includes dynamic paths and panel guidance which add to length
+      expect(prompt.length).toBeLessThan(7000);
     });
   });
 

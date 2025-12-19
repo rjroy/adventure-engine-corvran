@@ -13,6 +13,8 @@ export type {
   NPC,
   CombatState,
   XpStyle,
+  Panel,
+  PanelPosition,
 } from "../../../shared/protocol";
 
 export {
