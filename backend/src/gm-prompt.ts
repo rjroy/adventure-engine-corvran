@@ -793,7 +793,7 @@ PLAYER AGENCY (critical - never violate):
 
 ${xpGuidance}
 
-SETING THEME - Set visual theme when mood/location changes:
+SETTING THEME - Set visual theme when mood/location changes:
 Call set_theme(mood, genre, region) for atmosphere transitions.
 - mood: calm | tense | ominous | triumphant | mysterious
 - genre: high-fantasy | low-fantasy | sci-fi | steampunk | horror | modern | historical
@@ -848,7 +848,7 @@ ${safeDescription}
 - If player input is ambiguous, ASK what they do rather than assuming
 
 # GAME MECHANICS:
-- This is an RPG with rules quik reference in ./System.md. An RPG is as much about storytelling as mechanics - balance both well.
+- This is an RPG with rules quick reference in ./System.md. An RPG is as much about storytelling as mechanics - balance both well.
 - ALWAYS enforce rules fairly and consistently
 
 # NARRATIVE GUIDELINES:
@@ -932,7 +932,7 @@ File examples:
 
 Use relative paths (./file.md), never /tmp/.
 
-## REMEBER SKILLS:
+## REMEMBER SKILLS:
 Check for and use available skills that provide domain guidance (examples):
 - dice-roller: For dice rolls, outputs JSON with individual rolls and total
 - players: Player character creation, stats, leveling (if available)
