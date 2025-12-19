@@ -115,8 +115,8 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log("WebSocket connected");
-        updateStatus("connected");
+        console.log("WebSocket opened, awaiting authentication");
+        // Don't set "connected" yet - wait for authenticated message
         retryDelayRef.current = INITIAL_RETRY_DELAY;
         reconnectStartTimeRef.current = null;
         startHeartbeat();
@@ -157,6 +157,21 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
           }
 
           const message = result.data;
+
+          // Handle authenticated message by updating connection status
+          if (message.type === "authenticated") {
+            console.log("Authentication confirmed, connection ready");
+            updateStatus("connected");
+            // Don't forward to onMessage - this is internal connection state
+            return;
+          }
+
+          // Fallback: adventure_loaded also indicates successful authentication
+          // (for backward compatibility with older server versions)
+          if (message.type === "adventure_loaded" && status !== "connected") {
+            console.log("Adventure loaded, setting connected status");
+            updateStatus("connected");
+          }
 
           // Handle theme_change messages by applying theme
           if (message.type === "theme_change") {

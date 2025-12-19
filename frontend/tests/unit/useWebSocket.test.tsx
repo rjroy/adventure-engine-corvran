@@ -114,17 +114,28 @@ describe("useWebSocket", () => {
       expect(result.current.status).toBe("disconnected");
     });
 
-    test("status becomes 'connected' after WebSocket opens", () => {
+    test("status becomes 'connected' after receiving authenticated message", () => {
       const { result } = renderHook(() => useWebSocket(defaultOptions), { wrapper: createWrapper() });
 
       act(() => {
         mockWebSocketInstance?.simulateOpen();
       });
 
+      // After WebSocket opens, status should still be disconnected
+      expect(result.current.status).toBe("disconnected");
+
+      // Simulate receiving authenticated message
+      act(() => {
+        mockWebSocketInstance?.simulateMessage({
+          type: "authenticated",
+          payload: { adventureId: "test-adventure" }
+        });
+      });
+
       expect(result.current.status).toBe("connected");
     });
 
-    test("calls onStatusChange when status changes", () => {
+    test("calls onStatusChange when status changes to connected", () => {
       const onStatusChange = vi.fn();
       renderHook(() =>
         useWebSocket({ ...defaultOptions, onStatusChange }),
@@ -133,6 +144,14 @@ describe("useWebSocket", () => {
 
       act(() => {
         mockWebSocketInstance?.simulateOpen();
+      });
+
+      // Simulate receiving authenticated message
+      act(() => {
+        mockWebSocketInstance?.simulateMessage({
+          type: "authenticated",
+          payload: { adventureId: "test-adventure" }
+        });
       });
 
       expect(onStatusChange).toHaveBeenCalledWith("connected");
