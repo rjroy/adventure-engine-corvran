@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 #
 # Launch the Adventure Engine application
-# Usage: launch-world.sh <project-directory>
+# Usage: launch-world.sh [--no-browser] <project-directory>
+#
+# Options:
+#   --no-browser, -n    Skip opening the browser (useful for remote/headless)
 #
 # This script is invoked by the enter-world skill to start
 # the Adventure Engine in fire-and-forget mode.
@@ -9,7 +12,25 @@
 set -euo pipefail
 
 DEBUG="${DEBUG:-}"
+OPEN_BROWSER=true
 
+# Parse options
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --no-browser|-n)
+            OPEN_BROWSER=false
+            shift
+            ;;
+        -*)
+            echo "Error: Unknown option: $1" >&2
+            echo "Usage: launch-world.sh [--no-browser] <project-directory>" >&2
+            exit 1
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
 
 # Determine project directory from argument (default to current directory)
 PROJECT_DIR="${1:-}"
@@ -204,19 +225,23 @@ for i in $(seq 1 $MAX_RETRIES); do
     sleep $RETRY_DELAY
 done
 
-# Open browser (cross-platform)
-# Redirect browser output to /dev/null to avoid capturing browser's internal errors
-if command -v xdg-open > /dev/null; then
-    # Linux
-    xdg-open "$SERVER_URL" > /dev/null 2>&1 &
-    echo "Browser opened with xdg-open" >> "$LOG_FILE"
-elif command -v open > /dev/null; then
-    # macOS
-    open "$SERVER_URL" > /dev/null 2>&1 &
-    echo "Browser opened with open" >> "$LOG_FILE"
+# Open browser (cross-platform) unless --no-browser was specified
+if [[ "$OPEN_BROWSER" == "true" ]]; then
+    # Redirect browser output to /dev/null to avoid capturing browser's internal errors
+    if command -v xdg-open > /dev/null; then
+        # Linux
+        xdg-open "$SERVER_URL" > /dev/null 2>&1 &
+        echo "Browser opened with xdg-open" >> "$LOG_FILE"
+    elif command -v open > /dev/null; then
+        # macOS
+        open "$SERVER_URL" > /dev/null 2>&1 &
+        echo "Browser opened with open" >> "$LOG_FILE"
+    else
+        echo "Warning: Could not detect browser open command (xdg-open or open)" >> "$LOG_FILE"
+        echo "Please manually open: $SERVER_URL" >> "$LOG_FILE"
+    fi
 else
-    echo "Warning: Could not detect browser open command (xdg-open or open)" >> "$LOG_FILE"
-    echo "Please manually open: $SERVER_URL" >> "$LOG_FILE"
+    echo "Browser launch skipped (--no-browser)" >> "$LOG_FILE"
 fi
 
 {

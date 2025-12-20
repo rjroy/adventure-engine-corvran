@@ -16,6 +16,12 @@ Launch the Adventure Engine application to begin an interactive adventure sessio
 bash "${CLAUDE_PLUGIN_ROOT}/skills/enter-world/scripts/launch-world.sh" "$PWD"
 ```
 
+To skip opening a browser (useful for remote/headless servers):
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/enter-world/scripts/launch-world.sh" --no-browser "$PWD"
+```
+
 The script launches the application asynchronously - control returns immediately to Claude Code while the adventure application runs independently. Output is written to `.adventure-engine.log` in the project directory.
 
 ## Script Location
@@ -27,7 +33,7 @@ The launcher script is at: `skills/enter-world/scripts/launch-world.sh`
 - Validates the adventure project directory
 - Starts the backend server using `bun run start`
 - Waits for server health check (up to 30 seconds)
-- Opens the default browser to `http://localhost:3000` (cross-platform support for Linux/macOS)
+- Opens the default browser to `http://localhost:3000` (unless `--no-browser` is specified)
 - Logs server PID for later shutdown
 - Detaches from the terminal (fire and forget)
 - All output is logged to `.adventure-engine.log` in the project directory
