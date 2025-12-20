@@ -43,6 +43,8 @@ export interface EnvConfig {
   compactionCharThreshold: number;
   /** Number of entries to retain after compaction (default 20) */
   retainedEntryCount: number;
+  /** Target character count for retained entries after compaction (default 50000) */
+  targetRetainedCharCount: number;
   /** Model to use for summarization (default "claude-3-5-haiku-latest") */
   compactionSummaryModel: string;
 }
@@ -226,6 +228,7 @@ export interface RawEnv {
   // History compaction
   COMPACTION_CHAR_THRESHOLD?: string;
   RETAINED_ENTRY_COUNT?: string;
+  TARGET_RETAINED_CHAR_COUNT?: string;
   COMPACTION_SUMMARY_MODEL?: string;
 }
 
@@ -258,6 +261,23 @@ export function parseRetainedEntryCount(value: string | undefined): number {
   if (isNaN(count) || count < 2) {
     throw new Error(
       `Invalid RETAINED_ENTRY_COUNT: "${value}". Must be a positive integer >= 2.`
+    );
+  }
+  return count;
+}
+
+/**
+ * Parse and validate TARGET_RETAINED_CHAR_COUNT environment variable
+ * @returns Target character count for retained entries (default 50000)
+ * @throws Error if value is not a non-negative integer
+ */
+export function parseTargetRetainedCharCount(value: string | undefined): number {
+  if (!value) return 50000;
+
+  const count = parseInt(value, 10);
+  if (isNaN(count) || count < 0) {
+    throw new Error(
+      `Invalid TARGET_RETAINED_CHAR_COUNT: "${value}". Must be a non-negative integer.`
     );
   }
   return count;
@@ -312,6 +332,7 @@ export function validateEnvironment(rawEnv: RawEnv = process.env): ValidationRes
   // Parse compaction settings
   let compactionCharThreshold = 100000;
   let retainedEntryCount = 20;
+  let targetRetainedCharCount = 50000;
 
   try {
     compactionCharThreshold = parseCompactionCharThreshold(rawEnv.COMPACTION_CHAR_THRESHOLD);
@@ -321,6 +342,12 @@ export function validateEnvironment(rawEnv: RawEnv = process.env): ValidationRes
 
   try {
     retainedEntryCount = parseRetainedEntryCount(rawEnv.RETAINED_ENTRY_COUNT);
+  } catch (e) {
+    errors.push((e as Error).message);
+  }
+
+  try {
+    targetRetainedCharCount = parseTargetRetainedCharCount(rawEnv.TARGET_RETAINED_CHAR_COUNT);
   } catch (e) {
     errors.push((e as Error).message);
   }
@@ -352,6 +379,7 @@ export function validateEnvironment(rawEnv: RawEnv = process.env): ValidationRes
     // History compaction
     compactionCharThreshold,
     retainedEntryCount,
+    targetRetainedCharCount,
     compactionSummaryModel: rawEnv.COMPACTION_SUMMARY_MODEL || "claude-3-5-haiku-latest",
   };
 

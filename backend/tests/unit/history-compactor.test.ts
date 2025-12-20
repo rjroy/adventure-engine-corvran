@@ -45,6 +45,7 @@ describe("HistoryCompactor", () => {
 
     compactor = new HistoryCompactor(TEST_ADVENTURE_DIR, {
       retainedCount: 20,
+      targetRetainedCharCount: 50000,
       model: "claude-haiku-3",
       mockSdk: true,
     });
@@ -190,6 +191,7 @@ describe("HistoryCompactor", () => {
     test("handles custom retention count", async () => {
       const customCompactor = new HistoryCompactor(TEST_ADVENTURE_DIR, {
         retainedCount: 10,
+        targetRetainedCharCount: 50000,
         model: "claude-haiku-3",
         mockSdk: true,
       });
@@ -200,6 +202,107 @@ describe("HistoryCompactor", () => {
       expect(result.success).toBe(true);
       expect(result.entriesArchived).toBe(20);
       expect(result.retainedEntries).toHaveLength(10);
+    });
+  });
+
+  describe("dual constraint compaction", () => {
+    test("stops at entry count limit before char limit", async () => {
+      // High char limit, low entry count - should stop at entry count
+      const testCompactor = new HistoryCompactor(TEST_ADVENTURE_DIR, {
+        retainedCount: 5,
+        targetRetainedCharCount: 100000, // Very high char limit
+        model: "claude-haiku-3",
+        mockSdk: true,
+      });
+
+      const history = createTestHistory(30, 100); // 30 entries, ~100 chars each
+      const result = await testCompactor.compact(history);
+
+      expect(result.success).toBe(true);
+      expect(result.retainedEntries).toHaveLength(5);
+      expect(result.entriesArchived).toBe(25);
+    });
+
+    test("stops at char limit before entry count limit", async () => {
+      // Low char limit (~500 chars), high entry count
+      // Each entry is ~110 chars (100 + " (entry X)")
+      // 500 chars / 110 chars per entry = ~4 entries max
+      const testCompactor = new HistoryCompactor(TEST_ADVENTURE_DIR, {
+        retainedCount: 20,
+        targetRetainedCharCount: 500, // Very low char limit
+        model: "claude-haiku-3",
+        mockSdk: true,
+      });
+
+      const history = createTestHistory(30, 100);
+      const result = await testCompactor.compact(history);
+
+      expect(result.success).toBe(true);
+      // Should retain fewer than 20 entries due to char limit
+      expect(result.retainedEntries!.length).toBeLessThan(20);
+
+      // Verify total retained chars is within limit (or exactly 1 entry if all exceed)
+      const totalChars = result.retainedEntries!.reduce(
+        (sum, e) => sum + e.content.length,
+        0
+      );
+      // Either within limit OR exactly 1 entry (edge case protection)
+      expect(
+        totalChars <= 500 || result.retainedEntries!.length === 1
+      ).toBe(true);
+    });
+
+    test("retainedCount=0 summarizes entire history", async () => {
+      const fullSummarizeCompactor = new HistoryCompactor(TEST_ADVENTURE_DIR, {
+        retainedCount: 0,
+        targetRetainedCharCount: 0,
+        model: "claude-haiku-3",
+        mockSdk: true,
+      });
+
+      const history = createTestHistory(30, 100);
+      const result = await fullSummarizeCompactor.compact(history);
+
+      expect(result.success).toBe(true);
+      expect(result.retainedEntries).toHaveLength(0);
+      expect(result.entriesArchived).toBe(30);
+      expect(result.summary).toBeDefined();
+    });
+
+    test("retains at least one entry if single entry exceeds char limit", async () => {
+      // Very low char limit, but retainedCount > 0
+      const testCompactor = new HistoryCompactor(TEST_ADVENTURE_DIR, {
+        retainedCount: 10,
+        targetRetainedCharCount: 50, // Very low limit, each entry is ~110 chars
+        model: "claude-haiku-3",
+        mockSdk: true,
+      });
+
+      const history = createTestHistory(30, 100);
+      const result = await testCompactor.compact(history);
+
+      expect(result.success).toBe(true);
+      // Should retain at least 1 entry even though it exceeds char limit
+      expect(result.retainedEntries!.length).toBeGreaterThanOrEqual(1);
+    });
+
+    test("respects both constraints when both would limit", async () => {
+      // Entry limit: 5, Char limit: ~330 chars (~3 entries of 110 chars each)
+      // Should stop at char limit (3 entries) before entry limit (5)
+      const testCompactor = new HistoryCompactor(TEST_ADVENTURE_DIR, {
+        retainedCount: 5,
+        targetRetainedCharCount: 330,
+        model: "claude-haiku-3",
+        mockSdk: true,
+      });
+
+      const history = createTestHistory(30, 100);
+      const result = await testCompactor.compact(history);
+
+      expect(result.success).toBe(true);
+      // Should retain ~3 entries (limited by char count, not entry count)
+      expect(result.retainedEntries!.length).toBeLessThanOrEqual(5);
+      expect(result.retainedEntries!.length).toBeGreaterThanOrEqual(1);
     });
   });
 

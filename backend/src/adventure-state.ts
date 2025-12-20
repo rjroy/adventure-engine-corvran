@@ -326,6 +326,7 @@ export class AdventureStateManager {
 
     const compactor = new HistoryCompactor(adventureDir, {
       retainedCount: env.retainedEntryCount,
+      targetRetainedCharCount: env.targetRetainedCharCount,
       model: env.compactionSummaryModel,
     });
 

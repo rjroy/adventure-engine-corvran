@@ -57,8 +57,10 @@ export interface AdventureState {
  * Configuration for history compaction
  */
 export interface CompactionConfig {
-  /** Number of entries to retain after compaction */
+  /** Maximum number of entries to retain after compaction */
   retainedCount: number;
+  /** Target character budget for retained entries (0 = summarize all) */
+  targetRetainedCharCount: number;
   /** Model to use for summarization */
   model: string;
   /** Override for mock SDK mode (defaults to env.mockSdk) */

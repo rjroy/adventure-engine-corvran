@@ -1365,17 +1365,19 @@ export class GameSession {
       // Re-fetch history after forceSave (it may have added entries)
       const updatedHistory = this.stateManager.getHistory();
 
-      // Step 1: Force compaction regardless of threshold
+      // Step 1: Force compaction with retainedCount=0 to summarize entire history
+      // This clears context for a fresh start while preserving the narrative summary
       // Use useMockSDK() for runtime check instead of env.mockSdk (which is cached at load time)
       const compactor = new HistoryCompactor(adventureDir, {
-        retainedCount: env.retainedEntryCount,
+        retainedCount: 0,
+        targetRetainedCharCount: 0,
         model: env.compactionSummaryModel,
         mockSdk: useMockSDK(),
       });
 
       const compactionResult = await compactor.compact(updatedHistory);
 
-      if (!compactionResult.success || !compactionResult.retainedEntries) {
+      if (!compactionResult.success) {
         log.warn({ error: compactionResult.error }, "Compaction failed during recap");
         this.sendMessage({
           type: "recap_error",
@@ -1388,6 +1390,9 @@ export class GameSession {
         return;
       }
 
+      // retainedEntries is [] for full recap (retainedCount=0), which is valid
+      const retainedEntries = compactionResult.retainedEntries ?? [];
+
       log.info(
         { entriesArchived: compactionResult.entriesArchived, hasSummary: !!compactionResult.summary },
         "Compaction completed for recap"
@@ -1395,7 +1400,7 @@ export class GameSession {
 
       // Step 2: Update history with compacted version
       const newHistory = {
-        entries: compactionResult.retainedEntries,
+        entries: retainedEntries,
         summary: compactionResult.summary ?? updatedHistory.summary,
       };
       await this.stateManager.replaceHistory(newHistory);
