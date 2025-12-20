@@ -303,6 +303,7 @@ export const ErrorMessageSchema = z.object({
     code: ErrorCodeSchema,
     message: z.string(),
     retryable: z.boolean(),
+    technicalDetails: z.string().optional(),
   }),
 });
 

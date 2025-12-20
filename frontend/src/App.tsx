@@ -52,6 +52,7 @@ interface ErrorState {
   code: ErrorCode;
   message: string;
   retryable: boolean;
+  technicalDetails?: string;
 }
 
 export interface GameViewProps {
@@ -139,12 +140,22 @@ export function GameView({
 
       case "error": {
         // Store full error state
-        setError({
+        const errorState = {
           code: message.payload.code,
           message: message.payload.message,
           retryable: message.payload.retryable,
-        });
+          technicalDetails: message.payload.technicalDetails,
+        };
+        setError(errorState);
         setIsGMResponding(false);
+
+        // Log error to console for debugging
+        console.error("[Adventure Engine] Error received:", {
+          code: errorState.code,
+          message: errorState.message,
+          retryable: errorState.retryable,
+          technicalDetails: errorState.technicalDetails,
+        });
 
         // Apply theme based on error severity
         const errorMood: ThemeMood = message.payload.retryable ? "tense" : "ominous";
@@ -247,6 +258,7 @@ export function GameView({
           code={error.code}
           message={error.message}
           retryable={error.retryable}
+          technicalDetails={error.technicalDetails}
           onRetry={handleRetry}
           onDismiss={handleDismissError}
           isRetrying={isGMResponding}
