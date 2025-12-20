@@ -30,6 +30,16 @@
   border-bottom: none;
 }
 
+/* Draggable header for overlay panels */
+.info-panel__header--draggable {
+  cursor: grab;
+  user-select: none;
+}
+
+.info-panel__header--draggable:active {
+  cursor: grabbing;
+}
+
 .info-panel__title {
   font-size: var(--font-size-sm);
   font-weight: 600;
