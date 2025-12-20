@@ -9,6 +9,14 @@ import {
 import type { Panel } from "../../../shared/protocol";
 
 /**
+ * Position override for dragged panels.
+ */
+interface PanelPosition {
+  x: number;
+  y: number;
+}
+
+/**
  * Panel state managed by PanelContext.
  * Tracks active panels and local minimize state.
  */
@@ -17,6 +25,8 @@ interface PanelState {
   panels: Panel[];
   /** Panel IDs currently minimized (local-only, not persisted server-side) */
   minimized: Set<string>;
+  /** Position overrides for dragged panels (local-only, not persisted) */
+  positions: Map<string, PanelPosition>;
 }
 
 /**
@@ -37,6 +47,10 @@ interface PanelContextValue {
   toggleMinimize: (id: string) => void;
   /** Check if a specific panel is minimized */
   isMinimized: (id: string) => boolean;
+  /** Get position override for a panel (for dragged overlay panels) */
+  getPanelPosition: (id: string) => PanelPosition | undefined;
+  /** Update position for a panel (local-only, for drag) */
+  updatePanelPosition: (id: string, x: number, y: number) => void;
 }
 
 const PanelContext = createContext<PanelContextValue | undefined>(undefined);
@@ -59,6 +73,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<PanelState>({
     panels: [],
     minimized: new Set(),
+    positions: new Map(),
   });
 
   /**
@@ -111,7 +126,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
 
   /**
    * Remove a panel by ID.
-   * Also clears minimize state for the removed panel.
+   * Also clears minimize and position state for the removed panel.
    */
   const removePanel = useCallback((id: string) => {
     setState((prev) => {
@@ -127,9 +142,14 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       const newMinimized = new Set(prev.minimized);
       newMinimized.delete(id);
 
+      // Remove from positions map
+      const newPositions = new Map(prev.positions);
+      newPositions.delete(id);
+
       return {
         panels: prev.panels.filter((p) => p.id !== id),
         minimized: newMinimized,
+        positions: newPositions,
       };
     });
   }, []);
@@ -172,6 +192,30 @@ export function PanelProvider({ children }: { children: ReactNode }) {
     [state.minimized]
   );
 
+  /**
+   * Get position override for a panel (for dragged overlay panels).
+   */
+  const getPanelPosition = useCallback(
+    (id: string) => {
+      return state.positions.get(id);
+    },
+    [state.positions]
+  );
+
+  /**
+   * Update position for a panel (local-only, for drag).
+   */
+  const updatePanelPosition = useCallback((id: string, x: number, y: number) => {
+    setState((prev) => {
+      const newPositions = new Map(prev.positions);
+      newPositions.set(id, { x, y });
+      return {
+        ...prev,
+        positions: newPositions,
+      };
+    });
+  }, []);
+
   // Sort panels by createdAt for consistent stacking (REQ-F-22)
   const sortedPanels = useMemo(
     () => sortPanelsByCreatedAt(state.panels),
@@ -187,6 +231,8 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       removePanel,
       toggleMinimize,
       isMinimized,
+      getPanelPosition,
+      updatePanelPosition,
     }),
     [
       sortedPanels,
@@ -196,6 +242,8 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       removePanel,
       toggleMinimize,
       isMinimized,
+      getPanelPosition,
+      updatePanelPosition,
     ]
   );
 

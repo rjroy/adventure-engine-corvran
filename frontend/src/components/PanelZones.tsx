@@ -82,8 +82,10 @@ function HeaderPanelZoneComponent() {
  *
  * Note: Overlay panels use panel.x and panel.y for positioning.
  * Default to center (50%, 50%) if x/y not specified.
+ * Position can be overridden by dragging (stored in PanelContext).
  */
 function OverlayPanelContainerComponent() {
+  const { getPanelPosition } = usePanels();
   const overlayPanels = usePanelsByPosition("overlay");
 
   if (overlayPanels.length === 0) {
@@ -96,20 +98,26 @@ function OverlayPanelContainerComponent() {
       data-testid="panel-zone-overlay"
       aria-label="Overlay panels"
     >
-      {overlayPanels.map((panel, index) => (
-        <div
-          key={panel.id}
-          className="panel-zone__overlay-item"
-          style={{
-            left: `${panel.x ?? 50}%`,
-            top: `${panel.y ?? 50}%`,
-            // Stack in creation order - older panels below newer ones
-            zIndex: 100 + index,
-          }}
-        >
-          <InfoPanel panel={panel} />
-        </div>
-      ))}
+      {overlayPanels.map((panel, index) => {
+        const positionOverride = getPanelPosition(panel.id);
+        const x = positionOverride?.x ?? panel.x ?? 50;
+        const y = positionOverride?.y ?? panel.y ?? 50;
+
+        return (
+          <div
+            key={panel.id}
+            className="panel-zone__overlay-item"
+            style={{
+              left: `${x}%`,
+              top: `${y}%`,
+              // Stack in creation order - older panels below newer ones
+              zIndex: 100 + index,
+            }}
+          >
+            <InfoPanel panel={panel} isOverlay />
+          </div>
+        );
+      })}
     </div>
   );
 }
