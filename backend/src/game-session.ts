@@ -811,7 +811,7 @@ export class GameSession {
         permissionMode: "acceptEdits", // Auto-accept file edits within sandbox
         model: "claude-sonnet-4-5", // Use latest Sonnet for quality
         maxTurns: 40, // Allow extensive world creation + narrative
-        maxThinkingTokens: 10000, // Allow extensive reasoning
+        maxThinkingTokens: 1000, // Enough to catch mistakes without excessive cost
       },
     });
 
