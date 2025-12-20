@@ -100,7 +100,10 @@ function getToolDescription(toolName: string): string {
  * Custom error class for Claude Agent SDK errors
  */
 class AgentSDKError extends Error {
-  constructor(public code: SDKAssistantMessageError) {
+  constructor(
+    public code: SDKAssistantMessageError,
+    public messageContent?: string
+  ) {
     super(`Agent SDK error: ${code}`);
     this.name = "AgentSDKError";
   }
@@ -472,7 +475,7 @@ export class GameSession {
       let errorDetails: ErrorDetails;
 
       if (error instanceof AgentSDKError) {
-        errorDetails = mapSDKError(error.code);
+        errorDetails = mapSDKError(error.code, error.messageContent);
         errorDetails.originalError = error;
       } else {
         errorDetails = mapGenericError(error);
@@ -486,6 +489,7 @@ export class GameSession {
           message: errorDetails.message,
           adventureId: this.stateManager.getState()?.id,
           projectDirectory: this.projectDirectory,
+          err: error, // Log full error object for debugging
         },
         "processInput error"
       );
@@ -811,7 +815,7 @@ export class GameSession {
         permissionMode: "acceptEdits", // Auto-accept file edits within sandbox
         model: "claude-sonnet-4-5", // Use latest Sonnet for quality
         maxTurns: 40, // Allow extensive world creation + narrative
-        maxThinkingTokens: 1000, // Enough to catch mistakes without excessive cost
+        maxThinkingTokens: 1024, // Allow detailed tool reasoning
       },
     });
 
@@ -862,7 +866,30 @@ export class GameSession {
       if (message.type === "assistant") {
         // Check for API errors
         if (message.error) {
-          throw new AgentSDKError(message.error);
+          // Extract actual error message content from Claude if available
+          let errorContent: string | undefined;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          const content = message.message?.content;
+          if (Array.isArray(content)) {
+            for (const block of content) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              if (block.type === "text" && block.text) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+                errorContent = block.text;
+                break;
+              }
+            }
+          }
+
+          log.error(
+            {
+              sdkErrorCode: message.error,
+              errorContent,
+              fullMessage: JSON.stringify(message).slice(0, 5000),
+            },
+            "SDK returned error in assistant message"
+          );
+          throw new AgentSDKError(message.error, errorContent);
         }
 
         // Extract text from completed message if we haven't streamed it

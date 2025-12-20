@@ -5,6 +5,7 @@ interface ErrorPanelProps {
   code: ErrorCode;
   message: string;
   retryable: boolean;
+  technicalDetails?: string;
   onRetry: () => void;
   onDismiss: () => void;
   isRetrying?: boolean;
@@ -14,6 +15,7 @@ export function ErrorPanel({
   code,
   message,
   retryable,
+  technicalDetails,
   onRetry,
   onDismiss,
   isRetrying = false,
@@ -38,7 +40,16 @@ export function ErrorPanel({
 
       <details className="error-panel__details">
         <summary>Technical details</summary>
-        <code className="error-panel__code">Error code: {code}</code>
+        <code className="error-panel__code">
+          Error code: {code}
+          {technicalDetails && (
+            <>
+              <br />
+              <br />
+              {technicalDetails}
+            </>
+          )}
+        </code>
       </details>
 
       <div className="error-panel__actions">

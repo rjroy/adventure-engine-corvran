@@ -31,8 +31,13 @@ export interface ErrorDetails {
 /**
  * Map SDK error codes to user-friendly error details
  * Implements the error mapping strategy from the spec
+ * @param sdkErrorCode The SDK error code
+ * @param messageContent Optional error message content from Claude (for "unknown" errors)
  */
-export function mapSDKError(sdkErrorCode: SDKAssistantMessageError): ErrorDetails {
+export function mapSDKError(
+  sdkErrorCode: SDKAssistantMessageError,
+  messageContent?: string
+): ErrorDetails {
   const errorMap: Record<
     SDKAssistantMessageError,
     Omit<ErrorDetails, "originalError">
@@ -77,7 +82,9 @@ export function mapSDKError(sdkErrorCode: SDKAssistantMessageError): ErrorDetail
       message: "Unknown error",
       retryable: true,
       userMessage: "Something went wrong. Please try again.",
-      technicalDetails: "Unknown error from Claude API",
+      technicalDetails: messageContent
+        ? `Claude API error: ${messageContent}`
+        : "Unknown error from Claude API",
     },
   };
 
@@ -196,11 +203,13 @@ export function createErrorPayload(details: ErrorDetails): {
   code: ErrorCode;
   message: string;
   retryable: boolean;
+  technicalDetails?: string;
 } {
   return {
     code: details.code,
     message: details.userMessage,
     retryable: details.retryable,
+    technicalDetails: details.technicalDetails,
   };
 }
 
