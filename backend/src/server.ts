@@ -588,6 +588,36 @@ app.get(
             break;
           }
 
+          case "recap": {
+            // Handle recap request - create summary and start fresh session
+            if (!conn.authenticated) {
+              logger.warn({ connId }, "Recap received before authentication");
+              const errorMsg: ServerMessage = {
+                type: "error",
+                payload: {
+                  code: "INVALID_TOKEN",
+                  message: "Not authenticated. Send authenticate message first.",
+                  retryable: true,
+                },
+              };
+              ws.send(JSON.stringify(errorMsg));
+              break;
+            }
+
+            if (!conn.gameSession) {
+              logger.warn({ connId }, "Recap received but no GameSession");
+              break;
+            }
+
+            // Create request-scoped logger for correlation
+            const { logger: recapLogger } = createRequestLogger(connId, conn.adventureId);
+            recapLogger.info("Processing recap request");
+
+            // Handle recap asynchronously (fire and forget - messages are sent via WebSocket)
+            void conn.gameSession.handleRecap(recapLogger);
+            break;
+          }
+
           default:
             logger.warn({ connId, messageType: (message as { type: string }).type }, "Unknown message type");
         }

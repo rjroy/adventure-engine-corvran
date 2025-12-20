@@ -256,12 +256,17 @@ export const AbortMessageSchema = z.object({
   type: z.literal("abort"),
 });
 
+export const RecapMessageSchema = z.object({
+  type: z.literal("recap"),
+});
+
 export const ClientMessageSchema = z.discriminatedUnion("type", [
   AuthenticateMessageSchema,
   PlayerInputMessageSchema,
   StartAdventureMessageSchema,
   PingMessageSchema,
   AbortMessageSchema,
+  RecapMessageSchema,
 ]);
 
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
@@ -414,6 +419,51 @@ export const ToolStatusMessageSchema = z.object({
   }),
 });
 
+// ========================
+// Recap Messages (Server → Client)
+// ========================
+
+/**
+ * Sent when recap processing begins.
+ * Frontend should show a "recapping" state.
+ */
+export const RecapStartedMessageSchema = z.object({
+  type: z.literal("recap_started"),
+});
+
+export type RecapStartedMessage = z.infer<typeof RecapStartedMessageSchema>;
+
+/**
+ * Sent when recap completes successfully.
+ * Contains the updated history (retained entries only) and new summary.
+ * Frontend replaces current history/summary with these values.
+ */
+export const RecapCompleteMessageSchema = z.object({
+  type: z.literal("recap_complete"),
+  payload: z.object({
+    /** Retained history entries after compaction */
+    history: z.array(NarrativeEntrySchema),
+    /** New summary from compaction (null if summarization failed) */
+    summary: HistorySummarySchema.nullable(),
+  }),
+});
+
+export type RecapCompleteMessage = z.infer<typeof RecapCompleteMessageSchema>;
+
+/**
+ * Sent when recap fails.
+ * Contains a user-friendly error message.
+ */
+export const RecapErrorMessageSchema = z.object({
+  type: z.literal("recap_error"),
+  payload: z.object({
+    /** User-friendly error description */
+    reason: z.string(),
+  }),
+});
+
+export type RecapErrorMessage = z.infer<typeof RecapErrorMessageSchema>;
+
 export const ServerMessageSchema = z.discriminatedUnion("type", [
   GMResponseStartMessageSchema,
   GMResponseChunkMessageSchema,
@@ -427,6 +477,9 @@ export const ServerMessageSchema = z.discriminatedUnion("type", [
   PanelCreateMessageSchema,
   PanelUpdateMessageSchema,
   PanelDismissMessageSchema,
+  RecapStartedMessageSchema,
+  RecapCompleteMessageSchema,
+  RecapErrorMessageSchema,
 ]);
 
 export type ServerMessage = z.infer<typeof ServerMessageSchema>;

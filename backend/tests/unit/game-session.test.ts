@@ -1660,4 +1660,218 @@ describe("GameSession", () => {
       expect(interruptedStatus).toBeDefined();
     });
   });
+
+  describe("handleRecap()", () => {
+    test("rejects recap when processing is in progress", async () => {
+      const { ws, messages } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      // Start an input (don't await - we want it to be processing)
+      void session.handleInput("Start a long response");
+
+      // Wait a moment for processing to start
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(session.getIsProcessing()).toBe(true);
+
+      // Try to recap while processing
+      await session.handleRecap();
+
+      // Should have a recap_error message
+      const recapErrorMessages = messages.filter((m) => m.type === "recap_error");
+      expect(recapErrorMessages.length).toBeGreaterThanOrEqual(1);
+
+      if (recapErrorMessages.length > 0 && recapErrorMessages[0].type === "recap_error") {
+        expect(recapErrorMessages[0].payload.reason).toContain("processing");
+      }
+    });
+
+    test("rejects recap when history has too few entries", async () => {
+      const { ws, messages } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      // History should be empty or have very few entries
+      await session.handleRecap();
+
+      // Should have a recap_error message
+      const recapErrorMessages = messages.filter((m) => m.type === "recap_error");
+      expect(recapErrorMessages.length).toBe(1);
+
+      if (recapErrorMessages[0].type === "recap_error") {
+        expect(recapErrorMessages[0].payload.reason).toContain("Not enough history");
+      }
+    });
+
+    test("successfully processes recap with sufficient history", async () => {
+      const { ws, messages } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      // Build up history with enough entries for compaction
+      // Need more than retainedEntryCount (default 20) to actually archive entries
+      for (let i = 0; i < 25; i++) {
+        await stateManager.appendHistory({
+          id: `entry-${i}`,
+          timestamp: new Date().toISOString(),
+          type: i % 2 === 0 ? "player_input" : "gm_response",
+          content: `Test entry ${i} with some content to process.`,
+        });
+      }
+
+      // Clear messages to start fresh for recap
+      messages.length = 0;
+
+      // Now try recap
+      await session.handleRecap();
+
+      // Should have: recap_started, tool_status (creating), recap_complete, then GM response flow
+      const recapStarted = messages.find((m) => m.type === "recap_started");
+      expect(recapStarted).toBeDefined();
+
+      const recapComplete = messages.find((m) => m.type === "recap_complete");
+      expect(recapComplete).toBeDefined();
+
+      if (recapComplete && recapComplete.type === "recap_complete") {
+        // Should have history entries
+        expect(recapComplete.payload.history).toBeDefined();
+        expect(Array.isArray(recapComplete.payload.history)).toBe(true);
+        // Summary may or may not be present depending on mock behavior
+      }
+
+      // Should have sent GM response (gm_response_start, chunks, end)
+      const gmResponseStart = messages.find((m) => m.type === "gm_response_start");
+      expect(gmResponseStart).toBeDefined();
+
+      const gmResponseEnd = messages.find((m) => m.type === "gm_response_end");
+      expect(gmResponseEnd).toBeDefined();
+    });
+
+    test("sends correct message sequence during recap", async () => {
+      const { ws, messages } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      // Build up history with enough entries for compaction
+      // Need more than retainedEntryCount (default 20) to actually archive entries
+      for (let i = 0; i < 25; i++) {
+        await stateManager.appendHistory({
+          id: `seq-entry-${i}`,
+          timestamp: new Date().toISOString(),
+          type: i % 2 === 0 ? "player_input" : "gm_response",
+          content: `Sequence test entry ${i}.`,
+        });
+      }
+
+      // Clear messages to track recap sequence
+      messages.length = 0;
+
+      await session.handleRecap();
+
+      // Find indexes of key messages
+      // Note: With forceSave, there are TWO gm_response_start messages:
+      // 1. From forceSave (before recap_complete)
+      // 2. From recap prompt (after recap_complete)
+      const recapStartedIdx = messages.findIndex((m) => m.type === "recap_started");
+      const recapCompleteIdx = messages.findIndex((m) => m.type === "recap_complete");
+      // Find gm_response_start that comes AFTER recap_complete (the recap prompt response)
+      const gmResponseStartIdx = messages.findIndex(
+        (m, idx) => m.type === "gm_response_start" && idx > recapCompleteIdx
+      );
+
+      // recap_started should come first
+      expect(recapStartedIdx).toBeGreaterThanOrEqual(0);
+
+      // recap_complete should come after recap_started (and after forceSave completes)
+      expect(recapCompleteIdx).toBeGreaterThan(recapStartedIdx);
+
+      // The recap prompt's gm_response_start should come after recap_complete
+      expect(gmResponseStartIdx).toBeGreaterThan(recapCompleteIdx);
+    });
+
+    test("calls forceSave before compaction", async () => {
+      const { ws, messages } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      // Build up history with enough entries for compaction
+      for (let i = 0; i < 25; i++) {
+        await stateManager.appendHistory({
+          id: `save-entry-${i}`,
+          timestamp: new Date().toISOString(),
+          type: i % 2 === 0 ? "player_input" : "gm_response",
+          content: `Test entry ${i}.`,
+        });
+      }
+
+      messages.length = 0;
+      await session.handleRecap();
+
+      // Verify we have two GM response cycles:
+      // 1. From forceSave (before recap_complete)
+      // 2. From recap prompt (after recap_complete)
+      const gmResponseStarts = messages.filter((m) => m.type === "gm_response_start");
+      expect(gmResponseStarts.length).toBe(2);
+
+      const gmResponseEnds = messages.filter((m) => m.type === "gm_response_end");
+      expect(gmResponseEnds.length).toBe(2);
+    });
+  });
+
+  describe("forceSave()", () => {
+    test("sends GM prompt and completes", async () => {
+      const { ws, messages } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      messages.length = 0;
+      await session.forceSave();
+
+      // Should have sent tool_status for saving
+      const toolStatusMessages = messages.filter((m) => m.type === "tool_status");
+      expect(toolStatusMessages.length).toBeGreaterThanOrEqual(1);
+
+      // Should have sent a GM response
+      const gmResponseStart = messages.find((m) => m.type === "gm_response_start");
+      expect(gmResponseStart).toBeDefined();
+
+      const gmResponseEnd = messages.find((m) => m.type === "gm_response_end");
+      expect(gmResponseEnd).toBeDefined();
+    });
+
+    test("does not run if already processing", async () => {
+      const { ws, messages } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      // Start processing without awaiting
+      const inputPromise = session.handleInput("test action");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(session.getIsProcessing()).toBe(true);
+
+      // Clear messages and try forceSave while processing
+      messages.length = 0;
+      await session.forceSave();
+
+      // Should not have sent any messages (skipped because already processing)
+      expect(messages.length).toBe(0);
+
+      // Let the input complete
+      await inputPromise;
+    });
+  });
+
+  describe("pending compaction flow", () => {
+    test("isCompactionPending returns false initially", () => {
+      expect(stateManager.isCompactionPending()).toBe(false);
+    });
+
+    test("runPendingCompaction does nothing when not pending", async () => {
+      // This should complete without error
+      await stateManager.runPendingCompaction();
+      expect(stateManager.isCompactionPending()).toBe(false);
+    });
+  });
 });

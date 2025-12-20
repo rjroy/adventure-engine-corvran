@@ -23,6 +23,7 @@ export class AdventureStateManager {
   private adventuresDir: string;
   private state: AdventureState | null = null;
   private history: NarrativeHistory = { entries: [] };
+  private _compactionPending = false;
 
   constructor(adventuresDir?: string) {
     // Use validated env config for default path (absolute, computed at startup)
@@ -255,7 +256,7 @@ export class AdventureStateManager {
 
   /**
    * Append a new entry to narrative history and persist.
-   * Triggers automatic compaction if history exceeds threshold.
+   * Sets compaction pending flag if history exceeds threshold.
    * @param entry Narrative entry to add
    */
   async appendHistory(entry: NarrativeEntry): Promise<void> {
@@ -268,9 +269,11 @@ export class AdventureStateManager {
     this.history.entries.push(entry);
     await this.save();
 
-    // Check if compaction is needed and trigger asynchronously
-    if (this.shouldCompact()) {
-      void this.compactHistoryAsync();
+    // Check if compaction is needed and set flag for owner to handle
+    // Owner (GameSession) will call forceSave() then runPendingCompaction()
+    if (this.shouldCompact() && !this._compactionPending) {
+      this._compactionPending = true;
+      logger.info("Compaction threshold reached, pending save before compact");
     }
   }
 
@@ -287,7 +290,29 @@ export class AdventureStateManager {
   }
 
   /**
-   * Perform history compaction asynchronously.
+   * Check if compaction is pending (threshold reached, waiting for forceSave).
+   * @returns true if compaction is pending
+   */
+  isCompactionPending(): boolean {
+    return this._compactionPending;
+  }
+
+  /**
+   * Run pending compaction after forceSave has completed.
+   * Clears the pending flag and performs the compaction.
+   * Should only be called by GameSession after forceSave().
+   */
+  async runPendingCompaction(): Promise<void> {
+    if (!this._compactionPending) {
+      return;
+    }
+
+    this._compactionPending = false;
+    await this.compactHistoryAsync();
+  }
+
+  /**
+   * Perform history compaction.
    * Archives older entries, generates summary, and updates history.
    */
   private async compactHistoryAsync(): Promise<void> {
@@ -346,6 +371,20 @@ export class AdventureStateManager {
    */
   getHistory(): NarrativeHistory {
     return this.history;
+  }
+
+  /**
+   * Replace current history with new entries and summary.
+   * Used during manual recap to update history atomically.
+   * @param newHistory The compacted history with updated entries and summary
+   */
+  async replaceHistory(newHistory: NarrativeHistory): Promise<void> {
+    if (!this.state) {
+      throw new Error("No state loaded - call create() or load() first");
+    }
+
+    this.history = newHistory;
+    await this.save();
   }
 
   /**

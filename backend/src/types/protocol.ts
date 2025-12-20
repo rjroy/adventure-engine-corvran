@@ -4,6 +4,7 @@ export type {
   ServerMessage,
   ErrorCode,
   NarrativeEntry,
+  HistorySummary,
   ThemeMood,
   Genre,
   Region,

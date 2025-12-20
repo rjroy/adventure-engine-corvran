@@ -10,7 +10,7 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { SDKAssistantMessageError } from "@anthropic-ai/claude-agent-sdk";
 import { AdventureStateManager } from "./adventure-state";
 import type { AdventureState } from "./types/state";
-import type { ServerMessage, NarrativeEntry, ThemeMood, Genre, Region, XpStyle } from "./types/protocol";
+import type { ServerMessage, NarrativeEntry, ThemeMood, Genre, Region, XpStyle, HistorySummary } from "./types/protocol";
 import { buildGMSystemPrompt, createGMMcpServerWithCallbacks, type GMMcpCallbacks, type CreatePanelInput } from "./gm-prompt";
 import { PlayerManager } from "./player-manager";
 import { WorldManager } from "./world-manager";
@@ -28,6 +28,7 @@ import {
   buildRecoveryContext,
   buildRecoveryPrompt,
 } from "./services/history-context";
+import { HistoryCompactor } from "./services/history-compactor";
 import { env } from "./env";
 import { mockQuery } from "./mock-sdk";
 import type { BackgroundImageService } from "./services/background-image";
@@ -262,37 +263,50 @@ export class GameSession {
    * Applies input sanitization for prompt injection prevention
    * @param text Player input text
    * @param requestLogger Optional request-scoped logger for log correlation
+   * @param options Optional settings for input handling
+   * @param options.isSystemPrompt If true, skip sanitization (for internal prompts like forceSave, recap)
    */
-  async handleInput(text: string, requestLogger?: Logger): Promise<void> {
+  async handleInput(
+    text: string,
+    requestLogger?: Logger,
+    options?: { isSystemPrompt?: boolean }
+  ): Promise<void> {
     const log = requestLogger ?? logger;
+    const isSystemPrompt = options?.isSystemPrompt ?? false;
 
-    // Sanitize input for prompt injection prevention
-    const sanitization = sanitizePlayerInput(text);
+    // Skip sanitization for internal system prompts (we trust our own prompts)
+    let inputText = text;
+    if (!isSystemPrompt) {
+      // Sanitize input for prompt injection prevention
+      const sanitization = sanitizePlayerInput(text);
 
-    // Block egregious attempts (role manipulation targeting AI, excessive length)
-    if (sanitization.blocked) {
-      this.sendMessage(
-        {
-          type: "error",
-          payload: {
-            code: "GM_ERROR",
-            message: "Please describe your action in the game world.",
-            retryable: true,
+      // Block egregious attempts (role manipulation targeting AI, excessive length)
+      if (sanitization.blocked) {
+        this.sendMessage(
+          {
+            type: "error",
+            payload: {
+              code: "GM_ERROR",
+              message: "Please describe your action in the game world.",
+              retryable: true,
+            },
           },
-        },
-        log
-      );
-      log.warn({ reason: sanitization.blockReason, flags: sanitization.flags }, "Blocked input");
-      return;
+          log
+        );
+        log.warn({ reason: sanitization.blockReason, flags: sanitization.flags }, "Blocked input");
+        return;
+      }
+
+      // Log flagged but allowed input for monitoring
+      if (sanitization.flags.length > 0) {
+        log.info({ flags: sanitization.flags }, "Flagged input");
+      }
+
+      inputText = sanitization.sanitized;
     }
 
-    // Log flagged but allowed input for monitoring
-    if (sanitization.flags.length > 0) {
-      log.info({ flags: sanitization.flags }, "Flagged input");
-    }
-
-    // Add sanitized input to queue with its logger
-    this.inputQueue.push({ text: sanitization.sanitized, logger: requestLogger });
+    // Add input to queue with its logger
+    this.inputQueue.push({ text: inputText, logger: requestLogger });
 
     // If already processing, the current handler will pick up the next item
     if (this.isProcessing) {
@@ -355,6 +369,14 @@ export class GameSession {
       }
     } finally {
       this.isProcessing = false;
+
+      // Check for pending compaction after processing completes
+      // This ensures forceSave happens between player inputs, not during
+      if (this.stateManager.isCompactionPending()) {
+        logger.info("Handling pending compaction after input processing");
+        await this.forceSave();
+        await this.stateManager.runPendingCompaction();
+      }
     }
   }
 
@@ -1279,6 +1301,221 @@ export class GameSession {
    */
   getIsProcessing(): boolean {
     return this.isProcessing;
+  }
+
+  /**
+   * Minimum number of history entries required for recap.
+   * Prevents wasteful recaps on short histories.
+   */
+  private static readonly MIN_RECAP_ENTRIES = 10;
+
+  /**
+   * Handle user-initiated recap request.
+   * Forces history compaction, clears session ID for fresh start,
+   * and prompts the GM to provide context-specific "what next" guidance.
+   *
+   * @param requestLogger Optional request-scoped logger for correlation
+   */
+  async handleRecap(requestLogger?: Logger): Promise<void> {
+    const log = requestLogger ?? logger;
+
+    // Guard: Cannot recap while processing
+    if (this.isProcessing) {
+      log.debug("Recap requested but currently processing");
+      this.sendMessage({
+        type: "recap_error",
+        payload: { reason: "Cannot recap while processing. Wait for the current response to complete." },
+      }, log);
+      return;
+    }
+
+    const history = this.stateManager.getHistory();
+    const adventureDir = this.stateManager.getCurrentAdventureDir();
+
+    // Guard: Check minimum history threshold
+    if (history.entries.length < GameSession.MIN_RECAP_ENTRIES) {
+      log.debug({ entryCount: history.entries.length }, "Not enough history entries for recap");
+      this.sendMessage({
+        type: "recap_error",
+        payload: { reason: "Not enough history to recap. Keep adventuring!" },
+      }, log);
+      return;
+    }
+
+    // Guard: Check adventure directory exists
+    if (!adventureDir) {
+      log.error("Cannot recap: no adventure directory");
+      this.sendMessage({
+        type: "recap_error",
+        payload: { reason: "Adventure not loaded. Please reload and try again." },
+      }, log);
+      return;
+    }
+
+    log.info({ entryCount: history.entries.length }, "Starting recap");
+
+    // Send recap_started notification
+    this.sendMessage({ type: "recap_started" }, log);
+
+    try {
+      // Step 0: Force GM to save all state before compaction
+      // This ensures no important narrative details are lost
+      await this.forceSave(log);
+
+      // Re-fetch history after forceSave (it may have added entries)
+      const updatedHistory = this.stateManager.getHistory();
+
+      // Step 1: Force compaction regardless of threshold
+      // Use useMockSDK() for runtime check instead of env.mockSdk (which is cached at load time)
+      const compactor = new HistoryCompactor(adventureDir, {
+        retainedCount: env.retainedEntryCount,
+        model: env.compactionSummaryModel,
+        mockSdk: useMockSDK(),
+      });
+
+      const compactionResult = await compactor.compact(updatedHistory);
+
+      if (!compactionResult.success || !compactionResult.retainedEntries) {
+        log.warn({ error: compactionResult.error }, "Compaction failed during recap");
+        this.sendMessage({
+          type: "recap_error",
+          payload: { reason: compactionResult.error ?? "Failed to create recap summary." },
+        }, log);
+        this.sendMessage({
+          type: "tool_status",
+          payload: { state: "idle", description: "Ready" },
+        }, log);
+        return;
+      }
+
+      log.info(
+        { entriesArchived: compactionResult.entriesArchived, hasSummary: !!compactionResult.summary },
+        "Compaction completed for recap"
+      );
+
+      // Step 2: Update history with compacted version
+      const newHistory = {
+        entries: compactionResult.retainedEntries,
+        summary: compactionResult.summary ?? updatedHistory.summary,
+      };
+      await this.stateManager.replaceHistory(newHistory);
+
+      // Step 3: Clear agent session ID for fresh start
+      await this.stateManager.clearAgentSessionId();
+      log.info("Cleared agent session ID for fresh recap session");
+
+      // Step 4: Send recap_complete with updated history/summary
+      this.sendMessage({
+        type: "recap_complete",
+        payload: {
+          history: newHistory.entries,
+          summary: newHistory.summary ?? null,
+        },
+      }, log);
+
+      // Step 5: Build recap prompt and process through normal flow
+      const recapPrompt = this.buildRecapPrompt(newHistory.summary);
+      log.debug({ promptLength: recapPrompt.length }, "Sending recap prompt to GM");
+
+      // Process recap prompt (skip sanitization - this is an internal system prompt)
+      await this.handleInput(recapPrompt, log, { isSystemPrompt: true });
+
+    } catch (error) {
+      log.error({ err: error }, "Recap failed");
+      this.sendMessage({
+        type: "recap_error",
+        payload: { reason: "Recap failed unexpectedly. Please try again." },
+      }, log);
+      this.sendMessage({
+        type: "tool_status",
+        payload: { state: "idle", description: "Ready" },
+      }, log);
+    }
+  }
+
+  /**
+   * Build the special recap prompt for the new session.
+   * Instructs the GM to read current state files and provide
+   * context-specific "what next" guidance.
+   */
+  private buildRecapPrompt(summary: HistorySummary | null | undefined): string {
+    const summaryText = summary?.text ?? "No previous summary available.";
+
+    return `[RECAP SESSION - Fresh conversation thread started]
+
+## Adventure Summary
+${summaryText}
+
+---
+
+The player has requested a recap. This is a fresh conversation thread with full access to character and world state files.
+
+Please:
+1. Read the current state from the player's sheet.md and state.md files
+2. Read the world_state.md, quests.md, and locations.md files
+3. Provide a brief, engaging narrative summary acknowledging where they are and what they've accomplished
+4. Suggest 2-3 clear options for what they might do next
+5. Set an appropriate theme for the current situation
+
+Begin your response as if greeting a returning adventurer.`;
+  }
+
+  /**
+   * Build prompt instructing GM to persist all state before compaction.
+   * This ensures no important details are lost when history is archived.
+   */
+  private buildSaveStatePrompt(): string {
+    return `[SYSTEM: STATE CHECKPOINT]
+
+Before the adventure history is archived, please ensure all important details are saved to the appropriate state files.
+
+Review the recent narrative and update:
+1. **Player state** (sheet.md, state.md): Any changes to stats, inventory, abilities, conditions, or narrative state
+2. **World state** (world_state.md): Any new facts established about the world
+3. **Locations** (locations.md): Any new places discovered or changes to known locations
+4. **Characters** (characters.md): Any new NPCs met or changes to existing NPCs
+5. **Quests** (quests.md): Any quest progress, new objectives, or completed goals
+
+After updating the files, respond with a brief confirmation (1-2 sentences) of what was saved. Do not provide narrative continuation - this is a system checkpoint.`;
+  }
+
+  /**
+   * Force the GM to save all state to files.
+   * Used before history compaction to ensure no important details are lost.
+   * Blocks user input during the save operation.
+   *
+   * @param requestLogger Optional request-scoped logger for correlation
+   * @returns Promise that resolves when save is complete
+   */
+  async forceSave(requestLogger?: Logger): Promise<void> {
+    const log = requestLogger ?? logger;
+
+    // Guard: Cannot force save while already processing
+    if (this.isProcessing) {
+      log.warn("forceSave called while already processing - skipping");
+      return;
+    }
+
+    log.info("Starting forced state save before compaction");
+
+    // Notify UI that we're saving
+    this.sendMessage({
+      type: "tool_status",
+      payload: { state: "active", description: "Saving progress..." },
+    }, log);
+
+    try {
+      // Use handleInput to send the save prompt through normal GM flow
+      // This sets isProcessing=true, blocking user input
+      // Skip sanitization - this is an internal system prompt
+      const savePrompt = this.buildSaveStatePrompt();
+      await this.handleInput(savePrompt, log, { isSystemPrompt: true });
+
+      log.info("Forced state save completed");
+    } catch (error) {
+      log.error({ err: error }, "Forced state save failed");
+      // Don't throw - compaction can still proceed, we just might lose some detail
+    }
   }
 
   /**

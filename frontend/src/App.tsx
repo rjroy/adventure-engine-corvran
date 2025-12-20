@@ -7,6 +7,7 @@ import {
   ToolStatusBar,
 } from "./components";
 import { ErrorPanel } from "./components/ErrorPanel";
+import { RecapConfirmDialog } from "./components/RecapConfirmDialog";
 import { BackgroundLayer } from "./components/BackgroundLayer";
 import {
   SidebarPanelZone,
@@ -83,6 +84,8 @@ export function GameView({
     description: string;
   }>({ state: "idle", description: "Ready" });
   const [isAborting, setIsAborting] = useState(false);
+  const [isRecapping, setIsRecapping] = useState(false);
+  const [showRecapConfirm, setShowRecapConfirm] = useState(false);
 
   const handleMessage = useCallback((message: ServerMessage) => {
     switch (message.type) {
@@ -176,6 +179,26 @@ export function GameView({
       case "pong":
         // Heartbeat response, no action needed
         break;
+
+      case "recap_started":
+        setIsRecapping(true);
+        break;
+
+      case "recap_complete":
+        // Update history and summary with compacted versions
+        setNarrativeHistory(message.payload.history);
+        setHistorySummary(message.payload.summary);
+        setIsRecapping(false);
+        break;
+
+      case "recap_error":
+        setIsRecapping(false);
+        setError({
+          code: "GM_ERROR",
+          message: message.payload.reason,
+          retryable: true,
+        });
+        break;
     }
   }, []);
 
@@ -227,6 +250,20 @@ export function GameView({
     setIsAborting(true);
     sendMessage({ type: "abort" });
   }, [isGMResponding, isAborting, sendMessage]);
+
+  const handleRecapClick = useCallback(() => {
+    setShowRecapConfirm(true);
+  }, []);
+
+  const handleRecapConfirm = useCallback(() => {
+    setShowRecapConfirm(false);
+    setIsRecapping(true);
+    sendMessage({ type: "recap" });
+  }, [sendMessage]);
+
+  const handleRecapCancel = useCallback(() => {
+    setShowRecapConfirm(false);
+  }, []);
 
   // Combine history with streaming message for display
   const displayEntries = useMemo(() => {
@@ -283,7 +320,13 @@ export function GameView({
           summary={historySummary}
         />
 
-        <ToolStatusBar state={toolStatus.state} description={toolStatus.description} />
+        <ToolStatusBar
+          state={toolStatus.state}
+          description={toolStatus.description}
+          onRecap={handleRecapClick}
+          recapDisabled={isGMResponding || status !== "connected" || isRecapping}
+          isRecapping={isRecapping}
+        />
 
         <div className="game-input-container">
           <InputField
@@ -304,6 +347,12 @@ export function GameView({
 
       <SidebarPanelZone />
       <OverlayPanelContainer />
+
+      <RecapConfirmDialog
+        isOpen={showRecapConfirm}
+        onConfirm={handleRecapConfirm}
+        onCancel={handleRecapCancel}
+      />
     </div>
   );
 }
