@@ -12,6 +12,7 @@ import {
   parseLogLevel,
   parseAllowedOrigins,
   parseBoolean,
+  parseTargetRetainedCharCount,
   validateEnvironment,
   VALID_LOG_LEVELS,
 } from "../../src/env";
@@ -232,6 +233,35 @@ describe("parseBoolean", () => {
   });
 });
 
+describe("parseTargetRetainedCharCount", () => {
+  test("returns default 50000 when undefined", () => {
+    expect(parseTargetRetainedCharCount(undefined)).toBe(50000);
+  });
+
+  test("returns default 50000 when empty string", () => {
+    expect(parseTargetRetainedCharCount("")).toBe(50000);
+  });
+
+  test("parses valid values", () => {
+    expect(parseTargetRetainedCharCount("25000")).toBe(25000);
+    expect(parseTargetRetainedCharCount("100000")).toBe(100000);
+    expect(parseTargetRetainedCharCount("1")).toBe(1);
+  });
+
+  test("allows zero for full summarization", () => {
+    expect(parseTargetRetainedCharCount("0")).toBe(0);
+  });
+
+  test("throws for non-numeric value", () => {
+    expect(() => parseTargetRetainedCharCount("large")).toThrow("Invalid TARGET_RETAINED_CHAR_COUNT");
+  });
+
+  test("throws for negative value", () => {
+    expect(() => parseTargetRetainedCharCount("-1000")).toThrow("Invalid TARGET_RETAINED_CHAR_COUNT");
+    expect(() => parseTargetRetainedCharCount("-1")).toThrow("non-negative integer");
+  });
+});
+
 describe("validateEnvironment", () => {
   test("returns valid config with all defaults", () => {
     const result = validateEnvironment({});
@@ -325,6 +355,7 @@ describe("validateEnvironment", () => {
       replicateApiToken: "r8_abc123",
       compactionCharThreshold: 100000,
       retainedEntryCount: 20,
+      targetRetainedCharCount: 50000,
       compactionSummaryModel: "claude-3-5-haiku-latest",
     });
   });

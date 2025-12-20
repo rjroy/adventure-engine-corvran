@@ -151,23 +151,60 @@ export class HistoryCompactor {
 
     try {
       const entryCount = history.entries.length;
-      const retainCount = Math.min(this.config.retainedCount, entryCount);
 
-      // If we don't have enough entries to compact, skip
-      if (entryCount <= retainCount) {
-        this.log.debug({ entryCount, retainCount }, "Not enough entries to compact");
+      // Calculate retained entries with dual constraints:
+      // 1. Maximum entry count (retainedCount)
+      // 2. Maximum character budget (targetRetainedCharCount)
+      // Work backward from newest (most important) to oldest
+      let retainedCharCount = 0;
+      let retainedStartIndex = entryCount; // Start at end, work backward
+
+      // Special case: retainedCount=0 means summarize everything
+      const maxRetained = this.config.retainedCount;
+      const charBudget = this.config.targetRetainedCharCount;
+
+      if (maxRetained > 0) {
+        for (let i = entryCount - 1; i >= 0; i--) {
+          const entry = history.entries[i];
+          const entriesRetained = entryCount - retainedStartIndex;
+
+          // Stop if we've hit entry count limit
+          if (entriesRetained >= maxRetained) break;
+
+          // Stop if adding this entry exceeds char budget
+          if (retainedCharCount + entry.content.length > charBudget) break;
+
+          retainedCharCount += entry.content.length;
+          retainedStartIndex = i;
+        }
+
+        // Edge case: retain at least one entry if retainedCount > 0
+        // even if that single entry exceeds the char budget
+        if (retainedStartIndex === entryCount && entryCount > 0) {
+          retainedStartIndex = entryCount - 1;
+        }
+      }
+      // If maxRetained === 0, retainedStartIndex stays at entryCount (retain nothing)
+
+      const entriesToArchive = history.entries.slice(0, retainedStartIndex);
+      const retainedEntries = history.entries.slice(retainedStartIndex);
+
+      // If nothing to archive, skip
+      if (entriesToArchive.length === 0) {
+        this.log.debug({ entryCount, retainedCount: retainedEntries.length }, "Not enough entries to compact");
         return {
           success: false,
           error: "Not enough entries to compact",
         };
       }
 
-      const archiveCount = entryCount - retainCount;
-      const entriesToArchive = history.entries.slice(0, archiveCount);
-      const retainedEntries = history.entries.slice(archiveCount);
-
       this.log.info(
-        { archiveCount, retainCount, totalChars: this.getHistorySize(history) },
+        {
+          archiveCount: entriesToArchive.length,
+          retainedCount: retainedEntries.length,
+          retainedChars: retainedCharCount,
+          totalChars: this.getHistorySize(history),
+        },
         "Starting history compaction"
       );
 
@@ -193,11 +230,11 @@ export class HistoryCompactor {
         summary = {
           generatedAt: new Date().toISOString(),
           model: this.config.model,
-          entriesArchived: archiveCount,
+          entriesArchived: entriesToArchive.length,
           dateRange,
           text: summaryText,
         };
-        this.log.info({ entriesArchived: archiveCount }, "Summary generated successfully");
+        this.log.info({ entriesArchived: entriesToArchive.length }, "Summary generated successfully");
       } catch (error) {
         // Summarization failure is non-fatal - we still have the archive
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -208,7 +245,7 @@ export class HistoryCompactor {
       return {
         success: true,
         archivePath,
-        entriesArchived: archiveCount,
+        entriesArchived: entriesToArchive.length,
         retainedEntries,
         summary,
       };
