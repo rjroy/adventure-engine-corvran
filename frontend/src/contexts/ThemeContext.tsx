@@ -114,6 +114,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const themesRef = useRef<Map<ThemeMood, ThemeDefinition>>(loadThemes());
   const debounceTimerRef = useRef<number | null>(null);
   const lastChangeTimeRef = useRef<number>(0); // Track last change time in ref to avoid callback recreation
+  const backgroundUrlRef = useRef<string | null>("/backgrounds/corvran-engine-background.webp"); // Track current background URL
 
   const [state, setState] = useState<ThemeState>(() => {
     // Initialize with "calm" theme synchronously
@@ -155,6 +156,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const now = Date.now();
       lastChangeTimeRef.current = now;
 
+      // Update background URL ref
+      backgroundUrlRef.current = backgroundUrl;
+
       // Update state
       setState({
         currentMood: mood,
@@ -179,8 +183,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
    */
   const applyTheme = useCallback(
     (options: ApplyThemeOptions) => {
-      const { mood, backgroundUrl = null, transitionDuration } = options;
+      const { mood, backgroundUrl, transitionDuration } = options;
       const now = Date.now();
+
+      // Preserve current background if not explicitly provided (read from ref to avoid dependency)
+      const newBackgroundUrl = backgroundUrl !== undefined ? backgroundUrl : backgroundUrlRef.current;
 
       // Clear any pending debounce timer
       if (debounceTimerRef.current !== null) {
@@ -194,14 +201,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         setState((prev) => ({ ...prev, pendingMood: mood }));
 
         debounceTimerRef.current = window.setTimeout(() => {
-          applyThemeImmediate(mood, backgroundUrl, transitionDuration);
+          applyThemeImmediate(mood, newBackgroundUrl, transitionDuration);
         }, DEBOUNCE_DURATION - timeSinceLastChange);
       } else {
         // Apply immediately
-        applyThemeImmediate(mood, backgroundUrl, transitionDuration);
+        applyThemeImmediate(mood, newBackgroundUrl, transitionDuration);
       }
     },
-    [applyThemeImmediate] // Stable: no state.lastChangeTime dependency
+    [applyThemeImmediate]
   );
 
   /**
