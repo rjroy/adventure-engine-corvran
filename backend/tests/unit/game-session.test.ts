@@ -1572,4 +1572,92 @@ describe("GameSession", () => {
     });
   });
   /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+
+  describe("abort()", () => {
+    test("returns success=false when not processing", async () => {
+      const { ws } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+
+      await session.initialize(adventureId, sessionToken);
+
+      // Session is not processing anything
+      expect(session.getIsProcessing()).toBe(false);
+
+      // Abort should return success=false
+      const result = session.abort();
+      expect(result.success).toBe(false);
+      expect(result.messageId).toBeNull();
+    });
+
+    test("clears input queue on abort", async () => {
+      const { ws, messages } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+
+      await session.initialize(adventureId, sessionToken);
+
+      // Queue multiple inputs - first one starts processing
+      void session.handleInput("first input");
+
+      // Wait a moment for processing to start
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Session should be processing
+      expect(session.getIsProcessing()).toBe(true);
+
+      // Queue additional inputs while processing
+      void session.handleInput("second input");
+      void session.handleInput("third input");
+
+      // Should have queued inputs
+      expect(session.getQueueLength()).toBe(2);
+
+      // Abort
+      const result = session.abort();
+      expect(result.success).toBe(true);
+      expect(result.messageId).not.toBeNull();
+
+      // Queue should be cleared
+      expect(session.getQueueLength()).toBe(0);
+
+      // Wait for abort to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Should have received gm_response_end
+      const responseEndMessages = messages.filter((m) => m.type === "gm_response_end");
+      expect(responseEndMessages.length).toBeGreaterThanOrEqual(1);
+    });
+
+    test("sends gm_response_end after abort", async () => {
+      const { ws, messages } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+
+      await session.initialize(adventureId, sessionToken);
+
+      // Start processing
+      void session.handleInput("tell me a story");
+
+      // Wait for processing to start
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(session.getIsProcessing()).toBe(true);
+
+      // Abort
+      const result = session.abort();
+      expect(result.success).toBe(true);
+
+      // Wait for abort to complete
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      // Should have received gm_response_end
+      const responseEndMessages = messages.filter((m) => m.type === "gm_response_end");
+      expect(responseEndMessages.length).toBeGreaterThanOrEqual(1);
+
+      // Should have received tool_status with "Interrupted"
+      const toolStatusMessages = messages.filter((m) => m.type === "tool_status");
+      const interruptedStatus = toolStatusMessages.find(
+        (m) => m.type === "tool_status" && m.payload.description === "Interrupted"
+      );
+      expect(interruptedStatus).toBeDefined();
+    });
+  });
 });

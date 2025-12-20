@@ -138,6 +138,11 @@ export class GameSession {
   /** Maximum number of recovery attempts before giving up */
   private static readonly MAX_RECOVERY_ATTEMPTS = 1;
 
+  /** AbortController for the current query (null when not processing) */
+  private abortController: AbortController | null = null;
+  /** Current message ID for abort handling (null when not processing) */
+  private currentMessageId: string | null = null;
+
   constructor(
     ws: WSContext,
     stateManager: AdventureStateManager,
@@ -362,6 +367,10 @@ export class GameSession {
     const log = requestLogger ?? logger;
     const messageId = randomUUID();
 
+    // Set up abort handling for this query
+    this.abortController = new AbortController();
+    this.currentMessageId = messageId;
+
     try {
       log.debug({ messageId }, "Starting input processing");
 
@@ -387,11 +396,19 @@ export class GameSession {
       // If session error occurs, attempt recovery with context from history
       let fullResponse = "";
       let responseGenerator: AsyncGenerator<string, void, unknown>;
+      let wasAborted = false;
 
       try {
         responseGenerator = this.generateGMResponse(input, log);
 
         for await (const chunk of responseGenerator) {
+          // Check for abort signal before processing each chunk
+          if (this.abortController?.signal.aborted) {
+            log.info({ messageId }, "Query aborted during streaming");
+            wasAborted = true;
+            break;
+          }
+
           fullResponse += chunk;
 
           // Send chunk
@@ -404,14 +421,25 @@ export class GameSession {
           );
         }
       } catch (error) {
-        // Check if this is a session error that warrants recovery
-        if (this.shouldAttemptRecovery(error)) {
+        // Check if aborted - don't attempt recovery for aborted queries
+        if (this.abortController?.signal.aborted) {
+          log.info({ messageId }, "Query aborted");
+          wasAborted = true;
+        } else if (this.shouldAttemptRecovery(error)) {
+          // Check if this is a session error that warrants recovery
           log.warn({ err: error }, "Session error detected, attempting recovery");
 
           // Attempt recovery - this will stream a new response
           const recoveryGenerator = this.attemptSessionRecovery(input, log);
 
           for await (const chunk of recoveryGenerator) {
+            // Check for abort during recovery too
+            if (this.abortController?.signal.aborted) {
+              log.info({ messageId }, "Query aborted during recovery");
+              wasAborted = true;
+              break;
+            }
+
             fullResponse += chunk;
 
             // Send chunk
@@ -444,32 +472,46 @@ export class GameSession {
           type: "tool_status",
           payload: {
             state: "idle",
-            description: "Ready",
+            description: wasAborted ? "Interrupted" : "Ready",
           },
         },
         log
       );
 
-      log.debug({ messageId, responseLength: fullResponse.length }, "Response complete");
+      if (wasAborted) {
+        log.info({ messageId, responseLength: fullResponse.length }, "Response aborted");
+        // Still save partial response to history if there's content
+        if (fullResponse.length > 0) {
+          const gmEntry: NarrativeEntry = {
+            id: messageId,
+            timestamp: new Date().toISOString(),
+            type: "gm_response",
+            content: fullResponse + "\n\n*[Response interrupted]*",
+          };
+          await this.stateManager.appendHistory(gmEntry);
+        }
+      } else {
+        log.debug({ messageId, responseLength: fullResponse.length }, "Response complete");
 
-      // Log GM response to history
-      const gmEntry: NarrativeEntry = {
-        id: messageId,
-        timestamp: new Date().toISOString(),
-        type: "gm_response",
-        content: fullResponse,
-      };
-      await this.stateManager.appendHistory(gmEntry);
+        // Log GM response to history
+        const gmEntry: NarrativeEntry = {
+          id: messageId,
+          timestamp: new Date().toISOString(),
+          type: "gm_response",
+          content: fullResponse,
+        };
+        await this.stateManager.appendHistory(gmEntry);
 
-      // Update scene description (extract from full response)
-      // Take first paragraph as scene description
-      const sceneUpdate = fullResponse.split("\n\n")[0] || fullResponse;
-      await this.stateManager.updateScene(
-        sceneUpdate.substring(0, 500)
-      );
+        // Update scene description (extract from full response)
+        // Take first paragraph as scene description
+        const sceneUpdate = fullResponse.split("\n\n")[0] || fullResponse;
+        await this.stateManager.updateScene(
+          sceneUpdate.substring(0, 500)
+        );
 
-      // Reset recovery attempt counter on successful response
-      this.recoveryAttempt = 0;
+        // Reset recovery attempt counter on successful response
+        this.recoveryAttempt = 0;
+      }
     } catch (error) {
       // Map error to user-friendly details
       let errorDetails: ErrorDetails;
@@ -502,6 +544,10 @@ export class GameSession {
         },
         log
       );
+    } finally {
+      // Clean up abort state
+      this.abortController = null;
+      this.currentMessageId = null;
     }
   }
 
@@ -1233,5 +1279,35 @@ export class GameSession {
    */
   getIsProcessing(): boolean {
     return this.isProcessing;
+  }
+
+  /**
+   * Abort the current GM response.
+   * Interrupts the active query and clears the input queue.
+   * @returns Result indicating success and the aborted message ID
+   */
+  abort(): { success: boolean; messageId: string | null } {
+    // Nothing to abort if not processing
+    if (!this.isProcessing) {
+      logger.debug("Abort requested but not processing");
+      return { success: false, messageId: null };
+    }
+
+    const messageId = this.currentMessageId;
+    logger.info({ messageId }, "Aborting current query");
+
+    // Signal abort to the query loop
+    if (this.abortController) {
+      this.abortController.abort();
+    }
+
+    // Clear the input queue to prevent processing queued inputs
+    const queuedCount = this.inputQueue.length;
+    this.inputQueue = [];
+    if (queuedCount > 0) {
+      logger.debug({ clearedCount: queuedCount }, "Cleared input queue on abort");
+    }
+
+    return { success: true, messageId };
   }
 }

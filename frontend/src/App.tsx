@@ -82,6 +82,7 @@ export function GameView({
     state: "active" | "idle";
     description: string;
   }>({ state: "idle", description: "Ready" });
+  const [isAborting, setIsAborting] = useState(false);
 
   const handleMessage = useCallback((message: ServerMessage) => {
     switch (message.type) {
@@ -136,6 +137,7 @@ export function GameView({
           return null;
         });
         setIsGMResponding(false);
+        setIsAborting(false); // Reset aborting state
         break;
 
       case "error": {
@@ -219,6 +221,13 @@ export function GameView({
     applyTheme({ mood: previousMood }); // Restore previous theme
   }, [previousMood, applyTheme]);
 
+  const handleAbort = useCallback(() => {
+    if (!isGMResponding || isAborting) return;
+
+    setIsAborting(true);
+    sendMessage({ type: "abort" });
+  }, [isGMResponding, isAborting, sendMessage]);
+
   // Combine history with streaming message for display
   const displayEntries = useMemo(() => {
     if (streamingMessage && streamingMessage.content) {
@@ -287,6 +296,8 @@ export function GameView({
                   ? "Waiting for response..."
                   : "What do you do?"
             }
+            onAbort={isGMResponding ? handleAbort : undefined}
+            isAborting={isAborting}
           />
         </div>
       </main>

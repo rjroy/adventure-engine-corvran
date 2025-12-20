@@ -36,7 +36,7 @@ bun run lint
 
 Frontend and backend communicate via WebSocket. Protocol types are defined in `/shared/protocol.ts` and re-exported by both sides.
 
-**Client → Server**: `authenticate`, `player_input`, `start_adventure`, `ping`
+**Client → Server**: `authenticate`, `player_input`, `start_adventure`, `ping`, `abort`
 **Server → Client**: `gm_response_start/chunk/end` (streaming), `adventure_loaded`, `theme_change`, `error`, `pong`
 
 WebSocket URL: `ws://localhost:3000/ws?adventureId={adventureId}`

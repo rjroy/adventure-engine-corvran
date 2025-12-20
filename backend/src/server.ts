@@ -562,6 +562,32 @@ app.get(
             }
             break;
 
+          case "abort": {
+            // Handle abort request - stop current GM response
+            if (!conn.authenticated) {
+              logger.warn({ connId }, "Abort received before authentication");
+              break;
+            }
+
+            if (!conn.gameSession) {
+              logger.warn({ connId }, "Abort received but no GameSession");
+              break;
+            }
+
+            // Create request-scoped logger for correlation
+            const { logger: abortLogger } = createRequestLogger(connId, conn.adventureId);
+            abortLogger.info("Processing abort request");
+
+            // Call abort on the game session
+            const result = conn.gameSession.abort();
+            if (result.success) {
+              abortLogger.info({ messageId: result.messageId }, "Abort completed");
+            } else {
+              abortLogger.debug("Abort requested but nothing to abort");
+            }
+            break;
+          }
+
           default:
             logger.warn({ connId, messageType: (message as { type: string }).type }, "Unknown message type");
         }
