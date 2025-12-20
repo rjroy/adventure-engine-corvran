@@ -3,11 +3,18 @@
 .tool-status-bar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--font-size-sm);
   min-height: 28px;
   flex-shrink: 0;
+}
+
+.tool-status-bar__status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
 .tool-status-bar--active {
