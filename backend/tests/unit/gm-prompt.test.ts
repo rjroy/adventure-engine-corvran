@@ -90,10 +90,10 @@ describe("buildGMSystemPrompt", () => {
       const prompt = buildGMSystemPrompt(state);
 
       // Should have theme usage examples
-      expect(prompt).toContain("Tavern");
-      expect(prompt).toContain("ruins");
-      expect(prompt).toContain("Combat");
-      expect(prompt).toContain("Boss defeated");
+      expect(prompt).toContain("Entering tavern");
+      expect(prompt).toContain("Exploring ruins");
+      expect(prompt).toContain("Combat begins");
+      expect(prompt).toContain("Victory");
     });
   });
 
@@ -130,7 +130,8 @@ describe("buildGMSystemPrompt", () => {
 
       // Should truncate to reasonable length (500 chars based on sanitizeStateValue)
       // Prompt includes dynamic paths, theme checks, panel guidance, and state update instructions
-      expect(prompt.length).toBeLessThan(8000);
+      // Updated threshold to accommodate expanded PLAYER AGENCY section and detailed theme examples
+      expect(prompt.length).toBeLessThan(10000);
     });
   });
 
