@@ -60,3 +60,15 @@
   background-color: #b0b0b0;
   cursor: not-allowed;
 }
+
+.input-field__button--abort {
+  background-color: #dc3545;
+}
+
+.input-field__button--abort:hover:not(:disabled) {
+  background-color: #c82333;
+}
+
+.input-field__button--abort:disabled {
+  background-color: #6c757d;
+}

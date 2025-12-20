@@ -10,12 +10,18 @@ export interface InputFieldProps {
   onSubmit: (text: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  /** Callback for abort action - when provided, shows Stop button instead of Send while disabled */
+  onAbort?: () => void;
+  /** Whether an abort is in progress */
+  isAborting?: boolean;
 }
 
 export function InputField({
   onSubmit,
   disabled = false,
   placeholder = "Enter your command...",
+  onAbort,
+  isAborting = false,
 }: InputFieldProps) {
   const [value, setValue] = useState("");
 
@@ -56,13 +62,25 @@ export function InputField({
         className="input-field__input"
         rows={3}
       />
-      <button
-        type="submit"
-        disabled={disabled || !value.trim()}
-        className="input-field__button"
-      >
-        Send
-      </button>
+      {disabled && onAbort ? (
+        <button
+          type="button"
+          onClick={onAbort}
+          disabled={isAborting}
+          className="input-field__button input-field__button--abort"
+          title="Stop the current response"
+        >
+          {isAborting ? "Stopping..." : "Stop"}
+        </button>
+      ) : (
+        <button
+          type="submit"
+          disabled={disabled || !value.trim()}
+          className="input-field__button"
+        >
+          Send
+        </button>
+      )}
     </form>
   );
 }

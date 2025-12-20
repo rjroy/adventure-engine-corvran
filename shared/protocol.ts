@@ -252,11 +252,16 @@ export const PingMessageSchema = z.object({
   type: z.literal("ping"),
 });
 
+export const AbortMessageSchema = z.object({
+  type: z.literal("abort"),
+});
+
 export const ClientMessageSchema = z.discriminatedUnion("type", [
   AuthenticateMessageSchema,
   PlayerInputMessageSchema,
   StartAdventureMessageSchema,
   PingMessageSchema,
+  AbortMessageSchema,
 ]);
 
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
