@@ -143,4 +143,12 @@ The server uses the [Claude Agent SDK](https://github.com/anthropics/claude-agen
 
 ## License
 
-MIT
+This project's code is licensed under the [MIT License](LICENSE).
+
+**Third-party content with separate licenses:**
+
+- **D&D SRD 5.2** — [Creative Commons Attribution 4.0 International](docs/research/dndsrd5.2_markdown/License.md). © Wizards of the Coast. [Source](https://www.dndbeyond.com/resources/1781-systems-reference-document-srd)
+
+<img src="docs/logo/darrington-press/compatible_with_DH_logos-10.png" align="right" width="64" height="64" alt="Adventure Engine Corvran Logo">
+
+- **Daggerheart SRD** — [Darrington Press Community Gaming License](docs/research/daggerheart-srd/LICENSE). © Critical Role, LLC. Daggerheart and related marks are trademarks of Critical Role, LLC. [Source](https://www.daggerheart.com/srd/)
