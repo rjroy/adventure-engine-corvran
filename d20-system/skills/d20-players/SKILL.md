@@ -7,6 +7,19 @@ description: This skill should be used when the user asks to "create a character
 
 Guide players through creating and advancing d20 system characters following SRD 5.2 rules.
 
+## File Structure
+
+Character files follow the corvran directory structure with D20-specific content:
+
+```
+players/
+  {character-slug}/
+    sheet.md   # Use sheet-template.md format (stats, abilities, equipment)
+    state.md   # Use state-template.md format (current HP, conditions, objectives)
+```
+
+The `sheet.md` contains permanent character data using the SRD 5.2 format. The `state.md` tracks mutable session data that changes frequently during play.
+
 ## Character Creation Overview
 
 Follow these five steps to create a new character:
@@ -103,20 +116,20 @@ Passive Perception = 10 + Wisdom (Perception) modifier
 
 ## Recording the Character
 
-Write character data to the adventure's `player.md` file. Load the template from this skill's references:
+Write character data to `players/{character-slug}/sheet.md` using the D20 template:
 
 ```
-references/player-template.md
+references/sheet-template.md
 ```
 
 For a completed example, see:
 ```
-references/player-example.md
+references/sheet-example.md
 ```
 
-### Required Sections
+### D20 Sheet Sections
 
-The player.md file must include:
+The sheet.md file must include:
 
 1. **Character Identity** - Name, class, level, species, background, alignment
 2. **Ability Scores** - All six scores with modifiers
@@ -206,5 +219,6 @@ If the corvran dice-roller is unavailable, describe the required roll and ask th
 Detailed rules in this skill's `references/` directory:
 
 - `character-creation.md` - Complete SRD 5.2 character creation rules
-- `player-template.md` - Blank character sheet template with inline comments
-- `player-example.md` - Completed Level 3 Fighter example
+- `sheet-template.md` - Blank character sheet template
+- `state-template.md` - Mutable state template
+- `sheet-example.md` - Completed Level 3 Fighter example

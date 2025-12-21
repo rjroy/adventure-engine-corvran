@@ -1,14 +1,14 @@
 # File Structure Reference
 
-This document details the markdown file templates used for character and world state persistence.
+This document details the markdown file templates used for character and world state persistence. Templates are system-agnostic—adapt section contents to match the RPG system being played.
 
 ## Directory Structure
 
 ```
 players/
   {character-slug}/
-    sheet.md      # Character stats, abilities, equipment
-    state.md      # Current HP, conditions, inventory changes
+    sheet.md      # Character identity, stats, abilities, equipment
+    state.md      # Current resources, conditions, objectives
 
 worlds/
   {world-slug}/
@@ -22,46 +22,77 @@ worlds/
 
 ### sheet.md
 
-The character sheet contains permanent character data: stats, abilities, and base equipment.
+The character sheet contains permanent character data. Adapt sections to match the RPG system.
 
 ```markdown
 # [Character Name]
 
-## Basic Info
-- **Race**: [Race]
-- **Class**: [Class/Archetype]
-- **Level**: 1
-- **Background**: [Brief background]
+## Identity
+<!-- System-specific: class, playbook, heritage, ancestry, background, etc. -->
+- **[Type Label]**: [Value]
+- **[Origin Label]**: [Value]
 
-## Attributes
-| Attribute | Value | Modifier |
-|-----------|-------|----------|
-| Strength | 10 | +0 |
-| Dexterity | 10 | +0 |
-| Constitution | 10 | +0 |
-| Intelligence | 10 | +0 |
-| Wisdom | 10 | +0 |
-| Charisma | 10 | +0 |
+## Stats
+<!-- System-specific: attributes, traits, action ratings, etc. -->
+<!-- Use table format for traditional systems, list format for narrative systems -->
 
-## Combat
-- **HP**: [Max HP] / [Max HP]
-- **AC**: [Armor Class]
-- **Initiative**: +[Mod]
+| [Stat Name] | Value |
+|-------------|-------|
+| [Stat 1]    | [Val] |
+| [Stat 2]    | [Val] |
 
-## Skills
-- [Skill 1]: +[Mod]
-- [Skill 2]: +[Mod]
+## Resources
+<!-- System-specific: HP, Stress, Harm, Hope, Luck, Armor, etc. -->
+- **[Resource 1]**: [Current] / [Max]
+- **[Resource 2]**: [Value]
+
+## Capabilities
+<!-- System-specific: skills, moves, action ratings, features, domains, etc. -->
+- **[Capability Name]**: [Description or modifier]
 
 ## Equipment
-- [Starting weapon]
-- [Starting armor]
+- [Weapon/gear]
+- [Armor/clothing]
 - [Other items]
 
-## Abilities
-- **[Ability Name]**: [Description]
+## Narrative
+<!-- Backstory, connections, bonds, experiences, Hx, etc. -->
+[Character background and story hooks]
 
 ## Notes
-[Player notes, backstory details, goals]
+[Player notes, goals, session discoveries]
+```
+
+#### System Examples
+
+**D20/5e Identity:**
+```markdown
+- **Class**: Fighter
+- **Race**: Human
+- **Level**: 1
+- **Background**: Soldier
+```
+
+**Daggerheart Identity:**
+```markdown
+- **Class**: Guardian (Stalwart)
+- **Ancestry**: Human
+- **Community**: Orderborne
+- **Level**: 1
+```
+
+**Blades in the Dark Identity:**
+```markdown
+- **Playbook**: Cutter
+- **Heritage**: Akoros
+- **Background**: Military
+- **Vice**: Pleasure
+```
+
+**PbtA Identity:**
+```markdown
+- **Playbook**: The Brainer
+- **Look**: Woman, vintage wear, deep eyes
 ```
 
 ### state.md
@@ -73,12 +104,13 @@ The character state tracks mutable session data: current location, conditions, a
 
 ## Current Status
 - **Location**: [Where the character currently is]
-- **Condition**: Normal
-- **Active Effects**: None
+- **Condition**: [Normal, Wounded, Stressed, etc.]
+- **Active Effects**: [Temporary conditions or buffs]
 
 ## Resources
-- **Gold**: 0
-- **Consumables**: None
+<!-- Track consumables, currency, expendable items -->
+- **[Currency]**: [Amount]
+- **Consumables**: [List]
 
 ## Current Objectives
 - [What the character is trying to accomplish]
@@ -97,9 +129,10 @@ The world state captures the current state of the game world.
 # [World Name]
 
 ## Overview
-- **Genre**: [high-fantasy, sci-fi, etc.]
+- **Genre**: [Fantasy, sci-fi, horror, etc.]
 - **Era**: [Time period or age]
 - **Tone**: [Gritty, heroic, comedic, etc.]
+- **System**: [RPG system being used]
 
 ## Current State
 [What's happening in the world right now - conflicts, events, atmosphere]
@@ -122,8 +155,8 @@ Tracks discovered and known locations in the world.
 ```markdown
 # Locations
 
-## [Starting Location Name]
-**Type**: [Village/City/Dungeon/Wilderness]
+## [Location Name]
+**Type**: [Village/City/Dungeon/Wilderness/District/etc.]
 **Region**: [Geographic area]
 
 ### Description
@@ -134,7 +167,9 @@ Tracks discovered and known locations in the world.
 - [Feature 2]
 
 ### Connections
-- [Direction]: [Connected Location]
+- [Direction/Route]: [Connected Location]
+
+---
 ```
 
 ### characters.md
@@ -145,9 +180,9 @@ Tracks NPCs the player has encountered or heard about.
 # NPCs & Characters
 
 ## [NPC Name]
-**Role**: [Innkeeper/Guard/Villain/etc.]
+**Role**: [Occupation, title, or function]
 **Location**: [Where they're typically found]
-**Disposition**: [Friendly/Neutral/Hostile]
+**Disposition**: [Friendly/Neutral/Hostile/Unknown]
 
 ### Description
 [Physical description and personality]
@@ -160,15 +195,15 @@ Tracks NPCs the player has encountered or heard about.
 
 ### quests.md
 
-Tracks active and completed quests.
+Tracks active and completed quests, missions, scores, or objectives.
 
 ```markdown
 # Quests
 
-## Active Quests
+## Active
 
-### [Quest Name]
-**Given By**: [NPC or circumstance]
+### [Quest/Mission Name]
+**Source**: [NPC, circumstance, or faction]
 **Objective**: [What needs to be done]
 **Status**: In Progress
 
@@ -176,12 +211,12 @@ Tracks active and completed quests.
 - [ ] [Step 1]
 - [ ] [Step 2]
 
-#### Rewards
-- [Expected rewards]
+#### Stakes
+[What's at risk, potential rewards]
 
 ---
 
-## Completed Quests
+## Completed
 
-[Moved here when finished]
+[Moved here when finished, with outcome notes]
 ```
