@@ -274,39 +274,39 @@ Requirements are organized by functional domain rather than architectural compon
 - **REQ-PS-1**: System must store playerRef (relative path to character directory) in adventure state
 - **REQ-PS-2**: System must store worldRef (relative path to world directory) in adventure state
 - **REQ-PS-3**: System must auto-create missing character/world directories from refs on session initialization
+- **REQ-PS-4**: System must use JSON for all server managed state variables (agentSessionId, currentTheme, playerRef, worldRef, etc.)
+- **REQ-PS-5**: System must use markdown for all state persistence documents
 
 #### MCP Tools for State Management
 
-- **REQ-PS-4**: System must support set_character MCP tool (create new or select existing character)
-- **REQ-PS-5**: System must support set_world MCP tool (create new or select existing world)
-- **REQ-PS-6**: System must support list_characters MCP tool (return all characters with name/slug)
-- **REQ-PS-7**: System must support list_worlds MCP tool (return all worlds with name/slug)
-- **REQ-PS-8**: System must generate URL-safe slugs from character/world names (lowercase, hyphens)
-- **REQ-PS-9**: System shall enable Claude Agent SDK file tool access to markdown files in playerRef and worldRef directories
+- **REQ-PS-6**: System must support set_character MCP tool (create new or select existing character)
+- **REQ-PS-7**: System must support set_world MCP tool (create new or select existing world)
+- **REQ-PS-8**: System must support list_characters MCP tool (return all characters with name/slug)
+- **REQ-PS-9**: System must support list_worlds MCP tool (return all worlds with name/slug)
+- **REQ-PS-10**: System must generate URL-safe slugs from character/world names (lowercase, hyphens)
+- **REQ-PS-11**: System shall enable Claude Agent SDK file tool access to markdown files in playerRef and worldRef directories
 
 #### Character/World Initialization Guidance
 
-- **REQ-PS-10**: System must provide guidance for character creation when playerRef is null
-- **REQ-PS-11**: System must provide guidance for world creation when worldRef is null
-- **REQ-PS-12**: System must list available characters from the `players/` directory
-- **REQ-PS-13**: System must list available worlds from the `worlds/` directory
-- **REQ-PS-14**: System must guide users through selecting existing or creating new characters/worlds
+- **REQ-PS-12**: System must provide guidance for character creation when playerRef is null
+- **REQ-PS-13**: System must provide guidance for world creation when worldRef is null
+- **REQ-PS-14**: System must list available characters from the `players/` directory
+- **REQ-PS-15**: System must list available worlds from the `worlds/` directory
+- **REQ-PS-16**: System must guide users through selecting existing or creating new characters/worlds
 
 #### Document Structure Templates
 
-- **REQ-PS-15**: System must document character sheet structure with attributes, combat stats, skills, equipment, and abilities
-- **REQ-PS-16**: System must document character state structure with location, condition, resources, objectives, and recent events
-- **REQ-PS-17**: System must document world state structure with genre, era, tone, factions, NPCs, and established facts
-- **REQ-PS-18**: System must document locations structure with type, region, description, features, and connections
-- **REQ-PS-19**: System must document NPC structure with role, location, disposition, description, and notes
-- **REQ-PS-20**: System must document quest structure with active and completed quest tracking, progress checklists, and rewards
+- **REQ-PS-17**: System must document character sheet structure with attributes, combat stats, skills, equipment, and abilities
+- **REQ-PS-18**: System must document character state structure with location, condition, resources, objectives, and recent events
+- **REQ-PS-19**: System must document world state structure with genre, era, tone, factions, NPCs, and established facts
+- **REQ-PS-20**: System must document locations structure with type, region, description, features, and connections
+- **REQ-PS-21**: System must document NPC structure with role, location, disposition, description, and notes
+- **REQ-PS-22**: System must document quest structure with active and completed quest tracking, progress checklists, and rewards
 
 #### Domain Type Schemas
 
-- **REQ-PS-21**: System must define PlayerCharacter schema with nullable name, attributes record, and optional RPG fields (stats, skills, hp, conditions, inventory, xp, level, xpStyle)
-- **REQ-PS-22**: System must define NPC schema mirroring PlayerCharacter structure with additional fields (id, templateName, reward, isHostile, notes)
-- **REQ-PS-23**: System must define InventoryItem schema with name, quantity, optional equipped flag, and optional properties record
-- **REQ-PS-24**: System must define SystemDefinition schema for RPG system metadata with rawContent, diceTypes, feature flags, and filePath
+- **REQ-PS-23**: System must support rules specific templates for PlayerCharacter with nullable name, attributes record, and optional RPG fields (stats, skills, hp, conditions, inventory, xp, level, xpStyle)
+- **REQ-PS-24**: System must support rules specific templates for NPC mirroring PlayerCharacter tremplate with additional fields (id, npcTemplateName, reward, isHostile, notes)
 
 ---
 
@@ -315,7 +315,7 @@ Requirements are organized by functional domain rather than architectural compon
 #### Theme State Management
 
 - **REQ-DT-1**: System must update theme (mood, genre, region) via set_theme MCP tool
-- **REQ-DT-2**: System must debounce duplicate mood changes within 1 second
+- **REQ-DT-2**: System must debounce rapid theme changes within 1 second to prevent excessive image generation and visual flicker
 - **REQ-DT-3**: System must persist theme to adventure state on every change
 - **REQ-DT-4**: System must emit theme_change WebSocket message with mood, genre, region, backgroundUrl
 
@@ -337,16 +337,15 @@ Requirements are organized by functional domain rather than architectural compon
 - **REQ-DT-15**: Theme changes must update UI decorations including border styles and shadow effects
 - **REQ-DT-16**: System must support custom background images via backgroundUrl in theme_change payload
 - **REQ-DT-17**: Narrative entry styling (player/GM message appearance) must adapt to current theme
-- **REQ-DT-18**: System must debounce rapid theme changes within 1 second to prevent visual flicker
-- **REQ-DT-19**: System must transition between themes smoothly over configurable duration (default 1500ms)
-- **REQ-DT-20**: System must reset to default "calm" theme on reconnection
+- **REQ-DT-18**: System must transition between themes smoothly over configurable duration (default 1500ms)
+- **REQ-DT-19**: System must reset to default "calm" theme on reconnection
 
 #### Theme Type Schemas
 
-- **REQ-DT-21**: System must define ThemeMood enum schema with values: calm, tense, ominous, triumphant, mysterious
-- **REQ-DT-22**: System must define Genre enum schema with values: sci-fi, steampunk, low-fantasy, high-fantasy, horror, modern, historical
-- **REQ-DT-23**: System must define Region enum schema with values: city, village, forest, desert, mountain, ocean, underground, castle, ruins
-- **REQ-DT-24**: System must define ThemeChangePayload schema with mood, genre, region, backgroundUrl (nullable), and optional transitionDuration
+- **REQ-DT-20**: System must define ThemeMood enum schema with values: calm, tense, ominous, triumphant, mysterious
+- **REQ-DT-21**: System must define Genre enum schema with values: sci-fi, steampunk, low-fantasy, high-fantasy, horror, modern, historical
+- **REQ-DT-22**: System must define Region enum schema with values: city, village, forest, desert, mountain, ocean, underground, castle, ruins
+- **REQ-DT-23**: System must define ThemeChangePayload schema with mood, genre, region, backgroundUrl (nullable), and optional transitionDuration
 
 ---
 
@@ -382,7 +381,7 @@ Requirements are organized by functional domain rather than architectural compon
 - **REQ-PD-20**: System must define Panel schema with id (alphanumeric + hyphens, max 32 chars), title (max 64 chars), content (markdown, max 2KB), position (sidebar/header/overlay), persistent (boolean), optional x/y (0-100 percentage), and createdAt timestamp
 - **REQ-PD-21**: Panel ID validation must enforce alphanumeric characters and hyphens only, 1-32 characters
 - **REQ-PD-22**: Panel title validation must enforce 1-64 character limit
-- **REQ-PD-23**: Panel content validation must enforce maximum 2048 bytes (2KB)
+- **REQ-PD-23**: Panel content validation must enforce maximum 2048 chars (2KB)
 - **REQ-PD-24**: Panel overlay position (x/y) validation must enforce 0-100 range
 
 #### Panel Pattern Library
@@ -816,13 +815,13 @@ Requirements are organized by functional domain rather than architectural compon
 
 ### Persistent State Management (PS)
 
-40. onSetCharacter("Kael", isNew=true) → players/kael-thouls created, playerRef set [REQ-PS-4, REQ-PS-8]
-41. onSetWorld("Eldoria", isNew=false) → worldRef set to worlds/eldoria [REQ-PS-5]
+40. onSetCharacter("Kael", isNew=true) → players/kael-thouls created, playerRef set [REQ-PS-6, REQ-PS-10]
+41. onSetWorld("Eldoria", isNew=false) → worldRef set to worlds/eldoria [REQ-PS-7]
 42. Initialize with playerRef="players/missing" → directory auto-created [REQ-PS-3]
-43. onListCharacters() → returns array of {name, slug} [REQ-PS-6]
-44. New character "Kael Thouls" → players/kael-thouls/sheet.md and state.md created [REQ-PS-15, REQ-PS-16]
-45. New world "Eldoria" → worlds/eldoria/ with world_state.md, locations.md, etc. [REQ-PS-17, REQ-PS-18]
-46. PlayerCharacter with only name/attributes → success (RPG fields optional) [REQ-PS-21]
+43. onListCharacters() → returns array of {name, slug} [REQ-PS-8]
+44. New character "Kael Thouls" → players/kael-thouls/sheet.md and state.md created [REQ-PS-17, REQ-PS-18]
+45. New world "Eldoria" → worlds/eldoria/ with world_state.md, locations.md, etc. [REQ-PS-19, REQ-PS-20]
+46. PlayerCharacter with only name/attributes → success (RPG fields optional) [REQ-PS-23]
 
 ### Dynamic Themes (DT)
 
@@ -831,9 +830,9 @@ Requirements are organized by functional domain rather than architectural compon
 49. Request background for (calm, high-fantasy, village) → catalog returns matching URL [REQ-DT-5]
 50. Call with force_generate=true → Replicate API called even if catalog has match [REQ-DT-7]
 51. Replicate API throws error → theme_change emitted with backgroundUrl=null [REQ-DT-9]
-52. Server sends theme_change with mood "ominous" → CSS variables update within 1500ms [REQ-DT-13, REQ-DT-19]
-53. Invalid mood "happy" → failure indicating invalid enum [REQ-DT-21]
-54. theme_change with backgroundUrl: null → success (nullable) [REQ-DT-24]
+52. Server sends theme_change with mood "ominous" → CSS variables update within 1500ms [REQ-DT-13, REQ-DT-18]
+53. Invalid mood "happy" → failure indicating invalid enum [REQ-DT-20]
+54. theme_change with backgroundUrl: null → success (nullable) [REQ-DT-23]
 
 ### Panel Display (PD)
 
@@ -845,51 +844,50 @@ Requirements are organized by functional domain rather than architectural compon
 60. Update panel with 2049 chars → "2KB limit" [REQ-PD-7, REQ-PD-23]
 61. Server sends panel_create → panel appears in position, minimize toggles visibility, overlay draggable [REQ-PD-12, REQ-PD-16, REQ-PD-18]
 62. Panel ID with spaces → failure indicating regex mismatch [REQ-PD-8, REQ-PD-21]
-63. Panel content > 2048 bytes → failure indicating max length [REQ-PD-23]
-64. Combat scenario + panel-patterns skill → initiative tracker pattern provided [REQ-PD-29]
+63. Combat scenario + panel-patterns skill → initiative tracker pattern provided [REQ-PD-29]
 
 ### Recap and Compaction (RC)
 
-65. Append entries until > 100,000 chars → isCompactionPending() returns true [REQ-RC-1, REQ-RC-2]
-66. Trigger compaction → forceSave GM response precedes recap_complete [REQ-RC-3]
-67. Run compaction → history_YYYYMMDD_HHMMSS.json created [REQ-RC-7]
-68. Run compaction → summary text present in result [REQ-RC-6]
-69. Compact 100 entries, retainedCount=20 → 20 most recent remain [REQ-RC-5]
-70. Click recap → confirmation dialog, confirm → recap_started indicator, recap_complete updates history [REQ-RC-10, REQ-RC-11, REQ-RC-13, REQ-RC-14]
+64. Append entries until > 100,000 chars → isCompactionPending() returns true [REQ-RC-1, REQ-RC-2]
+65. Trigger compaction → forceSave GM response precedes recap_complete [REQ-RC-3]
+66. Run compaction → history_YYYYMMDD_HHMMSS.json created [REQ-RC-7]
+67. Run compaction → summary text present in result [REQ-RC-6]
+68. Compact 100 entries, retainedCount=20 → 20 most recent remain [REQ-RC-5]
+69. Click recap → confirmation dialog, confirm → recap_started indicator, recap_complete updates history [REQ-RC-10, REQ-RC-11, REQ-RC-13, REQ-RC-14]
 
 ### Error & Recovery (ER)
 
-71. SDK returns session error → tool_status "Reconnecting..." [REQ-ER-1, REQ-ER-5]
-72. Recovery query completes → agentSessionId cleared, new response streams [REQ-ER-2, REQ-ER-3]
-73. Trigger 2 session errors → 1st recovers, 2nd throws (max attempts) [REQ-ER-4]
-74. Server sends error with retryable=true → retry button displayed, clicking resends input [REQ-ER-9, REQ-ER-10]
-75. adventureId="../../../etc" → validation error [REQ-ER-6]
-76. Create adventure → state.json has mode 0o600, directory 0o700 [security, REQ-NF-32]
-77. Origin="https://evil.com" → 403 Forbidden [REQ-RT-2]
+70. SDK returns session error → tool_status "Reconnecting..." [REQ-ER-1, REQ-ER-5]
+71. Recovery query completes → agentSessionId cleared, new response streams [REQ-ER-2, REQ-ER-3]
+72. Trigger 2 session errors → 1st recovers, 2nd throws (max attempts) [REQ-ER-4]
+73. Server sends error with retryable=true → retry button displayed, clicking resends input [REQ-ER-9, REQ-ER-10]
+74. adventureId="../../../etc" → validation error [REQ-ER-6]
+75. Create adventure → state.json has mode 0o600, directory 0o700 [security, REQ-NF-32]
+76. Origin="https://evil.com" → 403 Forbidden [REQ-RT-2]
 
 ### Dice Rolling (DR)
 
-78. Expression "2d6+3" → JSON with two rolls (1-6), modifier 3, valid total [REQ-DR-1, REQ-DR-5, REQ-DR-7]
-79. Expression "4dF" → JSON with four rolls (-1/0/+1), calculated total [REQ-DR-3, REQ-DR-5]
-80. Expression "xyz" → JSON error with usage guidance [REQ-DR-6]
+77. Expression "2d6+3" → JSON with two rolls (1-6), modifier 3, valid total [REQ-DR-1, REQ-DR-5, REQ-DR-7]
+78. Expression "4dF" → JSON with four rolls (-1/0/+1), calculated total [REQ-DR-3, REQ-DR-5]
+79. Expression "xyz" → JSON error with usage guidance [REQ-DR-6]
 
 ### Application Lifecycle (APP)
 
-81. Valid project directory → server launches, health check passes, browser opens, PID created [REQ-APP-1, REQ-APP-5, REQ-APP-6, REQ-APP-9]
-82. `--no-browser` flag → health check passes, no browser [REQ-APP-7]
-83. Non-existent directory → error, no server starts [REQ-APP-2]
-84. Corrupted frontend → build error logged, no server [REQ-APP-3]
-85. Server fails to respond → timeout after 30s, process killed [REQ-APP-5]
-86. Running server with valid PID → SIGTERM, shutdown within 5s, PID removed [REQ-APP-10, REQ-APP-12]
-87. Server ignores SIGTERM → SIGKILL after 5s [REQ-APP-12]
-88. PID pointing to non-bun process → warning logged, no process killed [REQ-APP-11]
-89. REPLICATE_API_TOKEN in both backend/.env and project/.env → project value takes precedence [REQ-APP-14]
+80. Valid project directory → server launches, health check passes, browser opens, PID created [REQ-APP-1, REQ-APP-5, REQ-APP-6, REQ-APP-9]
+81. `--no-browser` flag → health check passes, no browser [REQ-APP-7]
+82. Non-existent directory → error, no server starts [REQ-APP-2]
+83. Corrupted frontend → build error logged, no server [REQ-APP-3]
+84. Server fails to respond → timeout after 30s, process killed [REQ-APP-5]
+85. Running server with valid PID → SIGTERM, shutdown within 5s, PID removed [REQ-APP-10, REQ-APP-12]
+86. Server ignores SIGTERM → SIGKILL after 5s [REQ-APP-12]
+87. PID pointing to non-bun process → warning logged, no process killed [REQ-APP-11]
+88. REPLICATE_API_TOKEN in both backend/.env and project/.env → project value takes precedence [REQ-APP-14]
 
 ### Protocol Coverage
 
-90. Successfully parsed "player_input" → TypeScript narrows type [REQ-RT-22, REQ-RT-23]
-91. start_adventure without adventureId → success (optional) [REQ-RT-20]
-92. All message types → 100% test coverage [REQ-RT-20, REQ-RT-21]
+89. Successfully parsed "player_input" → TypeScript narrows type [REQ-RT-22, REQ-RT-23]
+90. start_adventure without adventureId → success (optional) [REQ-RT-20]
+91. All message types → 100% test coverage [REQ-RT-20, REQ-RT-21]
 
 ---
 
