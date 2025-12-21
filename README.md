@@ -1,6 +1,13 @@
 # Adventure Engine of Corvran
 
+<img src="docs/logo/corvran-engine-logo.png" align="right" width="128" height="128" alt="Adventure Engine Corvran Logo">
+
 An AI-powered game master for immersive tabletop RPG adventures. Corvran guides you through rich, interactive stories with dynamic theming, procedural imagery, and persistent world state—all through a web interface.
+
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg) 
+![Development](https://img.shields.io/badge/development-active-orange.svg)
+![SDD](https://img.shields.io/badge/methodology-SDD-teal.svg)
 
 ## The Experience
 
