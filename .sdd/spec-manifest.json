@@ -1,0 +1,46 @@
+{
+  "generated_at": "2025-12-20T12:15:00.000Z",
+  "project_root": "/home/rjroy/Projects/adventure-engine-corvran",
+  "modules": [
+    {
+      "path": "backend",
+      "status": "completed",
+      "spec_path": ".sdd/specs/backend.md",
+      "drift_detected": false,
+      "drift_summary": null,
+      "error": null
+    },
+    {
+      "path": "shared",
+      "status": "completed",
+      "spec_path": ".sdd/specs/shared.md",
+      "drift_detected": false,
+      "drift_summary": null,
+      "error": null
+    },
+    {
+      "path": "frontend",
+      "status": "completed",
+      "spec_path": ".sdd/specs/frontend.md",
+      "drift_detected": false,
+      "drift_summary": null,
+      "error": null
+    },
+    {
+      "path": "d20-system",
+      "status": "completed",
+      "spec_path": ".sdd/specs/d20-system.md",
+      "drift_detected": false,
+      "drift_summary": null,
+      "error": null
+    },
+    {
+      "path": "corvran",
+      "status": "completed",
+      "spec_path": ".sdd/specs/corvran.md",
+      "drift_detected": false,
+      "drift_summary": null,
+      "error": null
+    }
+  ]
+}
