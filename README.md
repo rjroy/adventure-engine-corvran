@@ -1,86 +1,139 @@
 # Adventure Engine of Corvran
 
-A set of tools for AI-driven tabletop RPG adventures. At its heart is a web-based immersive experience with real-time gameplay, dynamic theming, and procedural imagery—complemented by Claude Code plugin integration for terminal-based adventuring.
+An AI-powered game master for immersive tabletop RPG adventures. Corvran guides you through rich, interactive stories with dynamic theming, procedural imagery, and persistent world state—all through a web interface.
 
-## Meet Corvran
+## The Experience
 
-Corvran is your game master. Equal parts wise storyteller and trickster, Corvran guides adventures with a singular goal: giving the player the experience they need—whether that's triumph, tension, mystery, or the quiet satisfaction of a puzzle solved.
+When you start an adventure, Corvran becomes your game master. You describe your actions, and Corvran responds with narrative, NPC dialogue, dice rolls, and consequences. The interface adapts to the story's mood—colors shift, fonts change, and background images transform as the narrative evolves.
 
-The name follows the tradition of Wyrd Gateway's themed worlds. The corvid (crow/raven) evokes intelligence, mystery, and the watchful nature of a game master observing the unfolding tale.
+**Features:**
+- **Streaming Narrative** — Responses appear in real-time as Corvran composes them
+- **Dynamic Theming** — The UI reflects the story's mood: calm, tense, ominous, triumphant, or mysterious
+- **AI Backgrounds** — Procedurally generated images match the current scene (requires Replicate API)
+- **Session Persistence** — Pick up where you left off across browser sessions
+- **Character & World Management** — Persistent character sheets, world state, NPCs, and quests
 
-## Vision
+## Running the Server
 
-The Adventure Engine transforms AI into a game master capable of running rich, interactive RPG adventures. It handles the complexity of world management, rule arbitration, and narrative pacing while keeping the player at the center of the story.
+### Prerequisites
 
-## Core Design Goals
+- [Bun](https://bun.sh) (v1.0+)
+- Authentication for Claude Agent SDK (one of):
+  - OAuth via `claude` CLI (run `claude` to set up)
+  - `ANTHROPIC_API_KEY` environment variable
+- Optional: [Replicate API Token](https://replicate.com/) (for AI-generated backgrounds)
 
-### Persistent World State
-Track locations, NPCs, factions, and world events. Maintain consistency across sessions. Support time progression and world evolution.
+### Quick Start
 
-### Character Management
-Player character sheets with stats, inventory, and history. NPC relationships and disposition tracking. Character growth and development over time.
+```bash
+# Clone and install dependencies
+git clone https://github.com/rjroy/adventure-engine-corvran.git
+cd adventure-engine-corvran
+cd backend && bun install
+cd ../frontend && bun install
 
-### Narrative Gameplay
-Dramatic pacing and scene management. Meaningful choices with consequences. Balance between player agency and story structure.
+# Build frontend and start server
+cd frontend && bun run build
+cd ../backend && bun run start
 
-### Flexible Rule Systems
-Support for various RPG systems or system-agnostic play. Dice rolling and probability handling. Combat, skill checks, and resolution mechanics.
+# Open http://localhost:3000 in your browser
+```
+
+If you haven't configured OAuth via `claude` CLI, set `ANTHROPIC_API_KEY` before starting.
+
+### Environment Variables
+
+Optional variables (create `backend/.env` or export):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `REPLICATE_API_TOKEN` | — | Enables AI-generated background images |
+| `PORT` | `3000` | Server port |
+| `HOST` | `localhost` | Server hostname |
+| `ADVENTURES_DIR` | `backend/adventures` | Adventure save location |
+| `STATIC_ROOT` | `frontend/dist` | Built frontend files |
+| `LOG_LEVEL` | `info` | Logging verbosity (`debug`, `info`, `warn`, `error`) |
+
+Paths are computed as absolute paths at startup relative to the project structure.
+
+Without `REPLICATE_API_TOKEN`, the server uses static fallback images instead of AI-generated ones.
+
+### Using Claude Code Plugin
+
+If you use [Claude Code](https://claude.ai/code), the `corvran` plugin provides a convenient way to launch adventures:
+
+```bash
+# From any adventure project directory
+/corvran:enter-world
+```
+
+This builds the frontend and starts the server in the background.
+
+## Development
+
+### Project Structure
+
+```
+adventure-engine-corvran/
+├── backend/           # Bun server with Claude Agent SDK
+│   ├── assets/        # Static assets (backgrounds)
+│   └── adventures/    # Saved adventure data
+├── frontend/          # React + Vite web interface
+├── shared/            # WebSocket protocol types
+├── corvran/           # Claude Code plugin
+└── d20-system/        # D20 RPG rules plugin
+```
+
+### Commands
+
+**Backend** (from `backend/`):
+```bash
+bun run dev              # Watch mode with hot reload
+bun run test             # Run all tests
+bun run test:unit        # Unit tests only
+bun run test:integration # Integration tests
+bun run typecheck        # TypeScript validation
+bun run lint             # ESLint
+```
+
+**Frontend** (from `frontend/`):
+```bash
+bun run dev          # Vite dev server (port 5173)
+bun run test         # Run tests once
+bun run test:watch   # Watch mode
+bun run typecheck
+bun run lint
+```
+
+**Development Workflow**: Run backend and frontend dev servers in separate terminals. The frontend proxies API requests to the backend.
+
+### Code Style
+
+- TypeScript strict mode
+- ESLint with type-checked rules
+- Prettier: double quotes, semicolons, trailing commas (es5)
+- Unused variables must start with `_`
+
+### Testing
+
+Run tests from the respective directories using the commands above. Set `MOCK_SDK=true` to run backend tests without the Agent SDK.
+
+### Critical Dependencies
+
+**Zod must stay at version 3.x** — The Claude Agent SDK requires Zod 3.24.x. Do not upgrade to Zod 4.x without verifying SDK compatibility.
 
 ## Architecture
 
-### Server (Immersive Experience)
-The primary experience—a web application delivering real-time gameplay through WebSocket connections:
-- Live narrative streaming with Corvran's responses
-- Dynamic theming that shifts with the story's mood
-- Procedural background imagery matching the current scene
-- Session persistence across browser sessions
+The server uses the [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk) to run Corvran as an AI game master. State persists in markdown files that Corvran reads and writes during gameplay.
 
-### Claude Code Plugin
-Terminal-based adventure management integrated into your development workflow:
-- Commands for starting and resuming adventures
-- Character sheet management
-- Quick session access without leaving the terminal
-
-## Environment Variables
-
-### Backend
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `REPLICATE_API_TOKEN` | No* | — | API token for image generation via Replicate |
-| `PORT` | No | `3000` | Server port |
-| `HOST` | No | `localhost` | Server hostname to bind |
-| `ADVENTURES_DIR` | No | `./adventures` | Directory for adventure state persistence |
-| `STATIC_ROOT` | No | `../frontend/dist` | Directory for serving static frontend files |
-| `ALLOWED_ORIGINS` | No | `http://localhost:5173,http://localhost:3000` | Comma-separated list of allowed CORS origins |
-| `LOG_LEVEL` | No | `info` | Log verbosity: `trace`, `debug`, `info`, `warn`, `error`, `fatal` |
-| `LOG_FILE` | No | `true` | Set to `false` to disable rotating file logs in `backend/logs/` |
-| `NODE_ENV` | No | — | Set to `production` for JSON log output |
-| `MAX_CONNECTIONS` | No | `100` | Maximum concurrent WebSocket connections |
-| `INPUT_TIMEOUT` | No | `60000` | Timeout in milliseconds for input processing (minimum 1000ms) |
-| `MOCK_SDK` | No | — | Set to `true` to use mock SDK (for testing without Claude Agent SDK) |
-
-\* Required only for image generation. Server runs without it using catalog/fallback images.
-
-### Example `.env` file
-
-```bash
-# Required for image generation (optional otherwise)
-REPLICATE_API_TOKEN=r8_your_token_here
-
-# Optional - uncomment to override defaults
-# PORT=3000
-# HOST=localhost
-# ADVENTURES_DIR=./adventures
-# STATIC_ROOT=../frontend/dist
-# ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
-# LOG_LEVEL=info
-# LOG_FILE=true
-# NODE_ENV=production
-# MAX_CONNECTIONS=100
-# MOCK_SDK=true
-```
+- **Frontend ↔ Backend**: WebSocket for real-time streaming, HTTP for adventure management
+- **Backend ↔ Claude**: Agent SDK `query()` calls with MCP tools for game mechanics
+- **State**: Markdown files for character sheets, world state, NPCs, quests
 
 ## Status
 
-**Active Development** — Core gameplay engine functional, expanding features.
+**Active Development** — Core gameplay functional, expanding features.
+
+## License
+
+MIT
