@@ -1,6 +1,7 @@
 ---
 name: gm-craft
-description: This skill should be used when the GM needs storytelling techniques, asks how to handle player failure, wants NPC creation guidance, needs scene pacing advice, or asks about improv principles. Provides GM craft techniques for better narrative.
+version: 1.0.0
+description: This skill should be used when the GM needs storytelling techniques, handling player failure, NPC creation, scene pacing, or improv principles. Triggers on "fail forward", "succeed at cost", "yes and", "how do you want to do this", "NPC motivation", "scene transitions", "player agency".
 ---
 
 # GM Craft Techniques
@@ -31,6 +32,8 @@ Not every failure should be softened. Use hard failures when:
 - Failure creates interesting story (not dead ends)
 - Success was already achieved "at a cost" recently
 - The consequence is survivable and creates new choices
+
+> See `examples/failure-handling.md` for detailed before/after comparisons.
 
 ---
 
@@ -121,32 +124,18 @@ Let situations get worse before they resolve:
 
 ## Improv Principles
 
-### "Yes, And..."
-Accept the player's premise and expand on it:
-- Player: "I look for a secret door"
-- GM: "Yes, and you notice the stones here are newer than the rest—someone bricked this up recently"
+The response spectrum for player proposals:
 
-### "Yes, But..."
-Accept with complications from established continuity:
-- Player: "I want to climb the tower"
-- GM: "Yes, but the rain has made the stones slick—you'll need to find handholds carefully"
+| Response | When to Use |
+|----------|-------------|
+| **"Yes, and..."** | Idea enriches the scene—accept and expand |
+| **"Yes, but..."** | Idea works with complications—add tension |
+| **"No, but..."** | Idea doesn't fit—offer an alternative |
+| **"You can certainly try"** | Outcome uncertain—signal high stakes |
 
-### "No, But..."
-Reject the specific idea but offer an alternative:
-- Player: "Can I teleport us inside?"
-- GM: "No, the wards prevent that, but you sense a weak point on the eastern wall"
+**Reframe rather than reject:** When a player's idea doesn't quite work, find a version that does. Preserve their investment while maintaining world integrity.
 
-### "You Can Certainly Try"
-Matt Mercer's signature phrase:
-- Acknowledges player agency
-- Signals difficulty without forbidding
-- Opens space for dramatic success or failure
-- Doesn't promise either outcome
-
-### Reframe Rather Than Reject
-When a player proposes something that doesn't quite work, find a version that does:
-- "You can't do exactly that, but here's what might work..."
-- Preserves player investment while maintaining world integrity
+> See `references/improv-techniques.md` for extended examples and common pitfalls.
 
 ---
 
