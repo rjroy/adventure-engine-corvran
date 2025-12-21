@@ -1,6 +1,17 @@
 # Adventure Engine of Corvran
 
+<img src="docs/logo/corvran-engine-logo.png" align="right" width="128" height="128" alt="Adventure Engine Corvran Logo">
+
 An AI-powered game master for immersive tabletop RPG adventures. Corvran guides you through rich, interactive stories with dynamic theming, procedural imagery, and persistent world state—all through a web interface.
+
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Development](https://img.shields.io/badge/development-active-orange.svg)
+![SDD](https://img.shields.io/badge/methodology-SDD-teal.svg)
+<br>
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)
+![Bun](https://img.shields.io/badge/Bun-1.x-fbf0df?logo=bun&logoColor=black)
+![Claude](https://img.shields.io/badge/Powered_by-Claude-cc785c?logo=anthropic&logoColor=white)
 
 ## The Experience
 
@@ -136,4 +147,12 @@ The server uses the [Claude Agent SDK](https://github.com/anthropics/claude-agen
 
 ## License
 
-MIT
+This project's code is licensed under the [MIT License](LICENSE).
+
+**Third-party content with separate licenses:**
+
+- **D&D SRD 5.2** — [Creative Commons Attribution 4.0 International](docs/research/dndsrd5.2_markdown/License.md). © Wizards of the Coast. [Source](https://www.dndbeyond.com/resources/1781-systems-reference-document-srd)
+
+<img src="docs/logo/darrington-press/compatible_with_DH_logos-10.png" align="right" width="64" height="64" alt="Adventure Engine Corvran Logo">
+
+- **Daggerheart SRD** — [Darrington Press Community Gaming License](docs/research/daggerheart-srd/LICENSE). © Critical Role, LLC. Daggerheart and related marks are trademarks of Critical Role, LLC. [Source](https://www.daggerheart.com/srd/)
