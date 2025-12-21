@@ -1,6 +1,11 @@
 ---
 name: character-world-init
-description: This skill should be used when starting a new adventure and the playerRef or worldRef is null. It provides guidance for helping the player select or create a character and world, including MCP tool usage and markdown file structure templates.
+description: |
+  This skill should be used when starting a new adventure, creating player characters,
+  building game worlds, or when playerRef/worldRef is null. Triggers include: "create a character",
+  "make a new character", "roll up a character", "build a character sheet", "create my PC",
+  "what characters do I have", "pick my character", "set up a new world", "design a world",
+  "choose a world", "show me available worlds", "initialize my campaign", "start a new adventure".
 ---
 
 # Character & World Initialization Skill
@@ -16,15 +21,14 @@ This skill is triggered when:
 
 ## Workflow Overview
 
-1. **Check Available Options**: Use list tools to see what exists
-2. **Present Options to Player**: Offer existing or new
-3. **Process Selection**: Create new or use existing
-4. **Update Adventure State**: Call set tools to configure refs
-5. **Initialize Files**: Populate markdown templates with character/world data
+1. **List existing options** using `list_characters()` and `list_worlds()`
+2. **Present choices** to the player - use existing or create new
+3. **Process selection** by calling the appropriate set tool
+4. **Populate files** with character/world data from player input
 
-## Step 1: Check Available Characters and Worlds
+## Step 1: List Available Characters and Worlds
 
-Use the MCP tools to discover what already exists:
+Use MCP tools to discover what exists:
 
 ```
 list_characters()
@@ -36,9 +40,9 @@ list_worlds()
 ```
 Returns: Array of `{ slug, name }` for worlds in `worlds/` directory.
 
-## Step 2: Present Options to Player
+## Step 2: Present Options to the Player
 
-Based on what exists, present the player with choices:
+Present choices based on what exists:
 
 **If characters exist:**
 > "Welcome, adventurer! I see you have characters from previous adventures:
@@ -55,11 +59,11 @@ Based on what exists, present the player with choices:
 > - [World Name] - [brief description if available]
 > - Create a new world"
 
-## Step 3: Process Selection
+## Step 3: Process the Selection
 
-### Creating a New Character
+### To Create a New Character
 
-Call the `set_character` tool with `is_new: true`:
+Call `set_character` with `is_new: true`:
 
 ```
 set_character({ name: "Kael Thouls", is_new: true })
@@ -70,18 +74,18 @@ This creates:
 - Files: `sheet.md`, `state.md` (with templates)
 - Updates `playerRef` in adventure state to `"players/kael-thouls"`
 
-### Using an Existing Character
+### To Use an Existing Character
 
-Call the `set_character` tool with `is_new: false`:
+Call `set_character` with `is_new: false`:
 
 ```
 set_character({ name: "kael-thouls", is_new: false })
 ```
 (Can use slug or display name)
 
-### Creating a New World
+### To Create a New World
 
-Call the `set_world` tool with `is_new: true`:
+Call `set_world` with `is_new: true`:
 
 ```
 set_world({ name: "Eldoria", is_new: true })
@@ -92,173 +96,29 @@ This creates:
 - Files: `world_state.md`, `locations.md`, `characters.md`, `quests.md` (with templates)
 - Updates `worldRef` in adventure state to `"worlds/eldoria"`
 
-### Using an Existing World
+### To Use an Existing World
 
-Call the `set_world` tool with `is_new: false`:
+Call `set_world` with `is_new: false`:
 
 ```
 set_world({ name: "eldoria", is_new: false })
 ```
 
-## Step 4: Initialize Character Sheet
+## Step 4: Populate Character and World Files
 
-After creating a new character, populate the `sheet.md` file with character details.
+After creating new entries, populate the markdown files with player-provided details.
 
-### Character Sheet Structure (`sheet.md`)
+**Character files** (`sheet.md`, `state.md`):
+- Gather name, race, class, and background from the player
+- Set initial attributes, equipment, and abilities
+- Track current location and objectives in state.md
 
-```markdown
-# [Character Name]
+**World files** (`world_state.md`, `locations.md`, `characters.md`, `quests.md`):
+- Establish genre, era, and tone
+- Create the starting location with vivid description
+- Add initial NPCs as the player encounters them
 
-## Basic Info
-- **Race**: [Race]
-- **Class**: [Class/Archetype]
-- **Level**: 1
-- **Background**: [Brief background]
-
-## Attributes
-| Attribute | Value | Modifier |
-|-----------|-------|----------|
-| Strength | 10 | +0 |
-| Dexterity | 10 | +0 |
-| Constitution | 10 | +0 |
-| Intelligence | 10 | +0 |
-| Wisdom | 10 | +0 |
-| Charisma | 10 | +0 |
-
-## Combat
-- **HP**: [Max HP] / [Max HP]
-- **AC**: [Armor Class]
-- **Initiative**: +[Mod]
-
-## Skills
-- [Skill 1]: +[Mod]
-- [Skill 2]: +[Mod]
-
-## Equipment
-- [Starting weapon]
-- [Starting armor]
-- [Other items]
-
-## Abilities
-- **[Ability Name]**: [Description]
-
-## Notes
-[Player notes, backstory details, goals]
-```
-
-### Character State Structure (`state.md`)
-
-```markdown
-# Character State
-
-## Current Status
-- **Location**: [Where the character currently is]
-- **Condition**: Normal
-- **Active Effects**: None
-
-## Resources
-- **Gold**: 0
-- **Consumables**: None
-
-## Current Objectives
-- [What the character is trying to accomplish]
-
-## Recent Events
-- [Session/narrative state tracking]
-```
-
-## Step 5: Initialize World Files
-
-After creating a new world, set up the world files with initial content.
-
-### World State Structure (`world_state.md`)
-
-```markdown
-# [World Name]
-
-## Overview
-- **Genre**: [high-fantasy, sci-fi, etc.]
-- **Era**: [Time period or age]
-- **Tone**: [Gritty, heroic, comedic, etc.]
-
-## Current State
-[What's happening in the world right now - conflicts, events, atmosphere]
-
-## Factions
-- **[Faction Name]**: [Brief description and current status]
-
-## Key NPCs
-[Major characters the player has met or heard of]
-
-## Established Facts
-- [Fact 1]
-- [Fact 2]
-```
-
-### Locations Structure (`locations.md`)
-
-```markdown
-# Locations
-
-## [Starting Location Name]
-**Type**: [Village/City/Dungeon/Wilderness]
-**Region**: [Geographic area]
-
-### Description
-[Vivid description of the location]
-
-### Notable Features
-- [Feature 1]
-- [Feature 2]
-
-### Connections
-- [Direction]: [Connected Location]
-```
-
-### NPCs Structure (`characters.md`)
-
-```markdown
-# NPCs & Characters
-
-## [NPC Name]
-**Role**: [Innkeeper/Guard/Villain/etc.]
-**Location**: [Where they're typically found]
-**Disposition**: [Friendly/Neutral/Hostile]
-
-### Description
-[Physical description and personality]
-
-### Notes
-[What the player knows about them]
-
----
-```
-
-### Quests Structure (`quests.md`)
-
-```markdown
-# Quests
-
-## Active Quests
-
-### [Quest Name]
-**Given By**: [NPC or circumstance]
-**Objective**: [What needs to be done]
-**Status**: In Progress
-
-#### Progress
-- [ ] [Step 1]
-- [ ] [Step 2]
-
-#### Rewards
-- [Expected rewards]
-
----
-
-## Completed Quests
-
-[Moved here when finished]
-```
+For detailed file templates, see [references/file-structure.md](references/file-structure.md).
 
 ## Example: Complete New Adventure Flow
 
