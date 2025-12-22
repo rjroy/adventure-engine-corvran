@@ -12,6 +12,7 @@ export const ErrorCodeSchema = z.enum([
   "INVALID_TOKEN",
   "ADVENTURE_NOT_FOUND",
   "RATE_LIMIT",
+  "AUTH_ERROR",
   "GM_ERROR",
   "STATE_CORRUPTED",
   "PROCESSING_TIMEOUT",
