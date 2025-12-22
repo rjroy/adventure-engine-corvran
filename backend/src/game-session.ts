@@ -325,8 +325,8 @@ export class GameSession {
    */
   private async processQueue(): Promise<void> {
     if (this.isProcessing) {
-      logger.warn("processQueue called while already processing");
-      return;
+      // NOTE: This should never happen due to checks in handleInput
+      throw new Error("processQueue called while already processing");
     }
     this.isProcessing = true;
 
