@@ -1,6 +1,6 @@
 ---
 name: d20-magic
-description: This skill should be used when the user asks to "cast a spell", "spell slots", "spell save DC", "concentration", "spell attack", "spellcasting ability", "cantrip", "ritual casting", or needs guidance on d20 system magic mechanics. Provides spellcasting rules, formulas, and references for running magical gameplay.
+description: This skill should be used when the GM needs to handle spellcasting situations, including resolving spell effects, managing spell slots, calculating spell save DCs, handling concentration, resolving spell attacks, determining spellcasting abilities, handling cantrips, or processing ritual casting. Provides spellcasting rules, formulas, and references for running magical gameplay.
 ---
 
 # Spellcasting Skill
