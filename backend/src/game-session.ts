@@ -315,14 +315,19 @@ export class GameSession {
     }
 
     // Start processing queue
-    await this.processQueue();
+    await this.processQueue(isSystemPrompt, requestLogger);
   }
 
   /**
    * Process queued inputs sequentially
    * Continues until queue is empty
    */
-  private async processQueue(): Promise<void> {
+  private async processQueue(isSystemPrompt: boolean, requestLogger?: Logger): Promise<void> {
+    const requestLog = requestLogger ?? logger;
+    if (this.isProcessing) {
+      requestLog.warn("processQueue called while already processing");
+      return;
+    }
     this.isProcessing = true;
 
     try {
@@ -333,7 +338,7 @@ export class GameSession {
           break;
         }
 
-        const log = queuedInput.logger ?? logger;
+        const log = queuedInput.logger ?? requestLog;
 
         try {
           // Process this input with timeout protection
@@ -372,8 +377,8 @@ export class GameSession {
 
       // Check for pending compaction after processing completes
       // This ensures forceSave happens between player inputs, not during
-      if (this.stateManager.isCompactionPending()) {
-        logger.info("Handling pending compaction after input processing");
+      if (!isSystemPrompt && this.stateManager.isCompactionPending()) {
+        requestLog.info("Handling pending compaction after input processing");
         await this.forceSave();
         await this.stateManager.runPendingCompaction();
       }
