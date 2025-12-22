@@ -115,6 +115,7 @@ class AgentSDKError extends Error {
  */
 interface QueuedInput {
   text: string;
+  isSystemPrompt: boolean;
   logger?: Logger;
 }
 
@@ -306,7 +307,7 @@ export class GameSession {
     }
 
     // Add input to queue with its logger
-    this.inputQueue.push({ text: inputText, logger: requestLogger });
+    this.inputQueue.push({ text: inputText, isSystemPrompt: isSystemPrompt, logger: requestLogger });
 
     // If already processing, the current handler will pick up the next item
     if (this.isProcessing) {
@@ -323,7 +324,13 @@ export class GameSession {
    * Continues until queue is empty
    */
   private async processQueue(): Promise<void> {
+    if (this.isProcessing) {
+      // NOTE: This should never happen due to checks in handleInput
+      throw new Error("processQueue called while already processing");
+    }
     this.isProcessing = true;
+
+    let hasUserPrompt = false;
 
     try {
       while (this.inputQueue.length > 0) {
@@ -334,6 +341,11 @@ export class GameSession {
         }
 
         const log = queuedInput.logger ?? logger;
+
+        if (!queuedInput.isSystemPrompt) {
+          // Track if we've seen a user prompt in this processing session
+          hasUserPrompt = true;
+        }
 
         try {
           // Process this input with timeout protection
@@ -372,7 +384,7 @@ export class GameSession {
 
       // Check for pending compaction after processing completes
       // This ensures forceSave happens between player inputs, not during
-      if (this.stateManager.isCompactionPending()) {
+      if (hasUserPrompt && this.stateManager.isCompactionPending()) {
         logger.info("Handling pending compaction after input processing");
         await this.forceSave();
         await this.stateManager.runPendingCompaction();

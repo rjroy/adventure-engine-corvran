@@ -23,9 +23,9 @@ describe("Error Handler", () => {
       const result = mapSDKError("rate_limit");
 
       expect(result.code).toBe("RATE_LIMIT");
-      expect(result.retryable).toBe(true);
+      expect(result.retryable).toBe(false);
       expect(result.userMessage).toBe(
-        "The game master needs a moment. Please try again."
+        "The game master needs a brief rest. Please give them time then try again later."
       );
       expect(result.technicalDetails).toContain("rate limit");
     });
@@ -34,7 +34,7 @@ describe("Error Handler", () => {
       const result = mapSDKError("server_error");
 
       expect(result.code).toBe("GM_ERROR");
-      expect(result.retryable).toBe(true);
+      expect(result.retryable).toBe(false);
       expect(result.userMessage).toBe(
         "The game master is thinking deeply. Please wait."
       );
@@ -44,7 +44,7 @@ describe("Error Handler", () => {
     test("maps authentication_failed to generic error", () => {
       const result = mapSDKError("authentication_failed");
 
-      expect(result.code).toBe("GM_ERROR");
+      expect(result.code).toBe("AUTH_ERROR");
       expect(result.retryable).toBe(false);
       expect(result.userMessage).toBe("Something went wrong. Please try again.");
       expect(result.technicalDetails).toContain("authentication failed");
@@ -53,7 +53,7 @@ describe("Error Handler", () => {
     test("maps billing_error to generic error", () => {
       const result = mapSDKError("billing_error");
 
-      expect(result.code).toBe("GM_ERROR");
+      expect(result.code).toBe("AUTH_ERROR");
       expect(result.retryable).toBe(false);
       expect(result.userMessage).toBe("Something went wrong. Please try again.");
       expect(result.technicalDetails).toContain("billing error");
@@ -251,8 +251,8 @@ describe("Error Handler", () => {
       const errorDetails: ErrorDetails = {
         code: "RATE_LIMIT",
         message: "Rate limit exceeded",
-        retryable: true,
-        userMessage: "The game master needs a moment. Please try again.",
+        retryable: false,
+        userMessage: "The game master needs a brief rest. Please give them time then try again later.",
         technicalDetails: "API rate limit",
       };
 
@@ -260,9 +260,9 @@ describe("Error Handler", () => {
 
       expect(payload.code).toBe("RATE_LIMIT");
       expect(payload.message).toBe(
-        "The game master needs a moment. Please try again."
+        "The game master needs a brief rest. Please give them time then try again later."
       );
-      expect(payload.retryable).toBe(true);
+      expect(payload.retryable).toBe(false);
     });
 
     test("uses userMessage not technicalDetails", () => {
@@ -298,8 +298,8 @@ describe("Error Handler", () => {
   describe("isRetryable()", () => {
     test("identifies retryable errors", () => {
       const retryableError: ErrorDetails = {
-        code: "RATE_LIMIT",
-        message: "Rate limit",
+        code: "GM_ERROR",
+        message: "Temporary glitch",
         retryable: true,
         userMessage: "Try again",
       };
@@ -319,11 +319,11 @@ describe("Error Handler", () => {
     });
   });
 
-  describe("Error message consistency (REQ-F-25)", () => {
+  describe("Error message consistency", () => {
     test("rate limit errors show specific message", () => {
       const details = mapSDKError("rate_limit");
       expect(details.userMessage).toBe(
-        "The game master needs a moment. Please try again."
+        "The game master needs a brief rest. Please give them time then try again later."
       );
     });
 

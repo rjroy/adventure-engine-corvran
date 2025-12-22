@@ -55,7 +55,7 @@ describe("Error Handling Integration", { timeout: 15000 }, () => {
 
       act(() => {
         wsController.simulateAuthentication();
-        wsController.simulateError("RATE_LIMIT", "Too many requests. Please try again later.", true);
+        wsController.simulateError("RATE_LIMIT", "Too many requests. Please try again later.", false);
       });
 
       expect(screen.getByTestId("error-panel")).toHaveTextContent("Too many requests");

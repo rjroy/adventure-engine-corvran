@@ -3,8 +3,7 @@
 .env.*
 
 # Test artifacts (created by integration tests)
-test-adventures*
-backend/test-adventures*
+test-*/
 
 # OS artifacts
 .DS_Store
