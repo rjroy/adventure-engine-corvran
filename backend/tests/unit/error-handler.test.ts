@@ -25,7 +25,7 @@ describe("Error Handler", () => {
       expect(result.code).toBe("RATE_LIMIT");
       expect(result.retryable).toBe(false);
       expect(result.userMessage).toBe(
-        "The game master is busy. Please try again later."
+        "The game master needs a brief rest. Please give them time then try again later."
       );
       expect(result.technicalDetails).toContain("rate limit");
     });
@@ -252,7 +252,7 @@ describe("Error Handler", () => {
         code: "RATE_LIMIT",
         message: "Rate limit exceeded",
         retryable: false,
-        userMessage: "The game master is busy. Please try again later.",
+        userMessage: "The game master needs a brief rest. Please give them time then try again later.",
         technicalDetails: "API rate limit",
       };
 
@@ -260,7 +260,7 @@ describe("Error Handler", () => {
 
       expect(payload.code).toBe("RATE_LIMIT");
       expect(payload.message).toBe(
-        "The game master is busy. Please try again later."
+        "The game master needs a brief rest. Please give them time then try again later."
       );
       expect(payload.retryable).toBe(false);
     });
@@ -323,7 +323,7 @@ describe("Error Handler", () => {
     test("rate limit errors show specific message", () => {
       const details = mapSDKError("rate_limit");
       expect(details.userMessage).toBe(
-        "The game master is busy. Please try again later."
+        "The game master needs a brief rest. Please give them time then try again later."
       );
     });
 

@@ -115,6 +115,7 @@ class AgentSDKError extends Error {
  */
 interface QueuedInput {
   text: string;
+  isSystemPrompt: boolean;
   logger?: Logger;
 }
 
@@ -306,7 +307,7 @@ export class GameSession {
     }
 
     // Add input to queue with its logger
-    this.inputQueue.push({ text: inputText, logger: requestLogger });
+    this.inputQueue.push({ text: inputText, isSystemPrompt: isSystemPrompt, logger: requestLogger });
 
     // If already processing, the current handler will pick up the next item
     if (this.isProcessing) {
@@ -315,20 +316,21 @@ export class GameSession {
     }
 
     // Start processing queue
-    await this.processQueue(isSystemPrompt, requestLogger);
+    await this.processQueue();
   }
 
   /**
    * Process queued inputs sequentially
    * Continues until queue is empty
    */
-  private async processQueue(isSystemPrompt: boolean, requestLogger?: Logger): Promise<void> {
-    const requestLog = requestLogger ?? logger;
+  private async processQueue(): Promise<void> {
     if (this.isProcessing) {
-      requestLog.warn("processQueue called while already processing");
+      logger.warn("processQueue called while already processing");
       return;
     }
     this.isProcessing = true;
+
+    let hasUserPrompt = false;
 
     try {
       while (this.inputQueue.length > 0) {
@@ -338,7 +340,12 @@ export class GameSession {
           break;
         }
 
-        const log = queuedInput.logger ?? requestLog;
+        const log = queuedInput.logger ?? logger;
+
+        if (!queuedInput.isSystemPrompt) {
+          // Track if we've seen a user prompt in this processing session
+          hasUserPrompt = true;
+        }
 
         try {
           // Process this input with timeout protection
@@ -377,8 +384,8 @@ export class GameSession {
 
       // Check for pending compaction after processing completes
       // This ensures forceSave happens between player inputs, not during
-      if (!isSystemPrompt && this.stateManager.isCompactionPending()) {
-        requestLog.info("Handling pending compaction after input processing");
+      if (hasUserPrompt && this.stateManager.isCompactionPending()) {
+        logger.info("Handling pending compaction after input processing");
         await this.forceSave();
         await this.stateManager.runPendingCompaction();
       }

@@ -46,7 +46,7 @@ export function mapSDKError(
       code: "RATE_LIMIT",
       message: "Rate limit exceeded",
       retryable: false,
-      userMessage: "The game master is busy. Please try again later.",
+      userMessage: "The game master needs a brief rest. Please give them time then try again later.",
       technicalDetails: "Claude API rate limit exceeded",
     },
     server_error: {
