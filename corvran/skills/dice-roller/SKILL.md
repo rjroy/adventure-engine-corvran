@@ -1,6 +1,6 @@
 ---
 name: dice-roller
-description: This skill should be used when the user asks to "roll dice", "make a dice roll", "roll for initiative", "roll a skill check", "roll damage", or needs to resolve RPG mechanics with random dice outcomes. Provides deterministic dice rolling for tabletop RPG adventures.
+description: This skill should be used when the GM needs to roll dice or when the user asks to "roll dice", "make a dice roll", "roll for initiative", "roll a skill check", "roll damage", or needs to resolve RPG mechanics with random dice outcomes. Provides deterministic dice rolling for tabletop RPG adventures.
 ---
 
 # Dice Roller Skill
