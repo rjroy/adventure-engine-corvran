@@ -1,7 +1,7 @@
-# LLM Integration Summary — DaggerHeart
+# LLM Integration Summary — Daggerheart
 
 ## Purpose
-This document summarizes design insights from the discussion on integrating a Large Language Model (LLM) as a GM for **DaggerHeart**, with emphasis on why and how keyword-based systems can outperform rules-heavy systems *when properly constrained*.
+This document summarizes design insights from the discussion on integrating a Large Language Model (LLM) as a GM for **Daggerheart**, with emphasis on why and how keyword-based systems can outperform rules-heavy systems *when properly constrained*.
 
 ---
 
@@ -9,7 +9,7 @@ This document summarizes design insights from the discussion on integrating a La
 The effectiveness of an RPG system with an LLM GM is not determined by whether it is rules-heavy or rules-light, but by **where interpretive authority lives**.
 
 - **d20 systems** externalize authority into explicit procedures and tables.
-- **DaggerHeart / FATE-style systems** internalize authority into negotiated interpretation.
+- **Daggerheart / FATE-style systems** internalize authority into negotiated interpretation.
 
 LLMs excel at interpretation and language, but are weak at maintaining long-term consistency unless explicitly guided. Therefore, rules-light systems can feel *better* with an LLM **only if ambiguity is front-loaded and then constrained**.
 
@@ -107,8 +107,8 @@ This creates a conservative interpretive posture that stabilizes play.
 
 ---
 
-## Why DaggerHeart Is a Strong Fit
-DaggerHeart sits between d20 and FATE:
+## Why Daggerheart Is a Strong Fit
+Daggerheart sits between d20 and FATE:
 
 - Keywords with narrative weight
 - Structured moves and fictional triggers
@@ -119,7 +119,7 @@ With constrained Experiences, it avoids FATE’s free-floating drift while shedd
 ---
 
 ## High-Level Reframe
-This is not "DaggerHeart with an LLM GM".
+This is not "Daggerheart with an LLM GM".
 
 It is:
 > **A rules-light system where ambiguity is resolved early and then frozen.**
