@@ -250,12 +250,12 @@ Domain cards represent magical abilities. There are 9 domains:
 |--------|-------|
 | Arcana | Pure magical manipulation |
 | Blade | Weapon enhancement, martial magic |
-| Bone | Death, decay, undead |
+| Bone | Tactics, body mastery, combat awareness |
 | Codex | Knowledge, divination, words |
-| Grace | Healing, protection, light |
+| Grace | Charisma, charm, language mastery |
 | Midnight | Shadow, stealth, fear |
 | Sage | Nature, growth, beasts |
-| Splendor | Illusion, charm, beauty |
+| Splendor | Life, healing, restoration |
 | Valor | Courage, strength, battle |
 
 ### Using Domain Cards

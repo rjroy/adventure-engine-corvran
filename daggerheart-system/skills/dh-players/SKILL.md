@@ -59,7 +59,7 @@ Daggerheart features 9 classes:
 
 | Class | Primary Traits | Role | Domains |
 |-------|----------------|------|---------|
-| Bard | Presence, Knowledge | Support, inspiration | Grace, Codex |
+| Bard | Presence, Knowledge | Support, inspiration | Codex, Grace |
 | Druid | Instinct, Agility | Nature magic, shapeshifting | Sage, Arcana |
 | Guardian | Strength, Agility | Protection, defense | Valor, Blade |
 | Ranger | Instinct, Finesse | Tracking, ranged combat | Bone, Sage |
