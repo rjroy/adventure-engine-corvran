@@ -8,6 +8,8 @@ version: 1.0.0
 
 Guide players through creating and advancing Daggerheart characters following SRD rules.
 
+**Authoritative Source**: For exact rule wording, use the `dh-rules` skill to reference `srd/contents/Character Creation.md`.
+
 ## File Structure
 
 Character files follow the corvran directory structure with Daggerheart-specific content:
@@ -25,14 +27,16 @@ The `sheet.md` contains permanent character data. The `state.md` tracks mutable 
 
 Follow these steps to create a new character:
 
-1. **Choose a Class** - Determines primary traits, HP, Stress, Evasion, starting domain access
-2. **Choose a Subclass** - Gained at level 2, provides specialized features
-3. **Select an Ancestry** - Grants two ancestry features and narrative elements
-4. **Select a Community** - Grants a community feature reflecting upbringing
-5. **Determine Trait Modifiers** - Assign modifiers to the six traits based on class
-6. **Define Experiences** - Create bounded Experiences with explicit scope
-7. **Select Domain Cards** - Choose cards from accessible domains
-8. **Record Equipment** - Weapons, armor, and gear
+1. **Choose a Class and Subclass** - Class determines HP, Stress, Evasion, domain access; subclass grants Foundation card
+2. **Select an Ancestry** - Grants two ancestry features and narrative elements
+3. **Select a Community** - Grants a community feature reflecting upbringing
+4. **Assign Trait Modifiers** - Distribute +2, +1, +1, +0, +0, -1 among the six traits
+5. **Record Additional Info** - Level, Evasion, HP, Stress slots, starting Hope
+6. **Choose Equipment** - Weapons, armor, and starting gear
+7. **Create Background** - Answer background questions from character guide
+8. **Define Experiences** - Create two Experiences at +2 each with explicit scope
+9. **Select Domain Cards** - Choose two cards from your class's domains
+10. **Create Connections** - Establish relationships with other PCs
 
 ## The Six Traits
 
@@ -49,9 +53,7 @@ Daggerheart characters have six traits that measure their capabilities:
 
 ### Trait Modifiers
 
-Trait modifiers typically range from -1 to +3. Each class provides a starting trait spread.
-
-**Calculating Modifiers**: Use class guidelines to assign modifiers. Higher modifiers in traits that match your class's primary abilities.
+At character creation, assign the modifiers **+2, +1, +1, +0, +0, -1** to your character's traits in any order you wish. Place higher modifiers in traits that match your class's primary abilities for optimal effectiveness.
 
 ## Classes
 
@@ -79,10 +81,10 @@ Each class provides:
 
 ## Subclasses
 
-Characters choose a subclass at level 2. Each class has multiple subclass options in the SRD. Subclasses provide:
-- Specialized features
-- Thematic abilities
-- Additional options within the class's role
+Characters choose a subclass at character creation and take its **Foundation** card. Each class has two subclass options in the SRD. Subclasses provide:
+- A Foundation card with starting subclass abilities
+- Additional subclass features at levels 2, 6, and 10
+- Thematic specialization within the class's role
 
 ## Ancestries
 
@@ -94,24 +96,25 @@ Ancestries represent your character's heritage. Each ancestry provides:
 ### SRD Ancestries
 
 - Clank (Constructed beings)
-- Daemon (Fiendish heritage)
 - Drakona (Draconic lineage)
 - Dwarf (Mountain folk)
 - Elf (Fey-touched)
 - Faerie (Small magical beings)
 - Faun (Nature-connected)
 - Firbolg (Giant-kin)
-- Fungril (Fungal beings)
+- Fungirl (Fungal beings)
 - Galapa (Turtle folk)
 - Giant (Towering humanoids)
 - Goblin (Small and cunning)
 - Halfling (Small and lucky)
 - Human (Adaptable)
-- Inferis (Hell-touched)
+- Infernis (Hell-touched)
 - Katari (Cat folk)
 - Orc (Strong and proud)
 - Ribbet (Frog folk)
-- Simiah (Ape folk)
+- Simian (Ape folk)
+
+**Mixed Ancestry**: Take the top (first-listed) ancestry feature from one ancestry and the bottom (second-listed) ancestry feature from another.
 
 ## Communities
 
@@ -127,14 +130,14 @@ Communities represent where your character was raised. Each community provides:
 - Orderborne (Military/Law)
 - Ridgeborne (Mountain dwellers)
 - Seaborne (Coastal/Sailors)
-- Slyborne (Criminals/Rogues)
+- Skyborne (Aerial/High places)
 - Underborne (Underground)
 - Wanderborne (Travelers/Nomads)
 - Wildborne (Wilderness)
 
 ## Experiences
 
-Experiences represent your character's background and training. Each Experience provides a modifier (+1, +2, or +3) when its scope applies to an action.
+Experiences represent your character's background and training. At character creation, your PC gets **two Experiences, each with a +2 modifier**. When making a move, you can spend a Hope to add a relevant Experience's modifier to an action or reaction roll.
 
 ### Experience Structure
 
@@ -145,10 +148,12 @@ references/experience-template.md
 ```
 
 Each Experience defines:
-- **Modifier**: The bonus applied (+1, +2, or +3)
+- **Modifier**: The bonus applied (starts at +2 at character creation)
 - **Narrative Origin**: How the character acquired this experience
 - **Applies When**: Specific situations where it applies (positive scope)
 - **Does NOT Apply**: Explicit exclusions
+
+**Important constraints**: An Experience can't be too broadly applicable (e.g., "Lucky" or "Highly Skilled" could apply to any roll). It also can't grant specific mechanical benefits like magic spells or special abilities.
 
 ### Critical Guidance for Experiences
 
@@ -162,7 +167,9 @@ Each Experience defines:
 
 ### Evasion
 
-**Evasion = Class Base + Agility modifier**
+Your character's starting **Evasion is determined by their class**. Copy this number into the Evasion field.
+
+Evasion can be modified by ancestry features, subclass features, armor, weapons, and magic items. **Evasion is NOT modified by traits** (unlike D&D AC).
 
 Attackers must meet or exceed your Evasion with their attack roll to hit you.
 
@@ -256,8 +263,8 @@ Characters advance from level 1 to level 10.
 
 | Level | Features |
 |-------|----------|
-| 1 | Starting class features, ancestry features, community feature |
-| 2 | Subclass selection, subclass feature |
+| 1 | Starting class features, subclass Foundation card, ancestry features, community feature |
+| 2 | Subclass feature |
 | 3 | Class feature |
 | 4 | Trait improvement (+1 to any trait, max +3) |
 | 5 | Class feature |

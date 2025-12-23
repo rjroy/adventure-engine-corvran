@@ -12,13 +12,13 @@ This example demonstrates a complete Daggerheart stat block for a Tier 1 Standar
 
 **Motives & Tactics:** Attacks travelers to steal valuables and spread the blight. Opens combat with ranged attacks, closes to melee when wounded. Flees when reduced to 2 HP or fewer unless cornered.
 
-> **Difficulty:** 12 | **Thresholds:** 6/12 | **HP:** 5 | **Stress:** 3
+> **Difficulty:** 11 | **Thresholds:** 7/12 | **HP:** 5 | **Stress:** 3
 
-> **ATK:** +4 | **Corrupted Blade:** Melee | 1d8+2 physical
+> **ATK:** +1 | **Corrupted Blade:** Very Close | 1d8+2 physical
 
-> **ATK:** +3 | **Throwing Dagger:** Far | 1d6 physical
+> **ATK:** +1 | **Throwing Dagger:** Far | 1d6+2 physical
 
-> **Experience:** Ambush Tactics +2
+> **Experience:** Ambush Tactics
 
 ## FEATURES
 
@@ -59,30 +59,30 @@ Provides the GM with:
 
 | Statistic | Value | Explanation |
 |-----------|-------|-------------|
-| Difficulty | 12 | Mid-range for Tier 1 (10-14); players with +3-4 modifier hit ~50% |
-| Major Threshold | 6 | Low-moderate damage marks 2 HP |
-| Severe Threshold | 12 | High damage from a strong hit marks 3 HP |
+| Difficulty | 11 | Standard for Tier 1; players with +2-3 modifier hit ~50% |
+| Major Threshold | 7 | Standard for Tier 1; marks 2 HP |
+| Severe Threshold | 12 | Standard for Tier 1; marks 3 HP |
 | HP | 5 | Standard for Tier 1; survives 2-3 hits |
 | Stress | 3 | Can accumulate some Stress before problems |
 
 ### Attack Calculations
 
-**Corrupted Blade (+4):**
+**Corrupted Blade (+1):**
 - Primary melee attack
-- +4 modifier is solid for Tier 1
-- 1d8+2 damage averages 6.5, hitting Major threshold
+- +1 modifier is standard for Tier 1
+- 1d8+2 damage averages 6.5, typically below Major
 
-**Throwing Dagger (+3):**
+**Throwing Dagger (+1):**
 - Secondary ranged option
-- Slightly lower modifier (less practiced)
-- 1d6 damage averages 3.5, typically below Major
+- Same modifier as melee
+- 1d6+2 damage averages 5.5, typically below Major
 
 ### Experience Analysis
 
-**Ambush Tactics +2:**
+**Ambush Tactics:**
 - Applies when setting up ambushes or detecting them
 - Reinforces the bandit's thematic role
-- GM would apply when the bandit attempts to hide or when resisting being ambushed
+- **To use**: GM spends a Fear to add the Experience bonus to an attack roll or raise Difficulty
 
 ### Feature Analysis
 
@@ -130,21 +130,21 @@ The Blighted Bandit's design encourages:
 
 Stealthier version for ambush encounters:
 
-> **Difficulty:** 11 | **Thresholds:** 5/10 | **HP:** 4 | **Stress:** 2
+> **Difficulty:** 11 | **Thresholds:** 7/12 | **HP:** 4 | **Stress:** 2
 
-> **ATK:** +4 | **Shadow Blade:** Melee | 1d6+3 physical
+> **ATK:** +1 | **Shadow Blade:** Very Close | 1d6+3 physical
 
 **Changed Features:**
-- ***Vanish - Bonus Action:*** The Scout can Hide if not in direct light.
+- ***Vanish - Action:*** The Scout can Hide if not in direct light.
 - ***Ambush Strike - Passive:*** First attack against an unaware target deals +1d6 damage.
 
 ### Blighted Bandit Leader (Tier 2 Leader)
 
 Command version for larger encounters:
 
-> **Difficulty:** 15 | **Thresholds:** 9/16 | **HP:** 8 | **Stress:** 5
+> **Difficulty:** 14 | **Thresholds:** 10/20 | **HP:** 8 | **Stress:** 5
 
-> **ATK:** +5 | **Commanding Blade:** Melee | 1d10+3 physical
+> **ATK:** +2 | **Commanding Blade:** Very Close | 2d6+3 physical
 
 **Changed Features:**
 - ***Rally the Desperate - Action:*** All Blighted Bandits within Far range gain +2 to their next attack roll.
@@ -161,21 +161,24 @@ Good for:
 - Guard for a small cache
 - Wounded survivor of a larger band
 
-### Bandit Ambush (8 Battle Points for 4 PCs)
+### Bandit Ambush (4 PCs, 14 BP budget)
 
-- 2x Blighted Bandit (4 BP)
-- 1x Blighted Bandit Scout (2 BP)
-- 2x Blighted Minions (2 BP)
+- 2x Blighted Bandit (4 BP - Standard)
+- 1x Blighted Bandit Scout (2 BP - Skulk)
+- 4x Blighted Minions (1 BP - Minion group)
+- 1x Blighted Bandit Leader (3 BP - Leader)
+- **Total: 10 BP**
 
-The Scout opens from hiding, Bandits follow with ranged attacks, Minions engage anyone who advances.
+The Scout opens from hiding, Bandits follow with ranged attacks, Minions engage anyone who advances, Leader rallies the group.
 
-### Boss Encounter (10 Battle Points for 4 PCs)
+### Boss Encounter (4 PCs, 14 BP budget)
 
-- 1x Blighted Bandit Leader (5 BP)
-- 2x Blighted Bandit (4 BP)
-- 1x Blighted Minion (1 BP)
+- 1x Blighted Bandit Leader (3 BP - Leader)
+- 2x Blighted Bandit (4 BP - Standard)
+- 4x Blighted Minions (1 BP - Minion group)
+- **Total: 8 BP**
 
-The Leader stays protected, Rally buffs the group, Bandits deal damage, Minion absorbs an action.
+The Leader stays protected, Rally buffs the group, Bandits deal damage, Minions absorb actions.
 
 ---
 

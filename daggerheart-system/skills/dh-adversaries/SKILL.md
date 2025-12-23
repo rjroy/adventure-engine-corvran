@@ -8,6 +8,8 @@ version: 1.0.0
 
 Create adversaries and build balanced encounters using the Daggerheart SRD format. This skill provides stat block templates, encounter building formulas, and reference for all 10 adversary types.
 
+**Authoritative Source**: For exact rule wording, use the `dh-rules` skill to reference `srd/contents/Adversaries.md`.
+
 ## When to Use This Skill
 
 This skill applies when:
@@ -98,14 +100,14 @@ Adversaries that enhance allies through healing, buffs, or battlefield control. 
 
 ## Tier Reference
 
-Adversary Tier indicates overall power level:
+Adversary Tier indicates overall power level and corresponds to PC levels:
 
-| Tier | Description | Typical HP | Typical Difficulty |
-|------|-------------|------------|-------------------|
-| 1 | Common threats, early adventures | 3-8 | 10-14 |
-| 2 | Significant threats, mid-level | 6-12 | 14-18 |
-| 3 | Major threats, experienced parties | 10-18 | 18-22 |
-| 4 | Legendary threats, epic encounters | 15-30+ | 22-26 |
+| Tier | PC Levels | Difficulty | Attack Mod |
+|------|-----------|------------|------------|
+| 1 | Level 1 | 11 | +1 |
+| 2 | Levels 2-4 | 14 | +2 |
+| 3 | Levels 5-7 | 17 | +3 |
+| 4 | Levels 8-10 | 20 | +4 |
 
 ## Creating an Adversary: Step by Step
 
@@ -129,22 +131,22 @@ Select Tier based on party level and desired threat. Select Type based on combat
 
 ### Step 3: Set Combat Statistics
 
-Use these benchmarks based on Tier:
+Use these SRD benchmarks based on Tier:
 
-| Tier | Difficulty | Major Threshold | Severe Threshold | HP | Stress |
-|------|------------|-----------------|------------------|-----|--------|
-| 1 | 10-14 | 5-8 | 10-14 | 3-8 | 2-4 |
-| 2 | 14-18 | 8-12 | 14-20 | 6-12 | 4-6 |
-| 3 | 18-22 | 12-16 | 20-26 | 10-18 | 6-9 |
-| 4 | 22-26 | 16-22 | 26-34 | 15-30 | 9-12 |
+| Tier | Difficulty | Major | Severe | Attack Mod | Damage Dice |
+|------|------------|-------|--------|------------|-------------|
+| 1 | 11 | 7 | 12 | +1 | 1d6+2 to 1d12+4 |
+| 2 | 14 | 10 | 20 | +2 | 2d6+3 to 2d12+4 |
+| 3 | 17 | 20 | 32 | +3 | 3d8+3 to 3d12+5 |
+| 4 | 20 | 25 | 45 | +4 | 4d8+10 to 4d12+15 |
 
 ### Step 4: Design the Attack
 
 Every adversary needs at least one attack:
-- **Attack Modifier**: +3 to +8 based on Tier
+- **Attack Modifier**: +1 to +4 based on Tier (see table above)
 - **Attack Name**: Descriptive (Claw, Blade, Poison Spit)
-- **Range**: Melee, Close, Far, or Very Far
-- **Damage**: Dice expression (e.g., 1d8+3)
+- **Range**: Very Close, Close, Far, or Very Far
+- **Damage**: Dice expression based on Tier (see table above)
 - **Damage Type**: Physical or Magic
 
 ### Step 5: Add Features
@@ -164,8 +166,8 @@ Add Features that reinforce the concept:
 ### Step 6: Assign Experience (Optional)
 
 If the adversary has relevant expertise, add an Experience line:
-- Experience Name and modifier (+1 to +3)
-- Used when making relevant checks
+- Experience Name (e.g., Ambusher, Intimidation, Stealth)
+- **To use**: GM spends a Fear to add the Experience bonus to an attack roll OR increase the Difficulty of a roll made against the adversary
 
 ### Step 7: Validate with Battle Points
 
@@ -187,12 +189,27 @@ Use the Battle Points formula for balanced encounters:
 
 **Battle Points = (3 x Number of PCs) + 2**
 
-| Adversary Type | Battle Points Cost |
-|----------------|--------------------|
-| Minion | 1 |
-| Standard | 2-3 |
-| Leader | 4-5 |
-| Solo | Equal to party BP |
+### Battle Point Costs
+
+| Battle Points | Adversary Type |
+|---------------|----------------|
+| 1 | Group of Minions equal to party size |
+| 1 | Social or Support |
+| 2 | Horde, Ranged, Skulk, or Standard |
+| 3 | Leader |
+| 4 | Bruiser |
+| 5 | Solo |
+
+### Encounter Adjustments
+
+| Adjustment | Condition |
+|------------|-----------|
+| -1 | Easier or shorter fight |
+| -2 | Using 2+ Solo adversaries |
+| -2 | Adding +1d4 (or +2) to all adversary damage |
+| +1 | Adversary from a lower tier |
+| +1 | No Bruisers, Hordes, Leaders, or Solos |
+| +2 | Harder or longer fight |
 
 Load `references/encounter-building.md` for detailed encounter building guidance.
 

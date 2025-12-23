@@ -8,6 +8,8 @@ version: 1.0.0
 
 Provides guidance for handling domain cards and magical abilities in Daggerheart adventures. Domain cards represent a character's magical or specialized abilities, organized into 9 thematic domains.
 
+**Authoritative Source**: For exact rule wording, use the `dh-rules` skill to reference `srd/contents/Classes.md` and `srd/contents/Domain Card Reference.md`.
+
 ## The Nine Domains
 
 Each domain represents a thematic school of power. Characters gain access to domains through their class, typically having access to 2 domains.
@@ -26,28 +28,18 @@ Each domain represents a thematic school of power. Characters gain access to dom
 
 For detailed domain descriptions and class associations, see `references/domain-overview.md`.
 
-## Domain Card Format
+## Domain Card Anatomy
 
-Every domain card follows this structure:
+Each domain card includes six elements:
 
-```
-# [CARD NAME]
-
-> **Level [1-10] [Domain] Spell**
-> **Recall Cost:** [0-3]
-
-[Effect description, possibly including Spellcast Rolls, damage, conditions, etc.]
-```
-
-### Card Fields
-
-| Field | Description |
-|-------|-------------|
-| **Name** | The card's title (e.g., "Rune Ward", "Chain Lightning") |
-| **Level** | 1-10, determines when the card becomes available |
-| **Domain** | Which of the 9 domains the card belongs to |
-| **Recall Cost** | Stress spent to recall the card after use (0-3) |
-| **Effect** | What the card does when activated |
+| Element | Description |
+|---------|-------------|
+| **Level** | 1-10, determines when the card becomes available. You cannot acquire a card with a level higher than your PC's. |
+| **Domain** | Symbol indicating which domain the card belongs to. You can only choose cards from your class's two domains. |
+| **Recall Cost** | Stress spent to swap this card from your **vault** to your **loadout** (see Loadout & Vault below). |
+| **Title** | The card's name. |
+| **Type** | One of three types: **abilities** (typically non-magical), **spells** (magical), or **grimoires** (Codex domain only, grants collections of lesser spells). |
+| **Feature** | The card's effect, including any special rules for using it. |
 
 ### Example Card
 
@@ -75,15 +67,24 @@ Many domain cards require a Spellcast Roll. This is a standard Duality Dice acti
 bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "DdD+[trait]"
 ```
 
-**Spellcasting Trait**: Usually Presence or Knowledge, depending on class:
+**Spellcast Trait**: Determined by your **subclass**, not class. Each subclass specifies which trait is used for all Spellcast Rolls. Guardian and Warrior subclasses have no Spellcast Trait (martial classes).
 
-| Class | Primary Spellcasting Trait |
-|-------|---------------------------|
-| Bard | Presence |
-| Druid | Instinct |
-| Seraph | Presence |
-| Sorcerer | Presence |
-| Wizard | Knowledge |
+| Class | Subclass | Spellcast Trait |
+|-------|----------|-----------------|
+| Bard | Troubadour | Presence |
+| Bard | Wordsmith | Presence |
+| Druid | Warden of Renewal | Instinct |
+| Druid | Warden of the Elements | Instinct |
+| Ranger | Beastbound | Agility |
+| Ranger | Wayfinder | Agility |
+| Rogue | Nightwalker | Finesse |
+| Rogue | Syndicate | Finesse |
+| Seraph | Divine Wielder | Strength |
+| Seraph | Winged Sentinel | Strength |
+| Sorcerer | Elemental Origin | Instinct |
+| Sorcerer | Primal Origin | Instinct |
+| Wizard | School of Knowledge | Knowledge |
+| Wizard | School of War | Knowledge |
 
 ### Spellcast Roll Targets
 
@@ -107,46 +108,51 @@ Spellcast Rolls follow standard action roll outcomes:
 
 Some cards have different effects on success vs. failure (like Healing Hands).
 
-## Recall and Card Management
+## Loadout & Vault
+
+Your **loadout** is the set of domain cards whose effects your PC can use during play. You can have up to **5 domain cards** in your loadout at one time.
+
+Once you've acquired six or more domain cards, you must choose five to keep in your loadout; the rest are in your **vault**. Vault cards are inactive and do not influence play.
+
+> **Note**: Subclass, ancestry, and community cards don't count toward your loadout or vault - they're always active.
+
+### Managing Cards
+
+**At the start of a rest** (before downtime moves): Freely swap cards between loadout and vault at no cost, as long as your loadout doesn't exceed 5 cards.
+
+**At any other time**: To move a card from vault to loadout, mark Stress equal to the card's **Recall Cost**. If your loadout is full, you must also move a card to your vault (at no cost).
+
+**When gaining a new card at level-up**: You can immediately add it to your loadout for free. If full, move another card to vault.
+
+### Usage Limits
+
+Some domain cards restrict how often they can be used (e.g., "once per rest"). Track these limits separately using whatever method you prefer - turning the card sideways, flipping it facedown, or using tokens.
+
+> **Note**: If an effect gives you uses equal to a trait with modifier +0 or less, it grants 0 uses.
 
 ### Using a Domain Card
 
 When a character uses a domain card:
 
-1. **Check Recall Status**: Is the card available (not expended)?
-2. **Pay Any Activation Cost**: Some cards require marking Stress to use
-3. **Make Spellcast Roll** (if required): Roll DdD + trait vs. Difficulty
+1. **Verify Card is in Loadout**: Only loadout cards can be used
+2. **Pay Any Activation Cost**: Some cards require marking Stress to activate
+3. **Make Spellcast Roll** (if required): Roll DdD + Spellcast Trait vs. Difficulty
 4. **Resolve Effect**: Apply the card's outcome
-5. **Mark Expended** (if Recall Cost > 0): Card is unavailable until recalled
+5. **Track Usage Limit** (if applicable): Mark if the card has limited uses
 
-### Recalling Expended Cards
+## Card Selection
 
-During a rest, characters can recall expended domain cards:
+### At Character Creation
 
-- **Short Rest**: Recall one card by paying its Recall Cost in Stress
-- **Long Rest**: All expended cards return automatically (no Stress cost)
+PCs acquire **two 1st-level domain cards** at character creation. Each domain offers 3 options at Level 1. Choose from your class's two domains (you can take both from one domain or one from each).
 
-**Example**: After using Chain Lightning (Recall Cost 1), the card is expended. During a short rest, mark 1 Stress to recall it and make it available again.
+### At Level-Up
 
-### Cards with Recall Cost 0
+Each time you level up, gain **one additional domain card** at or below your new level. Levels 2-10 typically offer 2 options per domain per level.
 
-Cards with Recall Cost 0 are **always available** after use. They don't need to be recalled - they're ready to use again on the character's next action.
+### Loadout Limit
 
-## Card Selection During Creation
-
-At character creation and when leveling up, players select domain cards from their available domains.
-
-### Level 1 Selection
-
-Each domain offers **3 options** at Level 1. The character selects cards based on their class's domain access.
-
-### Higher Level Selection
-
-Levels 2-10 typically offer **2 options** per domain per level. Characters select from domains they have access to.
-
-### Card Limits
-
-Characters have a limited number of domain cards they can prepare. Check class features for the exact limit (typically 3-5 at Level 1, increasing with level).
+Your loadout holds a maximum of **5 domain cards**. Once you have 6+ cards total, excess cards go to your vault.
 
 ## Looking Up Domain Cards
 
@@ -177,15 +183,13 @@ For complete domain card listings with all options by level, reference the SRD:
 
 ### Spellcast Roll Formula
 ```
-DdD + Spellcasting Trait vs. Difficulty
+DdD + Spellcast Trait (from subclass) vs. Difficulty
 ```
 
-### Common Spellcast Difficulties
-| Difficulty | Target |
-|------------|--------|
-| Easy | 10 |
-| Moderate | 13-15 |
-| Hard | 18-20 |
+### Loadout Rules
+- Maximum **5 domain cards** in loadout
+- Swap freely at start of rest (no cost)
+- Swap mid-session by paying **Recall Cost** in Stress
 
 ### Domain-Class Access
 | Class | Domains |

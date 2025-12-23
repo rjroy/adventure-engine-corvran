@@ -2,6 +2,8 @@
 
 Build balanced Daggerheart encounters using the Battle Points system. This guide provides the core formula, adversary costs, and adjustments for various situations.
 
+**Authoritative Source**: `dh-rules/references/srd/contents/Adversaries.md`
+
 ---
 
 ## The Battle Points Formula
@@ -18,73 +20,35 @@ Calculate your encounter budget with this formula:
 | 5 PCs | 17 BP |
 | 6 PCs | 20 BP |
 
-This produces a **standard difficulty** encounter: challenging but not deadly for a fresh party.
+This produces a **standard difficulty** encounter.
 
 ---
 
-## Adversary Battle Point Costs
+## Adversary Battle Point Costs (SRD)
 
-### By Type
-
-| Adversary Type | Battle Points | Notes |
-|----------------|---------------|-------|
-| Minion | 1 | Expendable, low HP |
-| Standard | 2-3 | Baseline threat (2 for Tier 1, 3 for Tier 2+) |
-| Ranged | 2-3 | Same as Standard |
-| Skulk | 2-3 | Same as Standard |
-| Support | 2-3 | Same as Standard |
-| Bruiser | 3-4 | Higher damage and HP |
-| Horde | 3-5 | Group of weaker creatures |
-| Leader | 4-5 | Force multiplier |
-| Solo | Party BP | Designed for solo boss fights |
-| Social | 1-2 | Non-combat focused |
-
-### By Tier
-
-Adjust Battle Point cost by Tier:
-
-| Tier | Multiplier | Standard BP | Bruiser BP | Leader BP |
-|------|------------|-------------|------------|-----------|
-| 1 | x1.0 | 2 | 3 | 4 |
-| 2 | x1.5 | 3 | 4-5 | 5-6 |
-| 3 | x2.0 | 4 | 6 | 8 |
-| 4 | x2.5 | 5 | 7-8 | 10 |
+| Battle Points | Adversary Type |
+|---------------|----------------|
+| 1 | Group of Minions equal to party size |
+| 1 | Social or Support |
+| 2 | Horde, Ranged, Skulk, or Standard |
+| 3 | Leader |
+| 4 | Bruiser |
+| 5 | Solo |
 
 ---
 
-## Encounter Difficulty Adjustments
+## Encounter Adjustments (SRD)
 
-### Difficulty Levels
+Apply these modifiers to your base Battle Points:
 
-| Difficulty | BP Modifier | Description |
-|------------|-------------|-------------|
-| Trivial | -50% | Warmup, no real threat |
-| Easy | -25% | Minor challenge, low resource drain |
-| Standard | 0% | Balanced, appropriate challenge |
-| Hard | +25% | Significant challenge, resource drain |
-| Deadly | +50% | Major threat, potential deaths |
-
-**Example for 4 PCs (base 14 BP):**
-- Trivial: 7 BP
-- Easy: 10-11 BP
-- Standard: 14 BP
-- Hard: 17-18 BP
-- Deadly: 21 BP
-
-### Situational Modifiers
-
-Adjust Battle Points based on circumstances:
-
-| Situation | Adjustment | Reason |
-|-----------|------------|--------|
-| Party is fresh (full HP/Hope) | +25% | Can handle more |
-| Party is depleted (low HP/Hope) | -25% to -50% | Already weakened |
-| Party has tactical advantage | +25% | Ambush, high ground |
-| Adversaries have advantage | -25% | Surprise, terrain |
-| Constrained environment | -10% | Fewer escape options |
-| Open environment | +10% | More tactical options |
-| Party has appropriate tools | +15% | Right damage types, etc. |
-| Adversaries exploit weakness | -15% | Resistance mismatch |
+| Adjustment | Condition |
+|------------|-----------|
+| -1 | Easier or shorter fight |
+| -2 | Using 2+ Solo adversaries |
+| -2 | Adding +1d4 (or static +2) to all adversary damage |
+| +1 | Adversary from a lower tier |
+| +1 | No Bruisers, Hordes, Leaders, or Solos |
+| +2 | Harder or longer fight |
 
 ---
 
@@ -104,39 +68,39 @@ Daggerheart's spotlight flow means action economy is less predictable than in tu
 
 #### Single Boss (Solo Encounter)
 
-- 1x Solo adversary (equals party BP)
-- Optional: 2-4 Minions for action economy
+- 1x Solo adversary (5 BP)
+- Optional: 1 group of Minions (1 BP)
 
 **Best for:** Dramatic showdowns, climactic battles
 
 #### Elite Squad
 
-- 1x Leader (4-5 BP)
-- 2-3x Standard/Bruiser (6-9 BP)
+- 1x Leader (3 BP)
+- 2-3x Standard (4-6 BP)
 
 **Best for:** Organized threats, military encounters
 
 #### Swarm
 
-- 4-6x Minions (4-6 BP)
+- 1-2x Minion groups (1-2 BP)
 - 1-2x Standard (2-4 BP)
-- Optional: 1x Support (2-3 BP)
+- Optional: 1x Support (1 BP)
 
 **Best for:** Overwhelm scenarios, horror themes
 
 #### Ambush Team
 
-- 2x Skulk (4-6 BP)
-- 1x Ranged (2-3 BP)
-- 2x Minion (2 BP)
+- 2x Skulk (4 BP)
+- 1x Ranged (2 BP)
+- 1x Minion group (1 BP)
 
 **Best for:** Trap encounters, bandit-style fights
 
 #### Defensive Formation
 
-- 1x Support (2-3 BP)
-- 2x Bruiser (6-8 BP)
-- 1x Ranged (2-3 BP)
+- 1x Support (1 BP)
+- 2x Bruiser (8 BP)
+- 1x Ranged (2 BP)
 
 **Best for:** Guarded locations, fortified positions
 
@@ -192,44 +156,51 @@ What's the encounter about?
 
 **Budget:** 14 BP
 
-| Adversary | Type | Tier | BP |
-|-----------|------|------|-----|
-| Blighted Bandit | Standard | 1 | 2 |
-| Blighted Bandit | Standard | 1 | 2 |
-| Blighted Bandit Scout | Skulk | 1 | 2 |
-| Blighted Minion | Minion | 1 | 1 |
-| Blighted Minion | Minion | 1 | 1 |
-| Blighted Bandit Leader | Leader | 2 | 5 |
-| **Total** | | | **13** |
+| Adversary | Type | BP |
+|-----------|------|-----|
+| Blighted Bandit | Standard | 2 |
+| Blighted Bandit | Standard | 2 |
+| Blighted Bandit Scout | Skulk | 2 |
+| Blighted Minions (x4) | Minion | 1 |
+| Blighted Bandit Leader | Leader | 3 |
+| **Total** | | **10** |
+
+*+2 adjustment for harder fight = 12 BP target*
 
 **Tactics:** Scout triggers ambush, Minions engage front-line, Bandits throw daggers then close, Leader rallies and coordinates.
 
 ### Cave Horror (3 PCs, Hard)
 
-**Budget:** 14 BP (11 base + 25%)
+**Budget:** 13 BP (11 base + 2 for harder fight)
 
-| Adversary | Type | Tier | BP |
-|-----------|------|------|-----|
-| Cavern Lurker | Bruiser | 2 | 5 |
-| Cave Spider | Standard | 1 | 2 |
-| Cave Spider | Standard | 1 | 2 |
-| Spider Swarm | Horde | 1 | 3 |
-| **Total** | | | **12** |
+| Adversary | Type | BP |
+|-----------|------|-----|
+| Cavern Lurker | Bruiser | 4 |
+| Cave Spider | Standard | 2 |
+| Cave Spider | Standard | 2 |
+| Spider Swarm | Horde | 2 |
+| **Total** | | **10** |
+
+*+1 adjustment (lower tier adversaries) = 11 BP target*
 
 **Tactics:** Lurker blocks exit, Spiders flank, Swarm harasses casters.
 
 ### Temple Guardian (4 PCs, Deadly)
 
-**Budget:** 21 BP (14 base + 50%)
+**Budget:** 16 BP (14 base + 2 for harder fight)
 
-| Adversary | Type | Tier | BP |
-|-----------|------|------|-----|
-| Sanctified Golem | Solo | 3 | 14 |
-| Temple Acolyte | Support | 1 | 2 |
-| Temple Acolyte | Support | 1 | 2 |
-| **Total** | | | **18** |
+| Adversary | Type | BP |
+|-----------|------|-----|
+| Sanctified Golem | Solo | 5 |
+| Temple Acolyte | Support | 1 |
+| Temple Acolyte | Support | 1 |
+| Temple Acolyte | Support | 1 |
+| Hallowed Soldier (x4) | Minion | 1 |
+| **Total** | | **9** |
 
-**Tactics:** Golem dominates center, Acolytes heal and buff from flanks.
+*+2 adjustment for harder fight = 11 BP target. This is a hard encounter despite lower BP due to Solo's multiple actions.*
+
+**Tactics:** Golem dominates center, Acolytes heal and buff from flanks, Soldiers absorb attacks.
 
 ---
 
