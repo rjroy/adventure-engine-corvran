@@ -13,11 +13,13 @@ import {
   SidebarPanelZone,
   HeaderPanelZone,
   OverlayPanelContainer,
+  MobilePanelView,
 } from "./components/PanelZones";
+import { MobileTabBar } from "./components/MobileTabBar";
 import { useWebSocket } from "./hooks/useWebSocket";
 import type { ServerMessage, NarrativeEntry, HistorySummary, ErrorCode, ThemeMood } from "../../shared/protocol";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
-import { PanelProvider } from "./contexts/PanelContext";
+import { PanelProvider, usePanels } from "./contexts/PanelContext";
 import "./App.css";
 
 // Fallback UUID generator for insecure contexts (non-HTTPS, non-localhost)
@@ -66,6 +68,7 @@ export function GameView({
   onQuit,
 }: GameViewProps) {
   const { currentMood, applyTheme } = useTheme();
+  const { mobileTab } = usePanels();
 
   const [narrativeHistory, setNarrativeHistory] = useState<NarrativeEntry[]>(
     []
@@ -283,7 +286,7 @@ export function GameView({
     status !== "connected" || isGMResponding;
 
   return (
-    <div className="game-view">
+    <div className="game-view" data-mobile-tab={mobileTab}>
       <header className="game-header">
         <div>
           <h1 className="game-header__title">Adventure Engine of Corvran</h1>
@@ -347,6 +350,8 @@ export function GameView({
 
       <SidebarPanelZone />
       <OverlayPanelContainer />
+      <MobilePanelView />
+      <MobileTabBar />
 
       <RecapConfirmDialog
         isOpen={showRecapConfirm}

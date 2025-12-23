@@ -37,26 +37,12 @@
   background: transparent;
 }
 
-/* On smaller screens, move sidebar above game content */
-@media (max-width: 1400px) {
-  .panel-zone--sidebar {
-    position: static;
-    width: 100%;
-    max-width: none;
-    flex-direction: row;
-    flex-wrap: wrap;
-    overflow-y: visible;
-    overflow-x: auto;
-    top: auto;
-    right: auto;
-    bottom: auto;
-    margin-bottom: var(--spacing-md);
-    pointer-events: auto;
-  }
-
-  .panel-zone--sidebar > * {
-    flex: 1 1 250px;
-    max-width: 350px;
+/* On narrower screens, hide sidebar and overlay - use tab navigation instead */
+/* Issue #212: Non-header panels should be 'tabs' when sidebar doesn't fit */
+@media (max-width: 1200px) {
+  .panel-zone--sidebar,
+  .panel-zone--overlay {
+    display: none;
   }
 }
 
@@ -158,4 +144,48 @@
 
 .panel-zone {
   animation: panel-zone-fade-in 0.2s ease-out;
+}
+
+/* ========================
+   Mobile Panel View
+   ======================== */
+
+/**
+ * Mobile panel view - shows non-header panels in a scrollable list.
+ * Only visible on mobile viewports when panels tab is active.
+ * Issue #212: Non-header panels should be 'tabs' on mobile
+ */
+.panel-zone--mobile {
+  display: none;
+}
+
+@media (max-width: 1200px) {
+  .panel-zone--mobile {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    padding-bottom: calc(var(--spacing-md) + 60px); /* Space for tab bar */
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .panel-zone--mobile .info-panel {
+    width: 100%;
+    max-width: none;
+  }
+
+  /* Empty state styling */
+  .panel-zone--mobile-empty {
+    justify-content: center;
+    align-items: center;
+  }
+
+  .panel-zone__empty-message {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-base);
+    text-align: center;
+    margin: 0;
+  }
 }
