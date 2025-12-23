@@ -2,6 +2,22 @@
 
 This section is merged into your adventure's CLAUDE.md when you run `/daggerheart-system:init`. It provides guidance for running Daggerheart adventures using the official SRD mechanics.
 
+## Key Differences from d20 Systems
+
+Daggerheart is **not** a d20 system. If you have D&D/Pathfinder habits, unlearn them here:
+
+| Concept | d20 Systems | Daggerheart |
+|---------|-------------|-------------|
+| **Core Dice** | 1d20 vs target | 2d12 (Duality Dice) - higher die determines Hope/Fear |
+| **Turn Order** | Initiative rolls | Spotlight flow - GM acts on Fear rolls or failures |
+| **Armor** | Reduces damage taken | Armor Slots reduce HP marked (player choice when hit) |
+| **Evasion/AC** | Calculated from stats | Fixed by class (not modified by Agility) |
+| **Ability Scores** | 3-18 with modifiers | Six Traits with direct modifiers (+2 to -1) |
+| **GM Resources** | None tracked | Fear tokens (max 12) fuel GM moves |
+| **Success/Failure** | Binary (hit or miss) | Five outcomes based on total AND which die was higher |
+
+**Critical habit to break**: Don't think "roll to hit, roll damage." Think "roll creates narrative momentum for players OR GM."
+
 ## Available Skills
 
 Invoke these skills when you need detailed guidance or reference materials:
@@ -54,7 +70,7 @@ The player character sheet uses the template from `dh-players/references/sheet-t
 | Knowledge | [+2/+1/+0/-1] |
 
 ## Combat Stats
-- **Evasion**: [Class base + Agility]
+- **Evasion**: [Class base only - not modified by traits]
 - **Hit Points**: ○○○○○○ (6 slots)
 - **Stress**: ○○○○○○ (6 slots)
 - **Armor Score**: [Value]
@@ -179,12 +195,13 @@ Daggerheart combat uses spotlight flow, not initiative:
 When damage is dealt:
 
 1. **Compare to thresholds** - Check Major and Severe thresholds
-2. **Mark HP accordingly**:
-   - Below Major: Mark 1 HP
-   - Meets/exceeds Major: Mark 2 HP
-   - Meets/exceeds Severe: Mark 3 HP
-3. **Armor absorbs first** - If wearing armor with slots, mark armor slot instead of HP
-4. **Narrate the hit** - Describe the injury narratively
+2. **Determine HP to mark**:
+   - Below Major: 1 HP
+   - Meets/exceeds Major: 2 HP
+   - Meets/exceeds Severe: 3 HP
+3. **Armor choice** - Player may mark 1 Armor Slot to reduce HP marked by 1 (does NOT reduce damage number)
+4. **Mark HP** - Mark remaining HP slots
+5. **Narrate the hit** - Describe the injury narratively
 
 ### Stress and Conditions
 
