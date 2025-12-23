@@ -8,6 +8,8 @@ version: 1.0.0
 
 Use this skill to guide Daggerheart combat encounters. Unlike d20-style initiative, Daggerheart uses spotlight flow where the GM takes action when player rolls result in Fear or failure. The Hope/Fear token economy creates narrative tension between player momentum and GM opportunity.
 
+**Authoritative Source**: For exact rule wording, use the `dh-rules` skill to reference `srd/contents/Combat.md`, `srd/contents/Making Moves and Taking Action.md`, and `srd/contents/Death.md`.
+
 ## Starting Combat
 
 When combat begins:
@@ -20,8 +22,8 @@ When combat begins:
 ### Initial Token State
 
 At combat start:
-- **Player Hope**: Carry over from session state (typically 0-3 each)
-- **GM Fear**: May start with 0 or carry over from narrative consequences
+- **Player Hope**: Carry over from session state (PCs start with 2 Hope at character creation, max 6)
+- **GM Fear**: Carry over from session state (max 12)
 
 Use the encounter template from `references/encounter-template.md` to track state.
 
@@ -31,9 +33,10 @@ Daggerheart doesn't use initiative. Instead, the spotlight flows based on action
 
 ### When Players Hold Spotlight
 - A player takes an action and rolls
-- If **Hope wins** (success or failure): Another player takes the spotlight
-- If **Fear wins** (success or failure): GM takes the spotlight
-- If **Critical**: Player keeps spotlight with bonus effect
+- If **Success with Hope**: Party keeps spotlight (players choose who acts next)
+- If **Success with Fear**: GM takes spotlight (rolled with Fear)
+- If **Failure** (Hope or Fear): GM takes spotlight
+- If **Critical Success**: Player succeeds with bonus, gains Hope, clears Stress
 
 ### When GM Takes Spotlight
 - Adversaries act, Fear Features activate, dangers escalate
@@ -48,14 +51,17 @@ Player Action
     v
 Roll Duality Dice
     |
-    +---> Hope higher ---> Player keeps/passes spotlight
-    |                      (party chooses who acts next)
+    +---> Success + Hope higher ---> Party keeps spotlight
+    |                                (choose who acts next)
     |
-    +---> Fear higher ---> GM takes spotlight
-    |                      (adversaries act)
+    +---> Success + Fear higher ---> GM takes spotlight
+    |                                (rolled with Fear)
     |
-    +---> Critical ------> Player keeps spotlight
-                           (bonus effect, then continue)
+    +---> Failure (any) -----------> GM takes spotlight
+    |                                (GM makes a move)
+    |
+    +---> Critical ------------------> Auto success + bonus
+                                       (gain Hope, clear Stress)
 ```
 
 ## Action Roll Resolution
@@ -84,11 +90,13 @@ See `references/action-outcomes.md` for detailed resolution tables.
 
 | Outcome | Condition | Token Effect | Spotlight |
 |---------|-----------|--------------|-----------|
-| **Critical Success** | Both dice match | No token | Player keeps |
-| **Success with Hope** | Total >= difficulty, hope > fear | Player gains Hope | Player passes |
+| **Critical Success** | Both dice match | Gain Hope, clear Stress | Auto success with bonus |
+| **Success with Hope** | Total >= difficulty, hope > fear | Player gains Hope | Party keeps |
 | **Success with Fear** | Total >= difficulty, fear > hope | GM gains Fear | GM takes |
-| **Failure with Hope** | Total < difficulty, hope > fear | Player gains Hope | Player passes |
+| **Failure with Hope** | Total < difficulty, hope > fear | Player gains Hope | GM takes |
 | **Failure with Fear** | Total < difficulty, fear > hope | GM gains Fear | GM takes |
+
+> **Note**: A Critical Success counts as a roll "with Hope."
 
 **Tie between dice values** (non-critical): Player chooses Hope or Fear.
 
@@ -166,22 +174,26 @@ Some abilities allow reactions outside normal spotlight flow. **Reaction rolls d
 
 ### Damage Resolution
 
-1. Roll weapon damage dice
-2. Subtract target's **Armor Score**
-3. Compare remaining damage to target's **Thresholds**
-4. Mark HP slots based on severity:
+1. Roll weapon damage dice (Proficiency × damage die + modifier)
+2. Compare total damage to target's **Damage Thresholds**
+3. Mark HP slots based on severity:
 
 | Damage vs Thresholds | HP Marked |
 |---------------------|-----------|
-| Below Major threshold | 1 HP slot |
-| Meets/exceeds Major | 2 HP slots |
-| Meets/exceeds Severe | 3 HP slots |
+| Below Major threshold | 1 HP |
+| At or above Major, below Severe | 2 HP |
+| At or above Severe | 3 HP |
+
+If damage is reduced to 0 or less, no HP is marked.
+
+> **Optional Rule - Massive Damage**: If damage equals twice the Severe threshold, mark 4 HP instead of 3.
 
 ### Armor Slots
 
-Characters with armor slots can mark armor slots instead of HP:
-- 1 armor slot = 1 HP slot (regardless of threshold)
-- Choice is made before marking HP
+Your **Armor Score** determines how many Armor Slots you have. When you take damage:
+- You can mark 1 Armor Slot to reduce HP marked by 1
+- This choice is made when marking HP
+- Armor Slots don't reduce the damage number, they reduce HP marked
 
 ### HP and Stress Tracking
 
@@ -264,30 +276,41 @@ When all Stress slots are marked, the character gains the **Vulnerable** conditi
 - **Roleplay**: Recovery scenes can clear Stress
 - **Specific abilities**: Some class features clear Stress
 
-### Conditions Reference
+### Standard Conditions
 
-See `references/conditions.md` for full condition effects.
+See `references/conditions.md` for full condition effects. Daggerheart has **three standard conditions**:
 
-| Condition | Key Effect |
-|-----------|------------|
-| **Vulnerable** | Attacks against you have advantage |
-| **Hidden** | Attacks against you have disadvantage |
-| **Restrained** | Cannot move, attacks against you have advantage |
-| **Frightened** | Disadvantage on actions against fear source |
+| Condition | Effect |
+|-----------|--------|
+| **Hidden** | All rolls against you have disadvantage. Ends when seen, you move into line of sight, or you attack. |
+| **Restrained** | You can't move, but can still take actions from your current position. |
+| **Vulnerable** | All rolls targeting you have advantage. |
+
+> **Note**: Some features apply special or unique conditions that work as described in the feature text.
 
 ## Death and Dying
 
-### Dropping to 0 HP
+### When a PC Marks Their Last HP
 
-When all HP slots are marked:
-- **Adversaries**: Typically die or are defeated (GM discretion)
-- **Player Characters**: Begin dying—need immediate help
+When a PC marks their last Hit Point, they must make a **death move** by choosing one of three options:
 
-### Saving a Dying Character
+#### Blaze of Glory
+Your character embraces death and goes out in a blaze of glory. Take one final action—it automatically critically succeeds (with GM approval)—then your character dies.
 
-- Another character can use an action to stabilize
-- Healing abilities restore HP slots
-- If not saved, character dies (GM determines timing based on narrative)
+#### Avoid Death
+Your character avoids death and faces consequences. They drop unconscious and can't move, act, or be targeted by attacks. Work with the GM to describe how the situation worsens.
+
+They return to consciousness when an ally clears 1+ HP or after a long rest. After falling unconscious, roll your Hope Die—if the result ≤ your level, gain a **scar**: permanently cross out a Hope slot and determine its narrative impact with the GM. If you ever cross out your last Hope slot, your character's journey ends.
+
+#### Risk It All
+Roll your Duality Dice:
+- **Hope Die higher**: Stay on your feet, clear HP or Stress equal to the Hope Die value (divide as you choose)
+- **Fear Die higher**: Your character dies
+- **Matching dice**: Stay up but clear nothing
+
+### When Adversaries Fall
+
+When an adversary marks their last HP, they typically die or are defeated (GM discretion based on narrative).
 
 ## Encounter Management
 

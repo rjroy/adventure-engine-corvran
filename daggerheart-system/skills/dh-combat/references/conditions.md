@@ -1,17 +1,21 @@
 # Conditions Reference
 
-Conditions are temporary states that modify a creature's capabilities in Daggerheart. A creature either has a condition or doesn't—conditions don't stack with themselves.
+Conditions are effects that grant specific benefits or drawbacks to the target they are attached to. Unless otherwise noted, the same condition can't be applied more than once to the same target.
+
+**Authoritative Source**: `dh-rules/references/srd/contents/Conditions.md`
 
 ---
 
-## Core Conditions
+## Standard Conditions (SRD)
+
+Daggerheart has **three standard conditions**. Some features can apply special or unique conditions, which work as described in the feature text.
 
 ### Vulnerable
 
 While you have the Vulnerable condition:
 
-- **Attacks Advantaged**: Attack rolls against you have advantage (+1d6).
-- **Common Trigger**: Maximum Stress reached.
+- **All Rolls Advantaged**: All rolls targeting you have advantage.
+- **Common Trigger**: Maximum Stress reached (marking last Stress slot).
 
 **Common causes**:
 - Filling all Stress slots
@@ -30,10 +34,10 @@ While you have the Vulnerable condition:
 
 ### Hidden
 
-While you have the Hidden condition:
+While you're out of sight from all enemies and they don't otherwise know your location, you gain the Hidden condition:
 
-- **Attacks Disadvantaged**: Attack rolls against you have disadvantage (-1d6) until you are revealed.
-- **Revealed When**: You attack, cast a spell with visible effects, make noise, or an enemy succeeds at finding you.
+- **All Rolls Disadvantaged**: Any rolls against a Hidden creature have disadvantage.
+- **Ends When**: An adversary moves to where they would see you, you move into their line of sight, or you make an attack.
 
 **Common causes**:
 - Successful Stealth actions
@@ -55,9 +59,7 @@ While you have the Hidden condition:
 
 While you have the Restrained condition:
 
-- **Cannot Move**: Your movement is reduced to 0.
-- **Attacks Advantaged**: Attack rolls against you have advantage (+1d6).
-- **Your Attacks Affected**: May have disadvantage on attack rolls (GM discretion based on restraint type).
+- **Cannot Move**: You can't move, but you can still take actions from your current position.
 
 **Common causes**:
 - Grappling abilities
@@ -75,6 +77,10 @@ While you have the Restrained condition:
 **Combat impact**: Major. Prevents repositioning and makes the character an easy target. High priority to escape.
 
 ---
+
+## Special Conditions (Non-SRD)
+
+The following conditions are **not standard SRD conditions** but may be applied by specific features, adversary abilities, or GM discretion. When using these, the feature text should describe how they work.
 
 ### Frightened
 
@@ -100,8 +106,6 @@ While you have the Frightened condition:
 **Combat impact**: Moderate to Major. Limits tactical options and reduces effectiveness against the fear source. Can cause positioning problems.
 
 ---
-
-## Additional Conditions
 
 ### Prone
 
@@ -224,14 +228,21 @@ While you have the Marked condition:
 
 ### Advantage/Disadvantage from Conditions
 
-| Condition | You Have Disadvantage | Attacks Against You |
-|-----------|----------------------|---------------------|
-| Vulnerable | - | Advantage |
-| Hidden | - | Disadvantage |
-| Restrained | May have | Advantage |
-| Frightened | Against fear source | - |
-| Prone | On attacks | Melee: Advantage / Ranged: Disadvantage |
-| Blinded | On attacks | Advantage |
+**Standard SRD Conditions:**
+
+| Condition | Effect |
+|-----------|--------|
+| Hidden | All rolls against you have disadvantage |
+| Restrained | Cannot move (no attack modifier) |
+| Vulnerable | All rolls targeting you have advantage |
+
+**Special Conditions (vary by feature text):**
+
+| Condition | Typical Effect |
+|-----------|----------------|
+| Frightened | Disadvantage against fear source |
+| Prone | Melee: Advantage / Ranged: Disadvantage against you |
+| Blinded | Disadvantage on your attacks, advantage against you |
 
 ### Condition Severity Ranking
 
