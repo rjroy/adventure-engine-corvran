@@ -1,6 +1,7 @@
 ---
 name: dh-adversaries
 description: This skill should be used when creating Daggerheart adversaries, building stat blocks, designing encounters, or determining enemy difficulty. Invoke when the GM needs to create enemies, generate adversary stat blocks, calculate Battle Points for encounter balance, or reference adversary types (Bruiser, Horde, Leader, Minion, Ranged, Skulk, Social, Solo, Standard, Support).
+version: 1.0.0
 ---
 
 # Daggerheart Adversary Creation Skill
@@ -9,7 +10,7 @@ Create adversaries and build balanced encounters using the Daggerheart SRD forma
 
 ## When to Use This Skill
 
-Invoke this skill when:
+This skill applies when:
 - Creating a new adversary or enemy for an encounter
 - Converting a narrative concept into a Daggerheart stat block
 - Building an encounter and calculating Battle Points

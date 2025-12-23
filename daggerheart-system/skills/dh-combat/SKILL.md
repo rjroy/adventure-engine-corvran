@@ -1,6 +1,7 @@
 ---
 name: dh-combat
 description: This skill should be used when the GM needs to handle Daggerheart combat, including action roll resolution, Hope/Fear token economy, spotlight flow, damage tracking, reaction rolls, and managing combat encounters. Provides action outcome tables, encounter tracking templates, and condition references.
+version: 1.0.0
 ---
 
 # Daggerheart Combat Management Skill

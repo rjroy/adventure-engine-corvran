@@ -1,6 +1,7 @@
 ---
 name: dh-rules
 description: This skill should be used when the GM needs to look up Daggerheart rules, reference what the SRD says, find official rules, get exact wording, check RAW (rules as written), verify rules references, or understand how mechanics work in Daggerheart. Provides authoritative rule clarification from the Daggerheart System Reference Document 1.0.
+version: 1.0.0
 ---
 
 # Daggerheart SRD Rule Lookup Skill
@@ -9,7 +10,7 @@ Provide authoritative rule lookups from the Daggerheart System Reference Documen
 
 ## When to Use This Skill
 
-Invoke this skill when the user:
+This skill applies when the user:
 - Asks "what does the SRD say about..."
 - Requests "official Daggerheart rules for..."
 - Wants "exact wording of..."

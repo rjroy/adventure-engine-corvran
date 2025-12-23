@@ -1,6 +1,7 @@
 ---
 name: dh-players
 description: This skill should be used when the GM needs to help players create Daggerheart characters, select a class/ancestry/community, define Experiences with bounded constraints, choose domain cards, or handle level advancement (1-10). Provides templates for character sheets, session state, and Experience definitions to prevent semantic drift during gameplay.
+version: 1.0.0
 ---
 
 # Character Creation and Advancement Skill

@@ -1,6 +1,7 @@
 ---
 name: dh-domains
 description: This skill should be used when handling domain cards and magical abilities in Daggerheart, including looking up domain card effects, understanding Recall costs, making Spellcast Rolls, selecting domain cards during character creation or advancement, or when players want to use domain-based abilities. Covers all 9 SRD domains (Arcana, Blade, Bone, Codex, Grace, Midnight, Sage, Splendor, Valor) and their associated cards.
+version: 1.0.0
 ---
 
 # Domain Cards Skill
