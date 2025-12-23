@@ -12,17 +12,31 @@ description: |
 
 # Panel Patterns Skill
 
-Pre-defined panel patterns and best practices for creating atmospheric info panels in adventures. Use these patterns as inspiration when creating panels with the `create_panel` MCP tool.
+Pre-defined panel patterns and best practices for creating atmospheric info panels in adventures. Panels are markdown files with YAML frontmatter.
 
-**Panel Limit**: Maximum 5 panels active at once. Dismiss stale panels before creating new ones.
+## Panel File Format
+
+Panels are stored at `{playerRef}/panels/{id}.md`:
+
+```yaml
+---
+title: Weather Status    # Display header (1-64 chars)
+position: sidebar        # sidebar | header | overlay
+priority: medium         # low | medium | high (default: medium)
+---
+Panel content in markdown...
+```
+
+**Operations**: Create = Write file. Update = Overwrite file. Delete = rm file.
+**Limits**: 2 sidebar, 2 header, 1 overlay. Higher priority displays first.
 
 ## Quick Reference
 
-| Position | Behavior | Best For |
-|----------|----------|----------|
-| `sidebar` | Persistent, scrollable list | Character sheets, resources, quest logs |
-| `header` | Single panel, replaces previous | Location banners, urgent alerts, tickers |
-| `overlay` | Modal, blocks interaction | Critical choices, dramatic reveals, combat focus |
+| Position | Limit | Best For |
+|----------|-------|----------|
+| `sidebar` | 2 | Persistent status, resources, quest logs |
+| `header` | 2 | Urgent alerts, tickers, time-sensitive warnings |
+| `overlay` | 1 | Critical choices, dramatic reveals |
 
 ---
 
@@ -33,84 +47,57 @@ These patterns work across all genres and RPG systems.
 ### Weather & Environment (sidebar)
 **When to create**: Weather becomes mechanically relevant (affects visibility, movement, damage, or skill checks)
 
-**Pattern**:
-- **ID**: `weather`
-- **Position**: `sidebar`
-- **Persistent**: `true` (until conditions change)
-- **Content structure**: Current conditions, mechanical effects, duration if temporary
-
-**Examples**:
-```markdown
+**File**: `panels/weather.md`
+```yaml
+---
+title: Current Conditions
+position: sidebar
+priority: medium
+---
 **Heavy Rain**
 - Visibility: 60ft
 - Ranged attacks: Disadvantage
 - Perception (sight): -5 penalty
 ```
 
-```markdown
-**Blizzard Conditions**
-- Visibility: 20ft
-- Movement: Half speed
-- CON save DC 10/hour or 1 level exhaustion
-- Duration: 3 more hours
-```
-
 **Update triggers**: Weather worsens/improves, mechanical effects change
-**Dismiss trigger**: Weather becomes narratively irrelevant (no longer affects mechanics)
+**Dismiss trigger**: Weather becomes narratively irrelevant - delete the file
 
 ---
 
 ### Status Alerts (header)
 **When to create**: Character enters dangerous state (HP < 25%, death saves, critical conditions)
 
-**Pattern**:
-- **ID**: `status-alert`
-- **Position**: `header` (high visibility for urgency)
-- **Persistent**: `false` (temporary danger indicator)
-- **Content structure**: Warning icon, status descriptor, numbers if relevant, duration
-
-**Examples**:
-```markdown
+**File**: `panels/status-alert.md`
+```yaml
+---
+title: WARNING
+position: header
+priority: high
+---
 **CRITICAL** - 8/42 HP - Poisoned (3 rounds remaining)
 ```
 
-```markdown
-**DEATH SAVES** - Successes: 2 - Failures: 1 - Roll now!
-```
-
-```markdown
-**BLEEDING** - Lose 1d4 HP/round - Medicine DC 12 to stop
-```
-
 **Update triggers**: HP changes, condition worsens/improves, save results
-**Dismiss trigger**: Character healed above threshold, condition removed, character stabilized
+**Dismiss trigger**: Character healed above threshold - delete the file
 
 ---
 
 ### Timers & Countdowns (header)
 **When to create**: Time pressure exists (ritual completion, event countdown, limited-time decision)
 
-**Pattern**:
-- **ID**: `timer`
-- **Position**: `header` (constant reminder of urgency)
-- **Persistent**: `false` (temporary countdown)
-- **Content structure**: Time remaining, consequence preview
-
-**Examples**:
-```markdown
+**File**: `panels/timer.md`
+```yaml
+---
+title: COUNTDOWN
+position: header
+priority: high
+---
 **Ritual Completes in 3 Rounds** - Portal stabilizing... Stop it now or too late!
 ```
 
-```markdown
-**Quest Deadline: 2 Days** - Merchant caravan departs at dawn on Day 3
-```
-
-```markdown
-**Bomb Detonates: 4 Rounds** - Disarm check DC 18 Thieves' Tools
-```
-
 **Update triggers**: Time passes (each round, turn, day), deadline extended/shortened
-**Dismiss trigger**: Timer expires, event completes, countdown cancelled
+**Dismiss trigger**: Timer expires - delete the file
 
 ---
 
@@ -283,7 +270,7 @@ For more specialized patterns, see:
 - Mechanical effects shift (hazard intensifies, resources consumed) - **Update**
 - New information relevant to existing panel (gossip updates, news breaks) - **Update**
 
-**Don't create duplicate panels** - always check with `list_panels` first and update existing.
+**Don't create duplicate panels** - check existing files with Glob first and update existing.
 
 ### When to Dismiss Panels
 
@@ -314,22 +301,20 @@ For more specialized patterns, see:
 
 ## Using This Skill
 
-This skill is for **inspiration and reference** when creating panels. The actual panel creation happens via MCP tools:
+This skill is for **inspiration and reference** when creating panels. Panels are managed via file operations:
 
-```
-create_panel(id="weather", title="Current Conditions", content="...", position="sidebar", persistent=true)
-update_panel(id="weather", content="...updated conditions...")
-dismiss_panel(id="weather")
-list_panels() // Check before creating to avoid duplicates
-```
+**Create panel**: Write a markdown file to `{playerRef}/panels/{id}.md` with YAML frontmatter
+**Update panel**: Overwrite the file with new content
+**Delete panel**: Remove the file (rm or write empty)
+**List panels**: Use Glob/Read to check `{playerRef}/panels/*.md`
 
 **Workflow**:
 1. Recognize scenario that would benefit from a panel
 2. Consult this skill for pattern ideas matching the context
 3. Adapt pattern to current situation (customize content, adjust to genre)
-4. Use `list_panels` to check for conflicts/duplicates
-5. Create panel with `create_panel` MCP tool
-6. Update as story progresses
-7. Dismiss when no longer relevant
+4. Check existing panels with Glob to avoid duplicates
+5. Write the panel file with proper frontmatter
+6. Overwrite the file as story progresses
+7. Delete the file when no longer relevant
 
 **Remember**: These are suggestions, not requirements. Use judgment for what enhances the experience.
