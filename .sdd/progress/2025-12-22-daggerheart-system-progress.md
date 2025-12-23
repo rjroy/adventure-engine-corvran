@@ -12,20 +12,26 @@ authored_by:
 
 # Daggerheart System Plugin - Implementation Progress
 
-**Last Updated**: 2025-12-22 | **Status**: 33% complete (5 of 15 tasks)
+**Last Updated**: 2025-12-22 | **Status**: 80% complete (12 of 15 tasks)
 
 ## Current Session
-**Date**: 2025-12-22 | **Working On**: Phase 2 Core Skills | **Blockers**: None
+**Date**: 2025-12-22 | **Working On**: TASK-009 Init Command | **Blockers**: None
 
 ## Completed Today
 - TASK-001: Create Plugin Scaffold ✅ (commit: 94c4328)
 - TASK-002: Extend Dice Roller for DdD Notation ✅ (commit: 94c4328)
+- TASK-003: Create dh-players Skill Structure ✅ (commit: e4f64ea)
+- TASK-004: Create Experience Constraint Template ✅ (commit: e4f64ea)
+- TASK-005: Create dh-combat Skill ✅ (commit: e4f64ea)
+- TASK-006: Create dh-adversaries Skill ✅ (commit: e4f64ea)
+- TASK-007: Create dh-domains Skill ✅ (commit: e4f64ea)
+- TASK-008: Create dh-rules Skill with SRD Symlink ✅ (commit: e4f64ea)
 - TASK-010: Write System.md Core Rules ✅ (completed as part of TASK-001)
 - TASK-011: Write dh-CLAUDE.md GM Guidance ✅ (completed as part of TASK-001)
 - TASK-012: Write Plugin CLAUDE.md ✅ (completed as part of TASK-001)
 
 ## Discovered Issues
-- None
+- Class-domain mapping inconsistency in dh-players fixed (Druid = Sage+Arcana, not Sage+Bone)
 
 ---
 
@@ -39,36 +45,40 @@ authored_by:
 
 ### Phase 2: Core Skills
 
-**In Progress** 🚧
-- [ ] TASK-003: Create dh-players Skill Structure (M)
-- [ ] TASK-005: Create dh-combat Skill (L)
-- [ ] TASK-006: Create dh-adversaries Skill (M)
-- [ ] TASK-007: Create dh-domains Skill (M)
-- [ ] TASK-008: Create dh-rules Skill with SRD Symlink (S)
+**Completed** ✅
+- [x] TASK-003: Create dh-players Skill Structure (M) - *Completed 2025-12-22*
+- [x] TASK-005: Create dh-combat Skill (L) - *Completed 2025-12-22*
+- [x] TASK-006: Create dh-adversaries Skill (M) - *Completed 2025-12-22*
+- [x] TASK-007: Create dh-domains Skill (M) - *Completed 2025-12-22*
+- [x] TASK-008: Create dh-rules Skill with SRD Symlink (S) - *Completed 2025-12-22*
 
 ### Phase 3: Refinement
 
 **Completed** ✅
+- [x] TASK-004: Create Experience Constraint Template (M) - *Completed 2025-12-22*
 - [x] TASK-010: Write System.md Core Rules (L) - *Completed 2025-12-22 (early, as part of TASK-001)*
 - [x] TASK-011: Write dh-CLAUDE.md GM Guidance (L) - *Completed 2025-12-22 (early, as part of TASK-001)*
 - [x] TASK-012: Write Plugin CLAUDE.md (S) - *Completed 2025-12-22 (early, as part of TASK-001)*
 
-**Upcoming** ⏳
-- [ ] TASK-004: Create Experience Constraint Template (M) - depends on TASK-003
-- [ ] TASK-009: Create Init Command (M) - depends on TASK-003
+**In Progress** 🚧
+- [ ] TASK-009: Create Init Command (M)
 
 ### Phase 4: Testing
 
 **Upcoming** ⏳
-- [ ] TASK-013: Create Dice Roller Tests (S) - depends on TASK-002
-- [ ] TASK-014: Create Integration Test Script (S) - depends on TASK-009, TASK-010, TASK-011
-- [ ] TASK-015: Manual Validation Checklist (S) - depends on all previous
+- [ ] TASK-013: Create Dice Roller Tests (S)
+- [ ] TASK-014: Create Integration Test Script (S)
+- [ ] TASK-015: Manual Validation Checklist (S)
 
 ---
 
 ## Deviations from Plan
 
-(None yet)
+### Deviation 1: Class-Domain Mapping Correction
+**Original**: dh-players SKILL.md had incorrect domain mappings (e.g., Druid = Sage+Bone)
+**Actual**: Corrected to match SRD (Druid = Sage+Arcana, Bard = Grace+Codex, etc.)
+**Reason**: Review caught discrepancy with SRD source material
+**Date**: 2025-12-22
 
 ---
 
@@ -79,6 +89,11 @@ authored_by:
 **Description**: TASK-001 (Plugin Scaffold) was implemented with full content rather than placeholders for CLAUDE.md, dh-CLAUDE.md, and System.md. This effectively completed TASK-010, TASK-011, and TASK-012 ahead of schedule.
 **Impact**: Positive - Phase 3 Refinement tasks are now mostly complete. Only TASK-004 (Experience Template) and TASK-009 (Init Command) remain for Phase 3.
 
+### Discovery 2: Experience Template Created During dh-players
+**Date**: 2025-12-22
+**Description**: TASK-003 implementation agent proactively created the experience-template.md file (TASK-004 scope) as it was referenced in the dh-players SKILL.md. This completed TASK-004 as part of TASK-003 execution.
+**Impact**: Positive - More efficient implementation with tighter integration.
+
 ---
 
 ## Test Coverage
@@ -87,14 +102,17 @@ authored_by:
 |-----------|--------|
 | Dice Roller (DdD) | ✅ Manual testing complete |
 | Plugin Scaffold | ✅ JSON validation complete |
+| dh-players | ✅ Structure validated |
+| dh-combat | ✅ All 5 outcomes verified |
+| dh-adversaries | ✅ All 10 types verified |
+| dh-domains | ✅ All 9 domains verified |
+| dh-rules | ✅ SRD symlink resolves |
 | Init Command | ⏳ Pending |
-| Plugin Integration | ⏳ Pending |
+| Integration Tests | ⏳ Pending |
 
 ---
 
 ## Notes for Next Session
-- Phase 1 complete (TASK-001, TASK-002)
-- Phase 3 documentation tasks complete early (TASK-010, TASK-011, TASK-012)
-- Next: Phase 2 Core Skills (TASK-003, TASK-005, TASK-006, TASK-007, TASK-008)
-- TASK-003, TASK-006, TASK-007, TASK-008 can run in parallel
-- TASK-005 (dh-combat) depends on TASK-002 (now complete)
+- Phase 1, 2, and most of Phase 3 complete
+- Next: TASK-009 (Init Command), then Phase 4 Testing
+- TASK-013 (Dice Tests), TASK-014 (Integration Tests), TASK-015 (Manual Validation) remaining
