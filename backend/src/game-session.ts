@@ -82,10 +82,6 @@ function getToolDescription(toolName: string): string {
   if (toolName === "mcp__adventure-gm__set_world") return "Selecting world...";
   if (toolName === "mcp__adventure-gm__list_characters") return "Checking characters...";
   if (toolName === "mcp__adventure-gm__list_worlds") return "Checking worlds...";
-  if (toolName === "mcp__adventure-gm__create_panel") return "Updating display...";
-  if (toolName === "mcp__adventure-gm__update_panel") return "Updating display...";
-  if (toolName === "mcp__adventure-gm__dismiss_panel") return "Updating display...";
-  if (toolName === "mcp__adventure-gm__list_panels") return "Checking displays...";
 
   // File operations (state management)
   if (toolName === "Read") return "Consulting records...";
@@ -807,7 +803,6 @@ export class GameSession {
     // - set_theme for UI visual updates
     // - set_xp_style for saving player's XP preference
     // - Character/world management tools for multi-adventure support
-    // - Panel tools for info display windows
     const allowedTools = [
       "Skill",
       "Read",
@@ -821,10 +816,6 @@ export class GameSession {
       "mcp__adventure-gm__set_world",
       "mcp__adventure-gm__list_characters",
       "mcp__adventure-gm__list_worlds",
-      "mcp__adventure-gm__create_panel",
-      "mcp__adventure-gm__update_panel",
-      "mcp__adventure-gm__dismiss_panel",
-      "mcp__adventure-gm__list_panels",
     ];
 
     // Query Claude Agent SDK with resume for conversation continuity
