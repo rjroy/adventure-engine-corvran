@@ -49,18 +49,18 @@ All characters have six traits that measure their capabilities.
 
 ### Trait Modifiers
 
-Trait modifiers typically range from -1 to +3. The starting spread depends on your character's choices during creation.
+At character creation, distribute these modifiers among your six traits: **+2, +1, +1, +0, +0, -1**. Your class and ancestry may provide additional bonuses.
 
 ---
 
 ## Experiences
 
-Experiences represent your character's background and training. Each Experience provides a bonus (+1 to +3) when its scope applies to an action.
+Experiences represent your character's background and training. At character creation, you gain **two Experiences at +2 each**.
 
 ### Experience Structure
 
 Each Experience defines:
-- **Modifier**: The bonus applied (+1, +2, or +3)
+- **Modifier**: The bonus applied (typically +2 at creation)
 - **Positive Scope**: Specific situations where it applies
 - **Exclusions**: Situations where it explicitly does not apply
 
@@ -132,8 +132,8 @@ Characters have Stress slots (typically 6). Stress accumulates from:
 ### Armor
 
 Armor provides:
-- **Armor Score**: Reduces incoming damage
-- **Armor Slots**: Can mark slots instead of HP (1 slot = 1 HP regardless of threshold)
+- **Armor Score**: Determines number of Armor Slots
+- **Armor Slots**: When taking damage, you may mark 1 Armor Slot to reduce HP marked by 1 (does NOT reduce the damage number)
 - **Threshold Bonuses**: Adds to Major/Severe thresholds
 
 ---
@@ -142,7 +142,7 @@ Armor provides:
 
 Evasion represents how hard you are to hit.
 
-**Evasion = Class Base + Agility modifier**
+**Evasion = Class Base only** (not modified by traits)
 
 Attackers must meet or exceed your Evasion with their attack roll to hit you.
 
@@ -195,12 +195,17 @@ Multiple advantages/disadvantages stack (roll multiple d6s). Advantages and disa
 
 ## Conditions
 
+### Standard Conditions (SRD)
+
 | Condition | Effect |
 |-----------|--------|
-| Vulnerable | Attacks against you have advantage |
-| Hidden | Attacks against you have disadvantage until revealed |
-| Restrained | Cannot move, attacks against you have advantage |
-| Frightened | Disadvantage on actions against the source of fear |
+| Vulnerable | All rolls targeting you have advantage |
+| Hidden | All rolls against you have disadvantage; ends when seen, you attack, or move into line of sight |
+| Restrained | You cannot move, but can still take actions from your current position |
+
+### Special Conditions (Non-SRD)
+
+Some features apply special conditions like Frightened, Prone, or Blinded. These work as described in the feature text.
 
 ---
 
@@ -236,9 +241,9 @@ Daggerheart features 9 classes:
 
 Each class has:
 - Starting features
-- Subclass options (gained at level 2)
+- Subclass options (chosen at character creation)
 - Level advancement features
-- Domain access (2 domains typically)
+- Domain access (2 domains)
 
 ---
 
@@ -258,11 +263,16 @@ Domain cards represent magical abilities. There are 9 domains:
 | Splendor | Life, healing, restoration |
 | Valor | Courage, strength, battle |
 
+### Loadout & Vault
+
+- **Loadout**: Up to 5 domain cards you can actively use
+- **Vault**: Inactive cards; swap to loadout by paying Recall Cost in Stress
+- At rest start: swap freely between loadout and vault (no cost)
+
 ### Using Domain Cards
 
-- **Recall Cost**: Some cards must be recalled (spend resources) to use
-- **Spellcast Roll**: Some effects require a Duality Dice roll
-- **Domain Card Limit**: Characters can prepare a limited number of cards
+- **Spellcast Roll**: Some effects require a Duality Dice roll using your Spellcast Trait (determined by subclass)
+- **Activation Costs**: Some cards require marking Stress to activate
 
 ---
 
@@ -287,12 +297,14 @@ Use this formula for balanced encounters:
 **Battle Points = (3 x Number of PCs) + 2**
 
 Adversary costs:
-| Adversary Type | Battle Points |
-|----------------|---------------|
-| Minion | 1 |
-| Standard | 2-3 |
-| Leader | 4-5 |
-| Solo | Equal to party BP |
+| Battle Points | Adversary Type |
+|---------------|----------------|
+| 1 | Group of Minions equal to party size |
+| 1 | Social or Support |
+| 2 | Horde, Ranged, Skulk, or Standard |
+| 3 | Leader |
+| 4 | Bruiser |
+| 5 | Solo |
 
 ---
 
@@ -306,9 +318,10 @@ Adversary costs:
 
 ### Damage Resolution
 1. Roll damage dice
-2. Subtract armor score
-3. Compare to thresholds
-4. Mark HP slots (1/2/3 based on threshold)
+2. Compare to target's thresholds (Major/Severe)
+3. Determine HP to mark (1/2/3 based on threshold)
+4. Target may mark 1 Armor Slot to reduce HP marked by 1
+5. Mark remaining HP
 
 ### Token Limits
 - Hope: 6 per player
