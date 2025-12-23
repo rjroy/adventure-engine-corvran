@@ -2,6 +2,8 @@
 
 This reference provides an overview of all 9 Daggerheart domains, their thematic focus, and class access. For full domain card listings and detailed card effects, reference the Daggerheart SRD via `dh-rules/references/srd/domains/` and `dh-rules/references/srd/abilities/`.
 
+**Authoritative Source**: `dh-rules/references/srd/contents/Classes.md` and `dh-rules/references/srd/contents/Domain Card Reference.md`
+
 ---
 
 ## Arcana
@@ -174,23 +176,18 @@ All domain cards follow a consistent format:
 
 | Component | Description |
 |-----------|-------------|
-| **Name** | The card's title |
 | **Level** | 1-10, determines when available during advancement |
 | **Domain** | Which domain the card belongs to |
-| **Recall Cost** | Stress spent to recall after use (0 = always available) |
-| **Effect** | What happens when the card is activated |
+| **Recall Cost** | Stress spent to swap this card from vault to loadout mid-session |
+| **Title** | The card's name |
+| **Type** | One of: **abilities** (non-magical), **spells** (magical), or **grimoires** (Codex only) |
+| **Feature** | What happens when the card is activated |
 
-### Example Card Format
+### Loadout & Vault
 
-```
-# CARD NAME
-
-> **Level [N] [Domain] Spell**
-> **Recall Cost:** [0-3]
-
-[Effect text describing what the card does, possibly including
-Spellcast Rolls, damage dice, conditions, duration, etc.]
-```
+- **Loadout**: Up to 5 domain cards you can actively use
+- **Vault**: Inactive cards; swap to loadout by paying Recall Cost in Stress
+- At start of rest: swap freely between loadout and vault (no cost)
 
 ---
 
@@ -200,18 +197,20 @@ Many domain cards require a Spellcast Roll - a standard Duality Dice action roll
 
 ### Roll Formula
 ```
-DdD + Spellcasting Trait vs. Difficulty
+DdD + Spellcast Trait (from subclass) vs. Difficulty
 ```
 
-### Spellcasting Traits by Class
+### Spellcast Trait
 
-| Class | Primary Trait | Secondary Trait |
-|-------|---------------|-----------------|
-| Bard | Presence | Knowledge |
-| Druid | Instinct | Agility |
-| Seraph | Presence | Strength |
-| Sorcerer | Presence | Instinct |
-| Wizard | Knowledge | Presence |
+Your **Spellcast Trait** is determined by your **subclass**, not your class. Check your subclass's Foundation card for your specific trait. Common patterns:
+
+| Subclass Type | Typical Spellcast Trait |
+|---------------|------------------------|
+| Bard subclasses | Presence |
+| Druid subclasses | Instinct |
+| Seraph subclasses | Presence |
+| Sorcerer subclasses | Presence |
+| Wizard subclasses | Knowledge |
 
 ### Spellcast Outcomes
 
