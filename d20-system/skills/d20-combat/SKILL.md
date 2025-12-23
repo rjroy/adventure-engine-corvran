@@ -1,6 +1,7 @@
 ---
 name: d20-combat
 description: This skill should be used when the GM needs to handle combat situations, including starting combat, rolling initiative, resolving attack rolls, managing combat encounters, rolling damage, tracking hit points, applying conditions, or running d20-style tactical combat. Provides combat flow, turn structure, attack resolution, and condition references.
+version: 1.0.0
 ---
 
 # Combat Management Skill

@@ -1,6 +1,7 @@
 ---
 name: d20-rules
 description: This skill should be used when the GM needs to look up rules, reference what the SRD says, find official rules, get exact wording, check RAW (rules as written), verify rules references, or understand how mechanics work in d20 5E. Provides authoritative rule clarification from the System Reference Document 5.2.
+version: 1.0.0
 ---
 
 # SRD Rule Lookup Skill
@@ -9,7 +10,7 @@ Provide authoritative rule lookups from the System Reference Document 5.2 (SRD 5
 
 ## When to Use This Skill
 
-Invoke this skill when the user:
+This skill applies when the user:
 - Asks "what does the SRD say about..."
 - Requests "official rules for..."
 - Wants "exact wording of..."

@@ -1,6 +1,7 @@
 ---
 name: d20-players
 description: This skill should be used when the GM needs to help players create characters, roll for stats, assign ability scores, handle leveling up, increase hit points, choose classes, pick proficiencies, or manage player character creation, advancement, or character sheet management. Provides templates and rules for SRD 5.2 character creation and leveling.
+version: 1.0.0
 ---
 
 # Character Creation and Advancement Skill

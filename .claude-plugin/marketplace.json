@@ -12,6 +12,13 @@
       "license": "MIT"
     },
     {
+      "name": "daggerheart-system",
+      "source": "./daggerheart-system",
+      "description": "Daggerheart RPG mechanics for Adventure Engine adventures. Provides character creation with constrained Experiences, Hope/Fear token economy, spotlight-based combat, domain cards, adversary management, and SRD rule lookups. Uses Duality Dice (2d12) for narrative tension between player success and GM opportunity.",
+      "repository": "https://github.com/rjroy/adventure-engine-corvran.git",
+      "license": "CC-BY-4.0"
+    },
+    {
       "name": "d20-system",
       "source": "./d20-system",
       "description": "SRD 5.2-compatible d20 RPG mechanics for Adventure Engine adventures. Provides skills for character creation, combat, spellcasting, monster creation, and authoritative rule lookups from the complete System Reference Document 5.2.1.",

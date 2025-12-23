@@ -6,6 +6,6 @@
     "email": "gsdwig@gmail.com"
   },
   "description": "SRD 5.2-compatible d20 RPG mechanics for Adventure Engine adventures. Provides character creation, combat, spellcasting, and monster skills with templates and the complete System Reference Document for rule lookups.",
-  "repository": "https://github.com/rjroy/wyrd-gateway.git",
+  "repository": "https://github.com/rjroy/adventure-engine-corvran.git",
   "license": "CC-BY-4.0"
 }
