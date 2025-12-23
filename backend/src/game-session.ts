@@ -5,7 +5,7 @@
 import type { WSContext } from "hono/ws";
 import { logger, type Logger } from "./logger";
 import { randomUUID } from "node:crypto";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { SDKAssistantMessageError, HookJSONOutput, HookInput } from "@anthropic-ai/claude-agent-sdk";
@@ -242,6 +242,11 @@ export class GameSession {
             // Continue anyway - GM will handle missing files
           }
         }
+      }
+
+      // Scan for existing panel files and restore them (REQ-F-16)
+      if (state.playerRef) {
+        this.scanExistingPanels(state.playerRef, logger);
       }
     }
 
@@ -1717,6 +1722,107 @@ After updating the files, respond with a brief confirmation (1-2 sentences) of w
     // Remove from known panels
     this.knownPanelIds.delete(panelId);
     log.debug({ panelId }, "Panel dismissed from file delete");
+  }
+
+  /**
+   * Scan existing panel files and emit panel_create messages (REQ-F-16).
+   * Called during session initialization to restore panels on reconnect/reload.
+   *
+   * @param playerRef - Player reference path (e.g., "players/theron-ashwind")
+   * @param log - Logger for correlation
+   */
+  private scanExistingPanels(playerRef: string, log: Logger): void {
+    if (!this.projectDirectory) {
+      return;
+    }
+
+    const panelsDir = join(this.projectDirectory, playerRef, "panels");
+
+    // Check if panels directory exists
+    if (!existsSync(panelsDir)) {
+      log.debug({ panelsDir }, "Panels directory does not exist, skipping scan");
+      return;
+    }
+
+    // Read all .md files in the panels directory
+    let files: string[];
+    try {
+      files = readdirSync(panelsDir).filter(f => f.endsWith(".md"));
+    } catch (error) {
+      log.warn({ panelsDir, err: error }, "Failed to read panels directory");
+      return;
+    }
+
+    if (files.length === 0) {
+      log.debug({ panelsDir }, "No panel files found");
+      return;
+    }
+
+    log.info({ panelsDir, fileCount: files.length }, "Scanning existing panel files");
+
+    for (const file of files) {
+      const filePath = join(panelsDir, file);
+
+      // Derive panel ID from filename
+      const idResult = derivePanelId(filePath);
+      if (!idResult.success) {
+        log.warn({ filePath, error: idResult.error }, "Invalid panel file name during scan");
+        continue;
+      }
+      const panelId = idResult.id;
+
+      // Read file content
+      let content: string;
+      try {
+        content = readFileSync(filePath, "utf-8");
+      } catch (error) {
+        log.warn({ filePath, err: error }, "Failed to read panel file during scan");
+        continue;
+      }
+
+      // Parse frontmatter
+      const parseResult = parsePanelFile(content);
+      if (!parseResult.success) {
+        log.warn({ filePath, error: parseResult.error }, "Invalid panel frontmatter during scan");
+        continue;
+      }
+
+      const { frontmatter, body } = parseResult.data;
+
+      // Get file creation time for ordering
+      let createdAt: string;
+      try {
+        const stats = statSync(filePath);
+        createdAt = stats.birthtime.toISOString();
+      } catch {
+        createdAt = new Date().toISOString();
+      }
+
+      // Emit panel_create
+      const panel = {
+        id: panelId,
+        title: frontmatter.title,
+        content: body,
+        position: frontmatter.position,
+        priority: frontmatter.priority,
+        persistent: true,
+        createdAt,
+      };
+
+      this.sendMessage(
+        {
+          type: "panel_create",
+          payload: panel,
+        },
+        log
+      );
+
+      // Track as known panel
+      this.knownPanelIds.add(panelId);
+      log.debug({ panelId, position: frontmatter.position }, "Panel restored from file");
+    }
+
+    log.info({ panelCount: this.knownPanelIds.size }, "Panel scan complete");
   }
 
   /**

@@ -359,4 +359,70 @@ position: header
       expect(panelMsgs).toHaveLength(0);
     });
   });
+
+  describe("Session initialization panel scanning", () => {
+    test("existing panel files are restored on session initialize (REQ-F-16)", async () => {
+      const panelsDir = join(TEST_PROJECT_DIR, playerRef, "panels");
+
+      // Create panel file BEFORE initializing session
+      await writeFile(join(panelsDir, "weather.md"), `---
+title: Weather Status
+position: sidebar
+priority: high
+---
+Clear skies, light breeze.`);
+
+      await writeFile(join(panelsDir, "timer.md"), `---
+title: Countdown
+position: header
+---
+5 rounds remaining`);
+
+      // Now initialize session - should scan and emit panel_create
+      const { ws, messages } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      // Find panel_create messages
+      const panelCreateMsgs = messages.filter(m => m.type === "panel_create");
+      expect(panelCreateMsgs.length).toBe(2);
+
+      // Verify panel content
+      const weatherPanel = panelCreateMsgs.find(m => m.payload?.id === "weather");
+      expect(weatherPanel).toBeDefined();
+      expect(weatherPanel?.payload?.title).toBe("Weather Status");
+      expect(weatherPanel?.payload?.position).toBe("sidebar");
+
+      const timerPanel = panelCreateMsgs.find(m => m.payload?.id === "timer");
+      expect(timerPanel).toBeDefined();
+      expect(timerPanel?.payload?.title).toBe("Countdown");
+      expect(timerPanel?.payload?.position).toBe("header");
+    });
+
+    test("invalid panel files are skipped during initialization scan", async () => {
+      const panelsDir = join(TEST_PROJECT_DIR, playerRef, "panels");
+
+      // Create valid panel
+      await writeFile(join(panelsDir, "valid.md"), `---
+title: Valid Panel
+position: sidebar
+---
+Content here`);
+
+      // Create invalid panel (missing title)
+      await writeFile(join(panelsDir, "invalid.md"), `---
+position: sidebar
+---
+Content here`);
+
+      const { ws, messages } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      // Only valid panel should be created
+      const panelCreateMsgs = messages.filter(m => m.type === "panel_create");
+      expect(panelCreateMsgs.length).toBe(1);
+      expect(panelCreateMsgs[0]?.payload?.id).toBe("valid");
+    });
+  });
 });
