@@ -11,7 +11,7 @@ Daggerheart is **not** a d20 system. If you have D&D/Pathfinder habits, unlearn 
 | **Core Dice** | 1d20 vs target | 2d12 (Duality Dice) - higher die determines Hope/Fear |
 | **Turn Order** | Initiative rolls | Spotlight flow - GM acts on Fear rolls or failures |
 | **Armor** | Reduces damage taken | Armor Slots reduce HP marked (player choice when hit) |
-| **Evasion/AC** | Calculated from stats | Fixed by class (not modified by Agility) |
+| **Evasion/AC** | Base + Dex modifier | Class base; modified by features/items, NOT traits |
 | **Ability Scores** | 3-18 with modifiers | Six Traits with direct modifiers (+2 to -1) |
 | **GM Resources** | None tracked | Fear tokens (max 12) fuel GM moves |
 | **Success/Failure** | Binary (hit or miss) | Five outcomes based on total AND which die was higher |
@@ -70,7 +70,7 @@ The player character sheet uses the template from `dh-players/references/sheet-t
 | Knowledge | [+2/+1/+0/-1] |
 
 ## Combat Stats
-- **Evasion**: [Class base only - not modified by traits]
+- **Evasion**: [Class base, modified by features/items, NOT by traits]
 - **Hit Points**: ○○○○○○ (6 slots)
 - **Stress**: ○○○○○○ (6 slots)
 - **Armor Score**: [Value]

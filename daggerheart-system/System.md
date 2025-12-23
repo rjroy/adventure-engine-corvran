@@ -142,7 +142,7 @@ Armor provides:
 
 Evasion represents how hard you are to hit.
 
-**Evasion = Class Base only** (not modified by traits)
+**Evasion = Class Base**, modified by ancestry, subclass features, armor, weapons, magic items, etc. **NOT modified by traits.**
 
 Attackers must meet or exceed your Evasion with their attack roll to hit you.
 
