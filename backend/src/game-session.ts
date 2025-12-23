@@ -5,16 +5,16 @@
 import type { WSContext } from "hono/ws";
 import { logger, type Logger } from "./logger";
 import { randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import type { SDKAssistantMessageError } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKAssistantMessageError, HookJSONOutput, HookInput } from "@anthropic-ai/claude-agent-sdk";
 import { AdventureStateManager } from "./adventure-state";
 import type { AdventureState } from "./types/state";
 import type { ServerMessage, NarrativeEntry, ThemeMood, Genre, Region, XpStyle, HistorySummary } from "./types/protocol";
-import { buildGMSystemPrompt, createGMMcpServerWithCallbacks, type GMMcpCallbacks, type CreatePanelInput } from "./gm-prompt";
+import { buildGMSystemPrompt, createGMMcpServerWithCallbacks, type GMMcpCallbacks } from "./gm-prompt";
 import { PlayerManager } from "./player-manager";
 import { WorldManager } from "./world-manager";
-import { PanelManager } from "./services/panel-manager";
 import {
   mapSDKError,
   mapGenericError,
@@ -33,6 +33,11 @@ import { env } from "./env";
 import { mockQuery } from "./mock-sdk";
 import type { BackgroundImageService } from "./services/background-image";
 import { sanitizePlayerInput } from "./validation";
+import {
+  parsePanelFile,
+  derivePanelId,
+  isPanelPath,
+} from "./services/panel-file-parser";
 
 // Check if we're in mock mode (for E2E testing)
 // Use function instead of const to check at runtime, avoiding module cache issues
@@ -77,10 +82,6 @@ function getToolDescription(toolName: string): string {
   if (toolName === "mcp__adventure-gm__set_world") return "Selecting world...";
   if (toolName === "mcp__adventure-gm__list_characters") return "Checking characters...";
   if (toolName === "mcp__adventure-gm__list_worlds") return "Checking worlds...";
-  if (toolName === "mcp__adventure-gm__create_panel") return "Updating display...";
-  if (toolName === "mcp__adventure-gm__update_panel") return "Updating display...";
-  if (toolName === "mcp__adventure-gm__dismiss_panel") return "Updating display...";
-  if (toolName === "mcp__adventure-gm__list_panels") return "Checking displays...";
 
   // File operations (state management)
   if (toolName === "Read") return "Consulting records...";
@@ -133,7 +134,6 @@ export class GameSession {
   private lastThemeChange: { mood: ThemeMood; timestamp: number } | null = null;
   private playerManager: PlayerManager | null = null;
   private worldManager: WorldManager | null = null;
-  private panelManager: PanelManager = new PanelManager();
 
   /** Track recovery attempts to prevent infinite loops */
   private recoveryAttempt = 0;
@@ -144,6 +144,18 @@ export class GameSession {
   private abortController: AbortController | null = null;
   /** Current message ID for abort handling (null when not processing) */
   private currentMessageId: string | null = null;
+
+  /**
+   * Panel validation errors to deliver to GM on next turn (REQ-F-26).
+   * Cleared after being included in system prompt.
+   */
+  private panelValidationErrors: string[] = [];
+
+  /**
+   * Set of known panel IDs sent to frontend.
+   * Used for delete detection (TASK-004).
+   */
+  private knownPanelIds: Set<string> = new Set();
 
   constructor(
     ws: WSContext,
@@ -231,27 +243,10 @@ export class GameSession {
           }
         }
       }
-    }
 
-    // Restore panels from saved state (REQ-F-13)
-    if (state?.panels && state.panels.length > 0) {
-      const restoredCount = this.panelManager.restore(state.panels);
-      logger.debug(
-        {
-          totalPanels: state.panels.length,
-          restoredCount,
-          adventureId: state.id,
-        },
-        "Restored persistent panels from state"
-      );
-
-      // Emit panel_create messages for each restored panel to sync frontend
-      const restoredPanels = this.panelManager.list();
-      for (const panel of restoredPanels) {
-        this.sendMessage({
-          type: "panel_create",
-          payload: panel,
-        });
+      // Scan for existing panel files and restore them (REQ-F-16)
+      if (state.playerRef) {
+        this.scanExistingPanels(state.playerRef, logger);
       }
     }
 
@@ -605,7 +600,31 @@ export class GameSession {
     }
 
     // Build system prompt from current adventure state
-    const systemPrompt = buildGMSystemPrompt(state);
+    let systemPrompt = buildGMSystemPrompt(state);
+
+    // Prepend panel validation errors if any exist (REQ-F-26)
+    if (this.panelValidationErrors.length > 0) {
+      const errorSection = [
+        "## Panel Validation Errors",
+        "",
+        "The following panel file operations failed validation:",
+        ...this.panelValidationErrors.map((e) => `- ${e}`),
+        "",
+        "Please correct these files and try again.",
+        "",
+        "---",
+        "",
+      ].join("\n");
+
+      systemPrompt = errorSection + systemPrompt;
+
+      // Clear errors after including them
+      log.info(
+        { errorCount: this.panelValidationErrors.length },
+        "Including panel validation errors in system prompt"
+      );
+      this.panelValidationErrors = [];
+    }
 
     // Use mock SDK for E2E testing
     if (useMockSDK()) {
@@ -780,76 +799,6 @@ export class GameSession {
         log.debug({ count: worlds.length }, "list_worlds MCP callback completed");
         return worlds;
       },
-      // Create panel callback
-      onCreatePanel: (input: CreatePanelInput) => {
-        log.debug({ id: input.id, position: input.position }, "create_panel MCP callback invoked");
-        const result = this.panelManager.create(input);
-        if (!result.success) {
-          log.warn({ id: input.id, error: result.error }, "create_panel MCP callback failed");
-          return Promise.resolve({ success: false as const, error: result.error });
-        }
-        // Emit panel_create WebSocket message
-        this.sendMessage(
-          {
-            type: "panel_create",
-            payload: result.data,
-          },
-          log
-        );
-        // Sync persistent panels to state (REQ-F-12)
-        void this.syncPanelsToState(log);
-        log.debug({ id: input.id }, "create_panel MCP callback completed successfully");
-        return Promise.resolve({ success: true as const, panel: result.data });
-      },
-      // Update panel callback
-      onUpdatePanel: (id: string, content: string) => {
-        log.debug({ id, contentLength: content.length }, "update_panel MCP callback invoked");
-        const result = this.panelManager.update({ id, content });
-        if (!result.success) {
-          log.warn({ id, error: result.error }, "update_panel MCP callback failed");
-          return Promise.resolve({ success: false as const, error: result.error });
-        }
-        // Emit panel_update WebSocket message
-        this.sendMessage(
-          {
-            type: "panel_update",
-            payload: { id, content },
-          },
-          log
-        );
-        // Sync persistent panels to state (REQ-F-12)
-        void this.syncPanelsToState(log);
-        log.debug({ id }, "update_panel MCP callback completed successfully");
-        return Promise.resolve({ success: true as const, panel: result.data });
-      },
-      // Dismiss panel callback
-      onDismissPanel: (id: string) => {
-        log.debug({ id }, "dismiss_panel MCP callback invoked");
-        const result = this.panelManager.dismiss(id);
-        if (!result.success) {
-          log.warn({ id, error: result.error }, "dismiss_panel MCP callback failed");
-          return Promise.resolve({ success: false as const, error: result.error });
-        }
-        // Emit panel_dismiss WebSocket message
-        this.sendMessage(
-          {
-            type: "panel_dismiss",
-            payload: { id },
-          },
-          log
-        );
-        // Sync persistent panels to state (REQ-F-12)
-        void this.syncPanelsToState(log);
-        log.debug({ id }, "dismiss_panel MCP callback completed successfully");
-        return Promise.resolve({ success: true as const, id });
-      },
-      // List panels callback
-      onListPanels: () => {
-        log.debug("list_panels MCP callback invoked");
-        const panels = this.panelManager.list();
-        log.debug({ count: panels.length }, "list_panels MCP callback completed");
-        return Promise.resolve(panels);
-      },
     };
     const gmMcpServer = createGMMcpServerWithCallbacks(callbacks);
 
@@ -859,7 +808,6 @@ export class GameSession {
     // - set_theme for UI visual updates
     // - set_xp_style for saving player's XP preference
     // - Character/world management tools for multi-adventure support
-    // - Panel tools for info display windows
     const allowedTools = [
       "Skill",
       "Read",
@@ -873,10 +821,6 @@ export class GameSession {
       "mcp__adventure-gm__set_world",
       "mcp__adventure-gm__list_characters",
       "mcp__adventure-gm__list_worlds",
-      "mcp__adventure-gm__create_panel",
-      "mcp__adventure-gm__update_panel",
-      "mcp__adventure-gm__dismiss_panel",
-      "mcp__adventure-gm__list_panels",
     ];
 
     // Query Claude Agent SDK with resume for conversation continuity
@@ -896,6 +840,25 @@ export class GameSession {
         model: "claude-sonnet-4-5", // Use latest Sonnet for quality
         maxTurns: 40, // Allow extensive world creation + narrative
         maxThinkingTokens: 1024, // Allow detailed tool reasoning
+        // PostToolUse hook for detecting panel file operations (REQ-F-8, REQ-F-9, REQ-F-10)
+        hooks: {
+          PostToolUse: [
+            {
+              // Match Write and Bash tools (panel file operations)
+              hooks: [
+                (
+                  hookInput: HookInput,
+                  _toolUseId: string | undefined,
+                  _options: { signal: AbortSignal }
+                ): Promise<HookJSONOutput> => {
+                  // Synchronous handler wrapped in Promise for SDK hook interface
+                  return Promise.resolve(this.handlePostToolUse(hookInput, log));
+                },
+              ],
+              timeout: 5, // 5 second timeout for hook execution
+            },
+          ],
+        },
       },
     });
 
@@ -1213,29 +1176,6 @@ export class GameSession {
   }
 
   /**
-   * Synchronize persistent panels from PanelManager to AdventureStateManager.
-   * Runs asynchronously without blocking callback return.
-   * Only persistent panels are saved per REQ-F-11, REQ-F-12.
-   * @param requestLogger Optional request-scoped logger for log correlation
-   */
-  private async syncPanelsToState(requestLogger?: Logger): Promise<void> {
-    const log = requestLogger ?? logger;
-
-    try {
-      const persistentPanels = this.panelManager.getPersistent();
-      await this.stateManager.setPanels(persistentPanels);
-
-      log.debug(
-        { panelCount: persistentPanels.length },
-        "Synced persistent panels to state"
-      );
-    } catch (error) {
-      // Non-fatal: log but don't throw to avoid disrupting gameplay
-      log.error({ err: error }, "Failed to sync panels to state");
-    }
-  }
-
-  /**
    * Handle set_xp_style tool call from GM
    * Persists the player's XP style preference to adventure state
    * @param xpStyle The player's chosen XP style
@@ -1533,6 +1473,367 @@ After updating the files, respond with a brief confirmation (1-2 sentences) of w
       log.error({ err: error }, "Forced state save failed");
       // Don't throw - compaction can still proceed, we just might lose some detail
     }
+  }
+
+  /**
+   * Handle PostToolUse hook for panel file operations (REQ-F-8, REQ-F-9, REQ-F-10).
+   *
+   * Detects panel file writes and deletes via the SDK's PostToolUse hook:
+   * - Write tool calls matching `{playerRef}/panels/*.md` trigger panel_create/update
+   * - Bash `rm` commands targeting panel files trigger panel_dismiss
+   *
+   * Invalid frontmatter is logged as warning and panel is skipped (REQ-F-25).
+   * Validation errors are stored for delivery to GM next turn (REQ-F-26).
+   *
+   * @param input - Hook input from SDK (narrowed from HookInput after event check)
+   * @param log - Logger for correlation
+   * @returns HookJSONOutput indicating whether to continue
+   */
+  private handlePostToolUse(
+    input: HookInput,
+    log: Logger
+  ): HookJSONOutput {
+    // Type guard - should always be PostToolUse due to hook registration
+    if (input.hook_event_name !== "PostToolUse") {
+      return { continue: true };
+    }
+
+    const { tool_name, tool_input } = input;
+
+    // Log every hook call for debugging
+    log.debug(
+      { tool_name, tool_input: typeof tool_input === "object" ? JSON.stringify(tool_input).slice(0, 200) : tool_input },
+      "PostToolUse hook fired"
+    );
+
+    const state = this.stateManager.getState();
+    const playerRef = state?.playerRef;
+
+    // Skip if no player ref set (panels directory unknown)
+    if (!playerRef || !this.projectDirectory) {
+      log.debug({ playerRef, projectDirectory: this.projectDirectory }, "Skipping PostToolUse - no playerRef or projectDirectory");
+      return { continue: true };
+    }
+
+    // Handle Write tool - check if writing to panel file
+    if (tool_name === "Write") {
+      const writeInput = tool_input as { file_path?: string; content?: string };
+      const filePath = writeInput.file_path;
+
+      if (filePath) {
+        const isPanel = isPanelPath(filePath, playerRef);
+        log.debug({ filePath, playerRef, isPanel }, "Checking Write tool path");
+        if (isPanel) {
+          log.info({ filePath }, "Panel file write detected - processing");
+          this.handlePanelFileWrite(filePath, log);
+        }
+      }
+    }
+
+    // Handle Bash tool - check for rm commands and verify filesystem state
+    if (tool_name === "Bash") {
+      const bashInput = tool_input as { command?: string };
+      const command = bashInput.command;
+
+      if (command) {
+        // Match rm commands targeting panel files
+        // Patterns: rm path, rm -f path, rm -rf path, etc.
+        const rmMatch = command.match(/\brm\s+(?:-[rfiv]+\s+)?([^\s;|&]+)/);
+        if (rmMatch) {
+          const targetPath = rmMatch[1];
+          // Check if it looks like a panel path
+          if (targetPath && isPanelPath(targetPath, playerRef)) {
+            log.debug({ targetPath, command }, "Panel file rm command detected");
+            this.handlePanelFileDelete(targetPath, log);
+          }
+        }
+
+        // Verify filesystem state for all known panels (TASK-004 criteria 4 & 5)
+        // This handles edge cases like `rm -rf panels/`, `find ... -delete`, etc.
+        if (command.includes("panels") || command.includes("rm") || command.includes("delete") || command.includes("mv")) {
+          this.verifyPanelFilesystemState(playerRef, log);
+        }
+      }
+    }
+
+    return { continue: true };
+  }
+
+  /**
+   * Verify that all known panels still exist on disk.
+   * Emits panel_dismiss for any panels that have been removed (TASK-004).
+   *
+   * @param playerRef - Player reference path (e.g., "players/kael-thouls")
+   * @param log - Logger for correlation
+   */
+  private verifyPanelFilesystemState(playerRef: string, log: Logger): void {
+    if (!this.projectDirectory || this.knownPanelIds.size === 0) {
+      return;
+    }
+
+    const panelsDir = join(this.projectDirectory, playerRef, "panels");
+    const deletedPanels: string[] = [];
+
+    for (const panelId of this.knownPanelIds) {
+      const panelPath = join(panelsDir, `${panelId}.md`);
+      if (!existsSync(panelPath)) {
+        deletedPanels.push(panelId);
+      }
+    }
+
+    // Emit panel_dismiss for deleted panels
+    for (const panelId of deletedPanels) {
+      log.debug({ panelId }, "Panel file no longer exists on disk");
+      this.sendMessage(
+        {
+          type: "panel_dismiss",
+          payload: { id: panelId },
+        },
+        log
+      );
+      this.knownPanelIds.delete(panelId);
+    }
+
+    if (deletedPanels.length > 0) {
+      log.info(
+        { deletedCount: deletedPanels.length, deletedPanels },
+        "Detected deleted panels via filesystem verification"
+      );
+    }
+  }
+
+  /**
+   * Handle a panel file write operation.
+   * Reads the file, parses frontmatter, and emits panel_create or panel_update.
+   *
+   * @param filePath - Path to the written panel file
+   * @param log - Logger for correlation
+   */
+  private handlePanelFileWrite(filePath: string, log: Logger): void {
+    // Derive panel ID from filename
+    const idResult = derivePanelId(filePath);
+    if (!idResult.success) {
+      log.warn({ filePath, error: idResult.error }, "Invalid panel file name");
+      this.panelValidationErrors.push(
+        `Panel file validation failed: ${filePath} - ${idResult.error}`
+      );
+      return;
+    }
+    const panelId = idResult.id;
+
+    // Construct absolute path if needed
+    const absolutePath = filePath.startsWith("/")
+      ? filePath
+      : join(this.projectDirectory!, filePath);
+
+    // Read the file content
+    let content: string;
+    try {
+      content = readFileSync(absolutePath, "utf-8");
+    } catch (error) {
+      log.warn({ filePath, err: error }, "Failed to read panel file");
+      this.panelValidationErrors.push(
+        `Panel file validation failed: ${filePath} - Could not read file`
+      );
+      return;
+    }
+
+    // Parse frontmatter
+    const parseResult = parsePanelFile(content);
+    if (!parseResult.success) {
+      log.warn({ filePath, error: parseResult.error }, "Invalid panel frontmatter");
+      this.panelValidationErrors.push(
+        `Panel file validation failed: ${filePath} - ${parseResult.error}`
+      );
+      return;
+    }
+
+    const { frontmatter, body } = parseResult.data;
+
+    // Get file creation time for ordering (REQ-F-14)
+    let createdAt: string;
+    try {
+      const stats = statSync(absolutePath);
+      createdAt = stats.birthtime.toISOString();
+    } catch {
+      createdAt = new Date().toISOString();
+    }
+
+    // Check if this is a new panel or an update
+    const isNewPanel = !this.knownPanelIds.has(panelId);
+
+    if (isNewPanel) {
+      // Emit panel_create with full Panel object
+      const panel = {
+        id: panelId,
+        title: frontmatter.title,
+        content: body,
+        position: frontmatter.position,
+        priority: frontmatter.priority, // For frontend priority-based sorting (REQ-F-13)
+        persistent: true, // All file-based panels are persistent (REQ-F-11)
+        createdAt,
+      };
+
+      this.sendMessage(
+        {
+          type: "panel_create",
+          payload: panel,
+        },
+        log
+      );
+
+      // Track as known panel
+      this.knownPanelIds.add(panelId);
+      log.debug({ panelId, position: frontmatter.position }, "Panel created from file");
+    } else {
+      // Emit panel_update with just id and content
+      this.sendMessage(
+        {
+          type: "panel_update",
+          payload: { id: panelId, content: body },
+        },
+        log
+      );
+
+      log.debug({ panelId }, "Panel updated from file");
+    }
+  }
+
+  /**
+   * Handle a panel file delete operation.
+   * Emits panel_dismiss for the deleted panel.
+   *
+   * @param filePath - Path to the deleted panel file
+   * @param log - Logger for correlation
+   */
+  private handlePanelFileDelete(filePath: string, log: Logger): void {
+    // Derive panel ID from filename
+    const idResult = derivePanelId(filePath);
+    if (!idResult.success) {
+      log.warn({ filePath, error: idResult.error }, "Invalid panel file name for delete");
+      return;
+    }
+    const panelId = idResult.id;
+
+    // Only emit dismiss if we know about this panel
+    if (!this.knownPanelIds.has(panelId)) {
+      log.debug({ panelId }, "Panel delete ignored - not in known panels");
+      return;
+    }
+
+    // Emit panel_dismiss
+    this.sendMessage(
+      {
+        type: "panel_dismiss",
+        payload: { id: panelId },
+      },
+      log
+    );
+
+    // Remove from known panels
+    this.knownPanelIds.delete(panelId);
+    log.debug({ panelId }, "Panel dismissed from file delete");
+  }
+
+  /**
+   * Scan existing panel files and emit panel_create messages (REQ-F-16).
+   * Called during session initialization to restore panels on reconnect/reload.
+   *
+   * @param playerRef - Player reference path (e.g., "players/theron-ashwind")
+   * @param log - Logger for correlation
+   */
+  private scanExistingPanels(playerRef: string, log: Logger): void {
+    if (!this.projectDirectory) {
+      return;
+    }
+
+    const panelsDir = join(this.projectDirectory, playerRef, "panels");
+
+    // Check if panels directory exists
+    if (!existsSync(panelsDir)) {
+      log.debug({ panelsDir }, "Panels directory does not exist, skipping scan");
+      return;
+    }
+
+    // Read all .md files in the panels directory
+    let files: string[];
+    try {
+      files = readdirSync(panelsDir).filter(f => f.endsWith(".md"));
+    } catch (error) {
+      log.warn({ panelsDir, err: error }, "Failed to read panels directory");
+      return;
+    }
+
+    if (files.length === 0) {
+      log.debug({ panelsDir }, "No panel files found");
+      return;
+    }
+
+    log.info({ panelsDir, fileCount: files.length }, "Scanning existing panel files");
+
+    for (const file of files) {
+      const filePath = join(panelsDir, file);
+
+      // Derive panel ID from filename
+      const idResult = derivePanelId(filePath);
+      if (!idResult.success) {
+        log.warn({ filePath, error: idResult.error }, "Invalid panel file name during scan");
+        continue;
+      }
+      const panelId = idResult.id;
+
+      // Read file content
+      let content: string;
+      try {
+        content = readFileSync(filePath, "utf-8");
+      } catch (error) {
+        log.warn({ filePath, err: error }, "Failed to read panel file during scan");
+        continue;
+      }
+
+      // Parse frontmatter
+      const parseResult = parsePanelFile(content);
+      if (!parseResult.success) {
+        log.warn({ filePath, error: parseResult.error }, "Invalid panel frontmatter during scan");
+        continue;
+      }
+
+      const { frontmatter, body } = parseResult.data;
+
+      // Get file creation time for ordering
+      let createdAt: string;
+      try {
+        const stats = statSync(filePath);
+        createdAt = stats.birthtime.toISOString();
+      } catch {
+        createdAt = new Date().toISOString();
+      }
+
+      // Emit panel_create
+      const panel = {
+        id: panelId,
+        title: frontmatter.title,
+        content: body,
+        position: frontmatter.position,
+        priority: frontmatter.priority,
+        persistent: true,
+        createdAt,
+      };
+
+      this.sendMessage(
+        {
+          type: "panel_create",
+          payload: panel,
+        },
+        log
+      );
+
+      // Track as known panel
+      this.knownPanelIds.add(panelId);
+      log.debug({ panelId, position: frontmatter.position }, "Panel restored from file");
+    }
+
+    log.info({ panelCount: this.knownPanelIds.size }, "Panel scan complete");
   }
 
   /**

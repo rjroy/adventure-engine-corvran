@@ -4,7 +4,7 @@
 import { mkdir, writeFile, readFile, rename, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import type { NarrativeEntry, XpStyle, Panel } from "../../shared/protocol";
+import type { NarrativeEntry, XpStyle } from "../../shared/protocol";
 import type {
   AdventureState,
   NarrativeHistory,
@@ -66,8 +66,6 @@ export class AdventureStateManager {
       // Character/world references (null = GM will prompt for selection)
       playerRef: null,
       worldRef: null,
-      // Info panels (initialized empty, populated via MCP tools)
-      panels: [],
     };
 
     this.history = { entries: [] };
@@ -141,11 +139,6 @@ export class AdventureStateManager {
       };
     }
 
-    // Migrate old states without panels field (REQ-F-13)
-    if (!this.state.panels) {
-      this.state.panels = [];
-    }
-
     // Validate session token
     if (this.state.sessionToken !== sessionToken) {
       this.state = null;
@@ -197,7 +190,6 @@ export class AdventureStateManager {
   /**
    * Save current state to filesystem using atomic write
    * Writes to temp file first, then renames to prevent corruption
-   * Filters out non-persistent panels before saving (REQ-F-12)
    */
   async save(): Promise<void> {
     if (!this.state) {
@@ -216,17 +208,11 @@ export class AdventureStateManager {
     // Update last active timestamp
     this.state.lastActiveAt = new Date().toISOString();
 
-    // Create state for persistence with only persistent panels (REQ-F-11, REQ-F-12)
-    const stateToSave: AdventureState = {
-      ...this.state,
-      panels: this.state.panels?.filter((p) => p.persistent) ?? [],
-    };
-
     try {
       // Atomic write for state.json (mode 0o600 = owner read/write only)
       await writeFile(
         stateTempPath,
-        JSON.stringify(stateToSave, null, 2),
+        JSON.stringify(this.state, null, 2),
         { encoding: "utf-8", mode: 0o600 }
       );
       await rename(stateTempPath, statePath);
@@ -491,28 +477,6 @@ export class AdventureStateManager {
     }
 
     this.state.worldRef = ref;
-    await this.save();
-  }
-
-  /**
-   * Get all active panels
-   * @returns Array of active panels (may include both persistent and non-persistent)
-   */
-  getPanels(): Panel[] {
-    return this.state?.panels ?? [];
-  }
-
-  /**
-   * Set the panels array (replaces all panels)
-   * Used by PanelManager for atomic updates
-   * @param panels New panels array
-   */
-  async setPanels(panels: Panel[]): Promise<void> {
-    if (!this.state) {
-      throw new Error("No state loaded - call create() or load() first");
-    }
-
-    this.state.panels = panels;
     await this.save();
   }
 
