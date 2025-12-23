@@ -38,41 +38,50 @@ Example: Protects its lair at all costs. Opens with ranged attacks, closes to me
 
 > **Difficulty:** [N] | **Thresholds:** [Major]/[Severe] | **HP:** [N] | **Stress:** [N]
 <!--
-Difficulty: Target number to hit this adversary (10-26 based on Tier)
+Difficulty: Target number to hit this adversary (fixed per Tier)
 Thresholds: Damage needed for Major (mark 2 HP) and Severe (mark 3 HP)
-HP: Number of HP slots (3-30+ based on Tier and Type)
-Stress: Stress capacity (2-12 based on Tier)
+HP: Number of HP slots (varies by Type)
+Stress: Stress capacity (varies by adversary)
 
-Benchmark by Tier:
-| Tier | Difficulty | Major | Severe | HP | Stress |
-|------|------------|-------|--------|-----|--------|
-| 1    | 10-14      | 5-8   | 10-14  | 3-8 | 2-4    |
-| 2    | 14-18      | 8-12  | 14-20  | 6-12| 4-6    |
-| 3    | 18-22      | 12-16 | 20-26  | 10-18| 6-9   |
-| 4    | 22-26      | 16-22 | 26-34  | 15-30| 9-12  |
+SRD Benchmarks by Tier:
+| Tier | Difficulty | Major | Severe |
+|------|------------|-------|--------|
+| 1    | 11         | 7     | 12     |
+| 2    | 14         | 10    | 20     |
+| 3    | 17         | 20    | 32     |
+| 4    | 20         | 25    | 45     |
 -->
 
 > **ATK:** +[N] | **[Attack Name]:** [Range] | [Damage] [type]
 <!--
-ATK: Attack modifier (+3 to +8 based on Tier)
+ATK: Attack modifier (+1 to +4 based on Tier)
+  Tier 1: +1 | Tier 2: +2 | Tier 3: +3 | Tier 4: +4
 Attack Name: Descriptive name (Claw, Blade, Poison Spit, etc.)
 Range: One of:
-  - Melee (adjacent)
-  - Close (within 10 ft / 2 spaces)
-  - Far (within 60 ft / 12 spaces)
-  - Very Far (beyond 60 ft)
-Damage: Dice expression (1d6, 2d8+2, etc.)
+  - Very Close (adjacent)
+  - Close (short distance)
+  - Far (long distance)
+  - Very Far (extreme distance)
+Damage: Dice expression based on Tier:
+  Tier 1: 1d6+2 to 1d12+4
+  Tier 2: 2d6+3 to 2d12+4
+  Tier 3: 3d8+3 to 3d12+5
+  Tier 4: 4d8+10 to 4d12+15
 Type: Physical or Magic
 
-Example: ATK: +4 | Rusted Blade: Melee | 1d8+2 physical
+Example: ATK: +1 | Rusted Blade: Very Close | 1d8+2 physical
 -->
 
-> **Experience:** [Name] +[N]
+> **Experience:** [Name]
 <!--
-OPTIONAL: Include if the adversary has expertise relevant to certain checks.
-Experience Name: Brief description of expertise
-Modifier: +1 to +3
-Example: Experience: Ambush Hunter +2
+OPTIONAL: Include if the adversary has expertise.
+Experience Name: Brief description of expertise (e.g., Ambusher, Intimidation, Stealth)
+
+TO USE: GM spends a Fear to add the Experience bonus to:
+  - An attack roll, OR
+  - Increase the Difficulty of a roll made against the adversary
+
+Example: Experience: Ambush Hunter
 
 REMOVE this line if no Experience.
 -->
@@ -130,40 +139,38 @@ Examples:
 
 ## Quick Reference Tables
 
-### Tier Benchmarks
+### Tier Benchmarks (SRD)
 
-| Tier | Difficulty | Major | Severe | HP | Stress | ATK |
-|------|------------|-------|--------|-----|--------|-----|
-| 1 | 10-14 | 5-8 | 10-14 | 3-8 | 2-4 | +3-4 |
-| 2 | 14-18 | 8-12 | 14-20 | 6-12 | 4-6 | +4-5 |
-| 3 | 18-22 | 12-16 | 20-26 | 10-18 | 6-9 | +5-7 |
-| 4 | 22-26 | 16-22 | 26-34 | 15-30 | 9-12 | +7-8 |
+| Tier | Difficulty | Major | Severe | ATK | Damage Dice |
+|------|------------|-------|--------|-----|-------------|
+| 1 | 11 | 7 | 12 | +1 | 1d6+2 to 1d12+4 |
+| 2 | 14 | 10 | 20 | +2 | 2d6+3 to 2d12+4 |
+| 3 | 17 | 20 | 32 | +3 | 3d8+3 to 3d12+5 |
+| 4 | 20 | 25 | 45 | +4 | 4d8+10 to 4d12+15 |
 
-### Type Modifiers
+### Type Notes
 
-Adjust base Tier values based on Type:
-
-| Type | HP Adjustment | Notes |
-|------|---------------|-------|
-| Bruiser | +50% | Higher thresholds |
-| Horde | -50% each | Group mechanics |
-| Leader | Standard | Has buff Features |
-| Minion | 1-3 HP only | No Stress |
-| Ranged | -25% | Ranged attacks |
-| Skulk | -25% | Stealth bonuses |
-| Social | -50% | Non-combat focus |
-| Solo | +100% | Multiple actions |
-| Standard | Standard | Baseline |
-| Support | -25% | Has heal/buff Features |
+| Type | Key Trait |
+|------|-----------|
+| Bruiser | Tough, powerful attacks |
+| Horde | Group acting as single unit |
+| Leader | Commands and summons others |
+| Minion | Defeated on any damage (Minion passive) |
+| Ranged | High damage at range, fragile up close |
+| Skulk | Ambush and exploit opportunities |
+| Social | Conversation challenges, weak combat |
+| Solo | Formidable against whole party |
+| Standard | Representative of fictional group |
+| Support | Enhances allies, disrupts opponents |
 
 ### Attack Range Reference
 
-| Range | Distance | Typical For |
-|-------|----------|-------------|
-| Melee | Adjacent | Bruisers, most creatures |
-| Close | ~10 ft / 2 spaces | Short thrown, breath weapons |
-| Far | ~60 ft / 12 spaces | Bows, most spells |
-| Very Far | 60+ ft | Siege, powerful magic |
+| Range | Typical For |
+|-------|-------------|
+| Very Close | Melee attacks, most creatures |
+| Close | Short thrown, breath weapons |
+| Far | Bows, most spells |
+| Very Far | Siege, powerful magic |
 
 ---
 
