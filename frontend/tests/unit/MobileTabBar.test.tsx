@@ -1,6 +1,6 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { MobileTabBar } from "../../src/components/MobileTabBar";
 import { PanelProvider, usePanels } from "../../src/contexts/PanelContext";
 import type { Panel } from "../../src/types/protocol";
@@ -11,6 +11,25 @@ function createWrapper() {
   return ({ children }: { children: ReactNode }) => (
     <PanelProvider>{children}</PanelProvider>
   );
+}
+
+// Helper component that adds panels before rendering
+function WithPanels({
+  panels,
+  children,
+}: {
+  panels: Panel[];
+  children: ReactNode;
+}) {
+  const { addPanel } = usePanels();
+
+  useEffect(() => {
+    for (const panel of panels) {
+      addPanel(panel);
+    }
+  }, [addPanel, panels]);
+
+  return <>{children}</>;
 }
 
 // Helper to create a test panel
@@ -117,11 +136,21 @@ describe("MobileTabBar", () => {
     });
 
     test("shows badge with panel count when sidebar panels exist", () => {
-      // Note: Testing badge rendering with panels requires a combined wrapper approach
-      // that shares context between hook and render. This is tested implicitly
-      // through the nonHeaderPanelCount tests below and would require an integration test
-      // for full E2E verification of badge visibility.
-      expect(true).toBe(true); // Placeholder - badge logic tested via nonHeaderPanelCount
+      const panels = [
+        createTestPanel({ id: "sidebar-1", position: "sidebar" }),
+        createTestPanel({ id: "sidebar-2", position: "sidebar" }),
+      ];
+
+      render(
+        <PanelProvider>
+          <WithPanels panels={panels}>
+            <MobileTabBar />
+          </WithPanels>
+        </PanelProvider>
+      );
+
+      expect(screen.getByLabelText("2 panels")).toBeInTheDocument();
+      expect(screen.getByLabelText("2 panels")).toHaveTextContent("2");
     });
 
     test("badge excludes header panels from count", () => {

@@ -5,6 +5,7 @@ import {
   SidebarPanelZone,
   HeaderPanelZone,
   OverlayPanelContainer,
+  MobilePanelView,
 } from "../../src/components/PanelZones";
 import { PanelProvider, usePanels } from "../../src/contexts/PanelContext";
 import type { Panel } from "../../src/types/protocol";
@@ -39,6 +40,43 @@ function PanelSetup({
   }, [addPanel, panels]);
 
   return <>{children}</>;
+}
+
+// Helper component that adds panels and sets mobile tab
+function MobilePanelSetup({
+  panels,
+  mobileTab,
+  children,
+}: {
+  panels: Panel[];
+  mobileTab: "story" | "panels";
+  children: ReactNode;
+}) {
+  const { addPanel, setMobileTab } = usePanels();
+
+  useEffect(() => {
+    setMobileTab(mobileTab);
+    for (const panel of panels) {
+      addPanel(panel);
+    }
+  }, [addPanel, setMobileTab, mobileTab, panels]);
+
+  return <>{children}</>;
+}
+
+// Helper to render with providers and mobile tab setup
+function renderWithMobileTab(
+  panels: Panel[],
+  mobileTab: "story" | "panels",
+  ui: ReactNode
+) {
+  return render(
+    <PanelProvider>
+      <MobilePanelSetup panels={panels} mobileTab={mobileTab}>
+        {ui}
+      </MobilePanelSetup>
+    </PanelProvider>
+  );
 }
 
 // Helper to render with providers and panel setup
@@ -492,5 +530,148 @@ describe("Panel content rendering", () => {
     expect(screen.getByText("Weather")).toBeInTheDocument();
     expect(document.querySelector("strong")).toHaveTextContent("Sunny");
     expect(document.querySelector("em")).toHaveTextContent("light breeze");
+  });
+});
+
+describe("MobilePanelView", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe("visibility based on mobileTab", () => {
+    test("renders nothing when mobileTab is 'story'", () => {
+      const panel = createTestPanel({ id: "sidebar-1", position: "sidebar" });
+      renderWithMobileTab([panel], "story", <MobilePanelView />);
+
+      expect(screen.queryByTestId("panel-zone-mobile")).not.toBeInTheDocument();
+    });
+
+    test("renders when mobileTab is 'panels'", () => {
+      const panel = createTestPanel({ id: "sidebar-1", position: "sidebar" });
+      renderWithMobileTab([panel], "panels", <MobilePanelView />);
+
+      expect(screen.getByTestId("panel-zone-mobile")).toBeInTheDocument();
+    });
+  });
+
+  describe("empty state", () => {
+    test("shows empty message when no non-header panels exist", () => {
+      renderWithMobileTab([], "panels", <MobilePanelView />);
+
+      expect(screen.getByTestId("panel-zone-mobile")).toBeInTheDocument();
+      expect(screen.getByText("No panels active")).toBeInTheDocument();
+    });
+
+    test("shows empty message when only header panels exist", () => {
+      const headerPanel = createTestPanel({ id: "header-1", position: "header" });
+      renderWithMobileTab([headerPanel], "panels", <MobilePanelView />);
+
+      expect(screen.getByText("No panels active")).toBeInTheDocument();
+    });
+  });
+
+  describe("panel filtering", () => {
+    test("displays sidebar panels", () => {
+      const panel = createTestPanel({
+        id: "sidebar-1",
+        title: "Sidebar Panel",
+        position: "sidebar",
+      });
+      renderWithMobileTab([panel], "panels", <MobilePanelView />);
+
+      expect(screen.getByText("Sidebar Panel")).toBeInTheDocument();
+    });
+
+    test("displays overlay panels", () => {
+      const panel = createTestPanel({
+        id: "overlay-1",
+        title: "Overlay Panel",
+        position: "overlay",
+      });
+      renderWithMobileTab([panel], "panels", <MobilePanelView />);
+
+      expect(screen.getByText("Overlay Panel")).toBeInTheDocument();
+    });
+
+    test("excludes header panels", () => {
+      const sidebarPanel = createTestPanel({
+        id: "sidebar-1",
+        title: "Sidebar Panel",
+        position: "sidebar",
+        createdAt: "2025-01-01T00:00:00Z",
+      });
+      const headerPanel = createTestPanel({
+        id: "header-1",
+        title: "Header Panel",
+        position: "header",
+        createdAt: "2025-01-01T00:00:01Z",
+      });
+      const overlayPanel = createTestPanel({
+        id: "overlay-1",
+        title: "Overlay Panel",
+        position: "overlay",
+        createdAt: "2025-01-01T00:00:02Z",
+      });
+
+      renderWithMobileTab(
+        [sidebarPanel, headerPanel, overlayPanel],
+        "panels",
+        <MobilePanelView />
+      );
+
+      expect(screen.getByText("Sidebar Panel")).toBeInTheDocument();
+      expect(screen.getByText("Overlay Panel")).toBeInTheDocument();
+      expect(screen.queryByText("Header Panel")).not.toBeInTheDocument();
+    });
+
+    test("displays multiple non-header panels", () => {
+      const panels = [
+        createTestPanel({
+          id: "sidebar-1",
+          title: "First Sidebar",
+          position: "sidebar",
+          createdAt: "2025-01-01T00:00:00Z",
+        }),
+        createTestPanel({
+          id: "sidebar-2",
+          title: "Second Sidebar",
+          position: "sidebar",
+          createdAt: "2025-01-01T00:00:01Z",
+        }),
+        createTestPanel({
+          id: "overlay-1",
+          title: "Overlay",
+          position: "overlay",
+          createdAt: "2025-01-01T00:00:02Z",
+        }),
+      ];
+
+      renderWithMobileTab(panels, "panels", <MobilePanelView />);
+
+      expect(screen.getByText("First Sidebar")).toBeInTheDocument();
+      expect(screen.getByText("Second Sidebar")).toBeInTheDocument();
+      expect(screen.getByText("Overlay")).toBeInTheDocument();
+    });
+  });
+
+  describe("accessibility", () => {
+    test("has aria-label for screen readers", () => {
+      const panel = createTestPanel({ id: "sidebar-1", position: "sidebar" });
+      renderWithMobileTab([panel], "panels", <MobilePanelView />);
+
+      expect(screen.getByTestId("panel-zone-mobile")).toHaveAttribute(
+        "aria-label",
+        "Mobile panel view"
+      );
+    });
+
+    test("empty state has aria-label", () => {
+      renderWithMobileTab([], "panels", <MobilePanelView />);
+
+      expect(screen.getByTestId("panel-zone-mobile")).toHaveAttribute(
+        "aria-label",
+        "Mobile panel view"
+      );
+    });
   });
 });
