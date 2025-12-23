@@ -1,6 +1,6 @@
 ---
-version: 1.1.0
-status: Draft
+version: 1.2.0
+status: Approved
 created: 2025-12-23
 last_updated: 2025-12-23
 authored_by:
@@ -34,7 +34,7 @@ As a **developer**, I want fewer MCP tools to maintain, so that the codebase is 
 1. GM prompt panel instructions reduced by at least 50% in line count
 2. All four panel MCP tools (`create_panel`, `update_panel`, `dismiss_panel`, `list_panels`) removed
 3. Panel files with valid frontmatter render correctly in UI
-4. Panel file changes detected within 500ms of SDK file write event
+4. Panel file changes detected and processed after SDK file write events complete
 
 ## Functional Requirements
 
@@ -48,22 +48,22 @@ As a **developer**, I want fewer MCP tools to maintain, so that the codebase is 
 
 - **REQ-F-4**: Required frontmatter field `title` (string, max 64 chars)
 - **REQ-F-5**: Required frontmatter field `position` (enum: `sidebar`, `header`, `overlay`)
-- **REQ-F-6**: Optional frontmatter field `x` (number 0-100, overlay only)
-- **REQ-F-7**: Optional frontmatter field `y` (number 0-100, overlay only)
-- **REQ-F-8**: Panel content is markdown body after frontmatter (max 2KB)
+- **REQ-F-6**: Optional frontmatter field `priority` (enum: `low`, `medium`, `high`; default `medium`) - influences display when position limits exceeded
+- **REQ-F-7**: Panel content is markdown body after frontmatter (guideline: aim for <50 lines; no hard limit)
 
 ### Change Detection
 
-- **REQ-F-9**: Server monitors SDK file write events for `{playerRef}/panels/*.md`
-- **REQ-F-10**: On file create/update, parse frontmatter and send `panel_create` or `panel_update` WebSocket message
-- **REQ-F-11**: On file delete, send `panel_dismiss` WebSocket message
+- **REQ-F-8**: Server monitors SDK file write events for `{playerRef}/panels/*.md`
+- **REQ-F-9**: On file create/update, parse frontmatter and send `panel_create` or `panel_update` WebSocket message
+- **REQ-F-10**: On file delete, send `panel_dismiss` WebSocket message
 
 ### Panel Lifecycle
 
-- **REQ-F-12**: All file-based panels are persistent (no non-persistent concept)
-- **REQ-F-13**: Panel limit of 5 concurrent panels enforced by server
-- **REQ-F-14**: If 6th panel file created, server sends error via tool result
-- **REQ-F-15**: Panel ordering determined by file modification time (oldest first)
+- **REQ-F-11**: All file-based panels are persistent (no non-persistent concept)
+- **REQ-F-12**: Position-based panel limits enforced by frontend: 2 sidebar, 2 header, 1 overlay (5 total)
+- **REQ-F-13**: When position limit exceeded, `priority` field determines which panels display (high > medium > low)
+- **REQ-F-14**: Panel ordering within same priority determined by file modification time (oldest first)
+- **REQ-F-15**: Panels exceeding position limits remain as files but are hidden from display (user can toggle visibility in future)
 
 ### MCP Tool Removal
 
@@ -78,23 +78,22 @@ As a **developer**, I want fewer MCP tools to maintain, so that the codebase is 
 - **REQ-F-21**: Update GM prompt panel section to document file-based approach
 - **REQ-F-22**: Remove panel tool documentation from GM prompt
 - **REQ-F-23**: Add frontmatter schema example to GM prompt
+- **REQ-F-24**: Rewrite panel patterns skill at `corvran/skills/panel-patterns` for file-based approach
 
-### Error Handling
+### Validation Feedback
 
-- **REQ-F-24**: When panel file validation fails, return descriptive error message via SDK tool result
-- **REQ-F-25**: Content exceeding 2KB is rejected with error (not truncated)
-- **REQ-F-26**: Title exceeding 64 chars is rejected with error
+- **REQ-F-25**: When panel file has invalid frontmatter, server logs warning and skips panel (does not crash)
+- **REQ-F-26**: When validation fails (missing fields, title >64 chars), GM notified via `query` tool in next turn
 - **REQ-F-27**: When multiple panels have identical modification times, ordering is lexicographic by filename
 
-### Edge Cases
+### Frontend Panel Display
 
-- **REQ-F-28**: Panel limit of 5 is per-adventure (all positions combined), not per-position
-- **REQ-F-29**: When 6th panel file is created, reject with specific error: "Maximum 5 panels active. Delete a panel file before creating new ones."
-- **REQ-F-30**: GM can list panels by reading the `{playerRef}/panels/` directory (no dedicated tool needed)
+- **REQ-F-28**: Panels rendered with fixed max dimensions and scrollable content area
+- **REQ-F-29**: GM can list panels by reading the `{playerRef}/panels/` directory (no dedicated tool needed)
 
 ## Non-Functional Requirements
 
-- **REQ-NF-1** (Performance): File change detection latency < 500ms from SDK event
+- **REQ-NF-1** (Performance): File change detection latency < 500ms from SDK event (aspirational; SDK timing not under our control)
 - **REQ-NF-2** (Reliability): Invalid frontmatter files logged and skipped (not crash)
 - **REQ-NF-3** (Maintainability): Panel file validation uses existing Zod schemas where possible
 - **REQ-NF-4** (Consistency): Panel WebSocket messages unchanged (frontend compatibility)
@@ -125,14 +124,14 @@ As a **developer**, I want fewer MCP tools to maintain, so that the codebase is 
 2. **Update Panel via File**: GM overwrites `{playerRef}/panels/weather.md` with new content → frontend updates panel content
 3. **Delete Panel via File**: GM deletes `{playerRef}/panels/weather.md` → frontend removes panel
 4. **Invalid Frontmatter**: GM writes panel file with missing `position` → server logs warning, panel not created
-5. **Panel Limit**: GM creates 6th panel file → server rejects with error message
-6. **Overlay Position**: GM creates panel with `position: overlay`, `x: 25`, `y: 75` → panel appears at 25% from left, 75% from top
+5. **Position Limit with Priority**: GM creates 3rd sidebar panel with `priority: high` → high-priority panel displays, lowest-priority sidebar panel hidden
+6. **Scrollable Content**: GM creates panel with 100+ lines of content → panel displays with scroll bar, content not truncated
 
 ## Open Questions
 
 All questions resolved:
 - ~~What is the exact SDK file event structure?~~ → SDK provides `PostToolUse` hook that fires after tool execution with tool name and arguments (including file path for Write tool)
-- ~~Should `list_panels` be replaced?~~ → No dedicated tool needed; GM reads `{playerRef}/panels/` directory directly (REQ-F-30)
+- ~~Should `list_panels` be replaced?~~ → No dedicated tool needed; GM reads `{playerRef}/panels/` directory directly (REQ-F-29)
 
 ## Out of Scope
 
