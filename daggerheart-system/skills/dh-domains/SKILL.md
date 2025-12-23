@@ -67,17 +67,24 @@ Many domain cards require a Spellcast Roll. This is a standard Duality Dice acti
 bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "DdD+[trait]"
 ```
 
-**Spellcast Trait**: Determined by your **subclass**, not class. Each subclass specifies which trait is used for all Spellcast Rolls. Common examples:
+**Spellcast Trait**: Determined by your **subclass**, not class. Each subclass specifies which trait is used for all Spellcast Rolls. Guardian and Warrior subclasses have no Spellcast Trait (martial classes).
 
-| Subclass | Spellcast Trait |
-|----------|-----------------|
-| Bard subclasses | Presence |
-| Druid subclasses | Instinct |
-| Seraph subclasses | Presence |
-| Sorcerer subclasses | Presence |
-| Wizard subclasses | Knowledge |
-
-Check your subclass's Foundation card for your specific Spellcast Trait.
+| Class | Subclass | Spellcast Trait |
+|-------|----------|-----------------|
+| Bard | Troubadour | Presence |
+| Bard | Wordsmith | Presence |
+| Druid | Warden of Renewal | Instinct |
+| Druid | Warden of the Elements | Instinct |
+| Ranger | Beastbound | Agility |
+| Ranger | Wayfinder | Agility |
+| Rogue | Nightwalker | Finesse |
+| Rogue | Syndicate | Finesse |
+| Seraph | Divine Wielder | Strength |
+| Seraph | Winged Sentinel | Strength |
+| Sorcerer | Elemental Origin | Instinct |
+| Sorcerer | Primal Origin | Instinct |
+| Wizard | School of Knowledge | Knowledge |
+| Wizard | School of War | Knowledge |
 
 ### Spellcast Roll Targets
 

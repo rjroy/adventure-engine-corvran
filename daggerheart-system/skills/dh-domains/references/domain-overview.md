@@ -202,15 +202,24 @@ DdD + Spellcast Trait (from subclass) vs. Difficulty
 
 ### Spellcast Trait
 
-Your **Spellcast Trait** is determined by your **subclass**, not your class. Check your subclass's Foundation card for your specific trait. Common patterns:
+Your **Spellcast Trait** is determined by your **subclass**, not your class. Guardian and Warrior subclasses have no Spellcast Trait (martial classes).
 
-| Subclass Type | Typical Spellcast Trait |
-|---------------|------------------------|
-| Bard subclasses | Presence |
-| Druid subclasses | Instinct |
-| Seraph subclasses | Presence |
-| Sorcerer subclasses | Presence |
-| Wizard subclasses | Knowledge |
+| Class | Subclass | Spellcast Trait |
+|-------|----------|-----------------|
+| Bard | Troubadour | Presence |
+| Bard | Wordsmith | Presence |
+| Druid | Warden of Renewal | Instinct |
+| Druid | Warden of the Elements | Instinct |
+| Ranger | Beastbound | Agility |
+| Ranger | Wayfinder | Agility |
+| Rogue | Nightwalker | Finesse |
+| Rogue | Syndicate | Finesse |
+| Seraph | Divine Wielder | Strength |
+| Seraph | Winged Sentinel | Strength |
+| Sorcerer | Elemental Origin | Instinct |
+| Sorcerer | Primal Origin | Instinct |
+| Wizard | School of Knowledge | Knowledge |
+| Wizard | School of War | Knowledge |
 
 ### Spellcast Outcomes
 
