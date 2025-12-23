@@ -1,6 +1,6 @@
 # Daggerheart System Plugin
 
-This plugin provides Daggerheart RPG mechanics for Adventure Engine adventures. It offers skills for character creation with bounded Experiences, Hope/Fear token economy, spotlight-based combat, domain cards, adversary management, and authoritative SRD rule lookups.
+This plugin provides Daggerheart RPG mechanics for Adventure Engine adventures. It offers skills for campaign frames, character creation with bounded Experiences, Hope/Fear token economy, spotlight-based combat, domain cards, adversary management, and authoritative SRD rule lookups.
 
 ## Getting Started
 
@@ -32,6 +32,9 @@ Domain card reference and Spellcast guidance. Invoke when players use domain abi
 
 ### dh-rules
 Authoritative Daggerheart SRD rule lookups. Invoke when users ask "what does the SRD say about...", "official rules for...", or need exact rule wording. Contains grep patterns for efficient SRD searching.
+
+### dh-frame
+Campaign frame selection and world building. Invoke when starting a new campaign, establishing tone and themes, selecting or creating a campaign frame, or reframing an existing adventure. Frames provide pitch, themes, community/class guidance, principles, distinctions, and special mechanics for a particular story type.
 
 ## Dice-Roller Integration
 
@@ -108,6 +111,7 @@ Each skill contains detailed reference materials in its `references/` subdirecto
 | dh-combat | `action-outcomes.md`, `encounter-template.md`, `conditions.md` |
 | dh-domains | `domain-overview.md` |
 | dh-rules | `srd/` (Daggerheart SRD via symlink), `License.md` |
+| dh-frame | `frame-template.md`, `frame-structure.md`, `srd/` (SRD frames via symlink) |
 
 Load references progressively - invoke the skill first, then read specific reference files only when detailed information is needed.
 
@@ -126,7 +130,8 @@ daggerheart-system/
     ├── dh-combat/
     ├── dh-adversaries/
     ├── dh-domains/
-    └── dh-rules/
+    ├── dh-rules/
+    └── dh-frame/
 ```
 
 ## Key Differences from d20-System
