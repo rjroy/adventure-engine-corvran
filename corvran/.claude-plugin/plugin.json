@@ -6,6 +6,6 @@
     "email": "gsdwig@gmail.com"
   },
   "description": "The Adventure Engine of Corvran - An RPG game master system that enables Claude Code to run tabletop-style adventures with persistent world state, character management, and narrative gameplay.",
-  "repository": "https://github.com/rjroy/wyrd-gateway.git",
+  "repository": "https://github.com/rjroy/adventure-engine-corvran.git",
   "license": "MIT"
 }

@@ -6,6 +6,6 @@
     "email": "gsdwig@gmail.com"
   },
   "description": "Daggerheart RPG mechanics for Adventure Engine adventures. Provides character creation with constrained Experiences, Hope/Fear token economy, spotlight-based combat, domain cards, adversary management, and SRD rule lookups. Uses Duality Dice (2d12) for narrative tension between player success and GM opportunity.",
-  "repository": "https://github.com/rjroy/wyrd-gateway.git",
+  "repository": "https://github.com/rjroy/adventure-engine-corvran.git",
   "license": "CC-BY-4.0"
 }
