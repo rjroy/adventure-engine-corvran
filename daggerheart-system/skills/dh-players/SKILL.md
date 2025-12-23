@@ -204,7 +204,7 @@ Armor provides:
 
 ## Hope
 
-Characters can hold up to 6 Hope tokens.
+Characters can hold up to 6 Hope tokens. **At character creation, start with 2 Hope.**
 
 **Gaining Hope**: When your hope die is higher on an action roll
 
@@ -257,39 +257,77 @@ The sheet.md file must include:
 
 ## Level Advancement
 
-Characters advance from level 1 to level 10.
+Characters advance from level 1 to level 10. The party levels up together whenever the GM decides a narrative milestone has been reached (typically every 3 sessions).
 
-### Level Advancement Table
+### Tiers
 
-| Level | Features |
-|-------|----------|
-| 1 | Starting class features, subclass Foundation card, ancestry features, community feature |
-| 2 | Subclass feature |
-| 3 | Class feature |
-| 4 | Trait improvement (+1 to any trait, max +3) |
-| 5 | Class feature |
-| 6 | Subclass feature |
-| 7 | Class feature |
-| 8 | Trait improvement (+1 to any trait, max +3) |
-| 9 | Class feature |
-| 10 | Subclass capstone feature |
+Daggerheart's 10 levels are divided into 4 tiers that affect damage thresholds, tier achievements, and advancement access:
+
+| Tier | Levels | Significance |
+|------|--------|--------------|
+| Tier 1 | 1 | Starting tier |
+| Tier 2 | 2-4 | First tier achievements unlock |
+| Tier 3 | 5-7 | Mid-level power increase |
+| Tier 4 | 8-10 | High-level mastery |
 
 ### Level Up Steps
 
-1. **Increase Level** - Update level in character identity
-2. **Update Thresholds** - Damage thresholds increase with level
-3. **Gain Features** - Add class/subclass features for the new level
-4. **Trait Improvement** (Levels 4, 8) - Increase one trait modifier by +1 (max +3)
-5. **Additional Domain Cards** - Gain access to higher-level cards
-6. **Update Proficiency** - Some features scale with level
+Follow these four steps each time the party levels up:
 
-### Threshold Scaling
+#### Step 1: Tier Achievements
 
-As level increases, damage thresholds increase:
+When entering a new tier (levels 2, 5, 8), gain these benefits:
+
+| Level | Tier Achievement |
+|-------|------------------|
+| 2 | Gain a new Experience at +2, permanently increase Proficiency by 1 |
+| 5 | Gain a new Experience at +2, permanently increase Proficiency by 1, clear any marked traits |
+| 8 | Gain a new Experience at +2, permanently increase Proficiency by 1, clear any marked traits |
+
+#### Step 2: Choose Advancements
+
+Choose **two advancements** from your current tier or below. Each advancement has slots; mark one slot when chosen. Options with multiple slots can be taken multiple times.
+
+| Advancement | Effect | Slots |
+|-------------|--------|-------|
+| Increase Traits | Choose 2 unmarked traits, gain +1 to each, mark them (can't increase again until next tier clears marks) | Per tier |
+| Add HP Slot | Permanently add 1 HP slot | Multiple |
+| Add Stress Slot | Permanently add 1 Stress slot | Multiple |
+| Increase Experience | Choose 2 Experiences, gain +1 to each | Multiple |
+| Additional Domain Card | Take a domain card at or below your level from your class's domains | Multiple |
+| Increase Evasion | Gain permanent +1 to Evasion | Multiple |
+| Upgrade Subclass Card | Take the next subclass card (Foundation → Specialization → Mastery). Locks out multiclass option for this tier. | Per tier |
+| Increase Proficiency | Increase Proficiency by 1, add 1 damage die to weapon. **Costs 2 advancement slots.** | Per tier |
+| Multiclass | Choose additional class, gain its class feature and one domain. Take foundation card from one of its subclasses. Locks out upgraded subclass and future multiclass. **Costs 2 advancement slots.** | Once ever |
+
+#### Step 3: Increase Damage Thresholds
+
+All damage thresholds increase by 1:
 - Major = Level + Armor Major Base
 - Severe = Level + Armor Severe Base
 
-This makes characters more durable as they advance.
+#### Step 4: Gain Domain Card
+
+Acquire a new domain card at your level or lower from one of your class's domains. Add it to your loadout or vault. You may also exchange one previously acquired card for a different card of the same level or lower.
+
+### Proficiency
+
+Proficiency determines the number of damage dice rolled with weapons. It increases:
+- At character creation (class-based starting value)
+- At tier achievements (levels 2, 5, 8)
+- Via the "Increase Proficiency" advancement (costs 2 slots)
+
+### Recording Level Up Changes
+
+Update the character sheet (`players/{slug}/sheet.md`) with:
+1. New level number
+2. Updated damage thresholds
+3. New Experiences (if tier achievement)
+4. Updated Proficiency (if tier achievement or advancement)
+5. Marked advancement slots
+6. Marked traits (if "Increase Traits" was chosen)
+7. New domain cards
+8. Any new HP/Stress/Evasion values
 
 ## Multiclassing
 

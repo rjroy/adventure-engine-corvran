@@ -87,6 +87,7 @@ Action roll difficulties use these standard values:
 Hope and Fear tokens represent narrative momentum.
 
 ### Hope Tokens (Player)
+- Starting: 2 per character
 - Maximum: 6 per character
 - Gained when your hope die is higher on an action roll
 - Spend to: Reroll a die, boost damage, activate certain class features
@@ -244,6 +245,65 @@ Each class has:
 - Subclass options (chosen at character creation)
 - Level advancement features
 - Domain access (2 domains)
+
+---
+
+## Leveling Up
+
+The party levels up together when the GM decides a narrative milestone has been reached (typically every 3 sessions).
+
+### Tiers
+
+Daggerheart's 10 levels are divided into 4 tiers:
+
+| Tier | Levels |
+|------|--------|
+| Tier 1 | 1 |
+| Tier 2 | 2-4 |
+| Tier 3 | 5-7 |
+| Tier 4 | 8-10 |
+
+Your tier affects damage thresholds, tier achievements, and advancement access.
+
+### Level Up Process
+
+Follow these four steps each time the party levels up:
+
+**Step 1: Tier Achievements**
+
+When entering a new tier (levels 2, 5, 8):
+
+| Level | Achievement |
+|-------|-------------|
+| 2 | +1 Experience at +2, +1 Proficiency |
+| 5 | +1 Experience at +2, +1 Proficiency, clear marked traits |
+| 8 | +1 Experience at +2, +1 Proficiency, clear marked traits |
+
+**Step 2: Choose Two Advancements**
+
+Pick two from your current tier or below:
+
+| Advancement | Effect |
+|-------------|--------|
+| Increase Traits | +1 to 2 unmarked traits (mark them until next tier) |
+| Add HP Slot | +1 HP slot permanently |
+| Add Stress Slot | +1 Stress slot permanently |
+| Increase Experience | +1 to 2 Experiences |
+| Additional Domain Card | Take a card at or below your level |
+| Increase Evasion | +1 Evasion permanently |
+| Upgrade Subclass Card | Foundation → Specialization → Mastery |
+| Increase Proficiency* | +1 Proficiency, +1 weapon damage die |
+| Multiclass* | Gain second class feature and domain |
+
+*Costs 2 advancement slots
+
+**Step 3: Increase Damage Thresholds**
+
+All thresholds increase by 1 each level.
+
+**Step 4: Gain Domain Card**
+
+Take a new domain card at your level or lower. You may also swap one existing card for another of equal or lower level.
 
 ---
 
