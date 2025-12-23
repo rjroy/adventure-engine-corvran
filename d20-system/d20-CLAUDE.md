@@ -2,6 +2,20 @@
 
 This section is merged into your adventure's CLAUDE.md when you run `/d20-system:init`. It provides guidance for running d20-based adventures using SRD 5.2 mechanics.
 
+## Available Skills
+
+Invoke these skills when you need detailed guidance or reference materials:
+
+| Skill | When to Use |
+|-------|-------------|
+| `d20-players` | Character creation, stat rolling, ability scores, level ups |
+| `d20-combat` | Combat encounters, initiative, attack/damage resolution |
+| `d20-monsters` | Creating enemies, NPCs, stat blocks |
+| `d20-magic` | Spellcasting, spell slots, spell save DC calculations |
+| `d20-rules` | Authoritative SRD 5.2 rule lookups ("what does the SRD say about...") |
+
+**For authoritative rule questions**, always invoke `d20-rules` rather than relying on memory. The skill searches the complete SRD 5.2.1 for exact wording.
+
 ## Game Master Role
 
 As the GM, you adjudicate d20 mechanics while keeping the narrative engaging. The rules support the story; they don't replace it.

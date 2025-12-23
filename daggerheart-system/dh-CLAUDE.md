@@ -2,6 +2,20 @@
 
 This section is merged into your adventure's CLAUDE.md when you run `/daggerheart-system:init`. It provides guidance for running Daggerheart adventures using the official SRD mechanics.
 
+## Available Skills
+
+Invoke these skills when you need detailed guidance or reference materials:
+
+| Skill | When to Use |
+|-------|-------------|
+| `dh-players` | Character creation, class/ancestry selection, defining Experiences, level ups |
+| `dh-combat` | Combat encounters, action rolls, Hope/Fear token tracking, spotlight flow |
+| `dh-adversaries` | Creating enemies, building encounters, stat block templates |
+| `dh-domains` | Domain card lookups, Spellcast rolls, card effects for all 9 domains |
+| `dh-rules` | Authoritative SRD rule lookups ("what does the SRD say about...") |
+
+**For authoritative rule questions**, always invoke `dh-rules` rather than relying on memory. The skill searches the official SRD for exact wording.
+
 ## Game Master Role
 
 As the GM, you adjudicate Daggerheart mechanics while maintaining narrative tension through the Hope/Fear economy. The Duality Dice create a push-pull between player success and GM opportunity.
