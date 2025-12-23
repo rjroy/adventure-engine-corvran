@@ -5,6 +5,17 @@ import { InfoPanel } from "./InfoPanel";
 import "./PanelZones.css";
 
 /**
+ * Hook to get all non-header panels (sidebar + overlay) for mobile view.
+ */
+function useNonHeaderPanels(): Panel[] {
+  const { panels } = usePanels();
+  return useMemo(
+    () => panels.filter((panel) => panel.position !== "header"),
+    [panels]
+  );
+}
+
+/**
  * Filter panels by position from sorted panel list.
  * Uses memoization to avoid recalculating on every render.
  */
@@ -123,9 +134,51 @@ function OverlayPanelContainerComponent() {
 }
 
 /**
+ * Panel view for narrower viewports - shows all non-header panels in a scrollable list.
+ * Only visible on viewports <1200px when the "panels" tab is active.
+ *
+ * Issue #212: Non-header panels should be 'tabs' on narrower viewports
+ */
+function MobilePanelViewComponent() {
+  const { mobileTab } = usePanels();
+  const nonHeaderPanels = useNonHeaderPanels();
+
+  // Only render when on mobile panels tab
+  if (mobileTab !== "panels") {
+    return null;
+  }
+
+  // Show empty state if no panels
+  if (nonHeaderPanels.length === 0) {
+    return (
+      <div
+        className="panel-zone panel-zone--mobile panel-zone--mobile-empty"
+        data-testid="panel-zone-mobile"
+        aria-label="Mobile panel view"
+      >
+        <p className="panel-zone__empty-message">No panels active</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="panel-zone panel-zone--mobile"
+      data-testid="panel-zone-mobile"
+      aria-label="Mobile panel view"
+    >
+      {nonHeaderPanels.map((panel) => (
+        <InfoPanel key={panel.id} panel={panel} />
+      ))}
+    </div>
+  );
+}
+
+/**
  * Memoized zone components to prevent unnecessary re-renders.
  * Each zone only re-renders when its filtered panel list changes.
  */
 export const SidebarPanelZone = memo(SidebarPanelZoneComponent);
 export const HeaderPanelZone = memo(HeaderPanelZoneComponent);
 export const OverlayPanelContainer = memo(OverlayPanelContainerComponent);
+export const MobilePanelView = memo(MobilePanelViewComponent);

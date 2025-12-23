@@ -17,6 +17,11 @@ interface PanelPosition {
 }
 
 /**
+ * Mobile tab type for switching between story and panels view.
+ */
+export type MobileTab = "story" | "panels";
+
+/**
  * Panel state managed by PanelContext.
  * Tracks active panels and local minimize state.
  */
@@ -27,6 +32,8 @@ interface PanelState {
   minimized: Set<string>;
   /** Position overrides for dragged panels (local-only, not persisted) */
   positions: Map<string, PanelPosition>;
+  /** Active tab on mobile view (story or panels) */
+  mobileTab: MobileTab;
 }
 
 /**
@@ -51,6 +58,12 @@ interface PanelContextValue {
   getPanelPosition: (id: string) => PanelPosition | undefined;
   /** Update position for a panel (local-only, for drag) */
   updatePanelPosition: (id: string, x: number, y: number) => void;
+  /** Current active tab on mobile (story or panels) */
+  mobileTab: MobileTab;
+  /** Switch the active mobile tab */
+  setMobileTab: (tab: MobileTab) => void;
+  /** Count of non-header panels (sidebar + overlay) for badge display */
+  nonHeaderPanelCount: number;
 }
 
 const PanelContext = createContext<PanelContextValue | undefined>(undefined);
@@ -74,6 +87,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
     panels: [],
     minimized: new Set(),
     positions: new Map(),
+    mobileTab: "story",
   });
 
   /**
@@ -147,6 +161,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       newPositions.delete(id);
 
       return {
+        ...prev,
         panels: prev.panels.filter((p) => p.id !== id),
         minimized: newMinimized,
         positions: newPositions,
@@ -216,9 +231,25 @@ export function PanelProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  /**
+   * Set the active mobile tab (story or panels).
+   */
+  const setMobileTab = useCallback((tab: MobileTab) => {
+    setState((prev) => ({
+      ...prev,
+      mobileTab: tab,
+    }));
+  }, []);
+
   // Sort panels by createdAt for consistent stacking (REQ-F-22)
   const sortedPanels = useMemo(
     () => sortPanelsByCreatedAt(state.panels),
+    [state.panels]
+  );
+
+  // Count non-header panels for mobile tab badge
+  const nonHeaderPanelCount = useMemo(
+    () => state.panels.filter((p) => p.position !== "header").length,
     [state.panels]
   );
 
@@ -233,6 +264,9 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       isMinimized,
       getPanelPosition,
       updatePanelPosition,
+      mobileTab: state.mobileTab,
+      setMobileTab,
+      nonHeaderPanelCount,
     }),
     [
       sortedPanels,
@@ -244,6 +278,9 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       isMinimized,
       getPanelPosition,
       updatePanelPosition,
+      state.mobileTab,
+      setMobileTab,
+      nonHeaderPanelCount,
     ]
   );
 

@@ -80,3 +80,26 @@
   margin-top: var(--spacing-lg);
   flex-shrink: 0;
 }
+
+/* ========================
+   Tab Navigation (< 1200px)
+   ======================== */
+
+/* Add padding at bottom for tab bar */
+@media (max-width: 1200px) {
+  .game-view {
+    padding-bottom: calc(var(--spacing-xl) + 60px);
+  }
+
+  /* Hide main content when panels tab is active */
+  .game-view[data-mobile-tab="panels"] .game-header,
+  .game-view[data-mobile-tab="panels"] .game-main,
+  .game-view[data-mobile-tab="panels"] .error-panel {
+    display: none;
+  }
+
+  /* Hide header panels zone when panels tab is active (avoid duplication) */
+  .game-view[data-mobile-tab="panels"] .panel-zone--header {
+    display: none;
+  }
+}
