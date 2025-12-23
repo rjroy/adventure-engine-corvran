@@ -55,7 +55,8 @@
 <!--
   COMBAT STATISTICS
   =================
-  Evasion: Class Base + Agility modifier
+  Evasion: Class Base (NOT modified by traits)
+  Proficiency: Determines weapon damage dice, increases at tier achievements
   HP Slots: Typically 6, mark when taking damage
   Stress Slots: Typically 6, gain Vulnerable when maxed
   Armor Score: Reduces incoming damage
@@ -66,7 +67,8 @@
 
 | Stat              | Value                        |
 |-------------------|------------------------------|
-| Evasion           | [Class Base] + [Agility mod] = [Total] |
+| Evasion           | [Class Base]                 |
+| Proficiency       | [#] (weapon damage dice)     |
 | HP Slots          | ○○○○○○                       |
 | Stress Slots      | ○○○○○○                       |
 | Armor Score       | [Value]                      |
@@ -93,7 +95,7 @@ Armor Slots: ○○○
   Mark filled slots with ●, empty with ○
 -->
 
-Hope: ○○○○○○ (0/6)
+Hope: ●●○○○○ (2/6)
 
 ---
 
@@ -289,6 +291,49 @@ Hope: ○○○○○○ (0/6)
 
 **[Feature Name]**
 [Feature description]
+
+---
+
+## Level Advancement
+
+<!--
+  LEVEL ADVANCEMENT TRACKING
+  ==========================
+  Track advancements taken at each level.
+  Mark trait boxes when "Increase Traits" is chosen (clear at tier transitions).
+
+  Tiers: 1 (Lv1), 2 (Lv2-4), 3 (Lv5-7), 4 (Lv8-10)
+  Tier Achievements at levels 2, 5, 8: +1 Experience, +1 Proficiency
+-->
+
+### Marked Traits
+
+<!-- Mark traits increased via "Increase Traits" advancement. Clear at tier transitions (levels 5, 8). -->
+
+| Trait     | Marked |
+|-----------|--------|
+| Agility   | [ ]    |
+| Strength  | [ ]    |
+| Finesse   | [ ]    |
+| Instinct  | [ ]    |
+| Presence  | [ ]    |
+| Knowledge | [ ]    |
+
+### Advancements Taken
+
+<!-- Record advancements chosen at each level up -->
+
+| Level | Advancement 1 | Advancement 2 |
+|-------|---------------|---------------|
+| 2     |               |               |
+| 3     |               |               |
+| 4     |               |               |
+| 5     |               |               |
+| 6     |               |               |
+| 7     |               |               |
+| 8     |               |               |
+| 9     |               |               |
+| 10    |               |               |
 
 ---
 
