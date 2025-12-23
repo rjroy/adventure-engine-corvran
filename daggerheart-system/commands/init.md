@@ -11,28 +11,6 @@ Initialize Daggerheart system mechanics in the current adventure directory by co
 
 Perform the following steps to initialize the Daggerheart system:
 
-### Step 0: Verify SRD Submodule
-
-Before proceeding, verify that the Daggerheart SRD submodule is present and populated. This is required for rule lookups during play.
-
-1. Check if the directory `docs/research/daggerheart-srd/` exists at the project root
-2. Verify the directory contains files (not empty)
-
-**If the SRD submodule is missing or empty, STOP and report this error:**
-
-```
-ERROR: Daggerheart SRD submodule not found or empty.
-
-The Daggerheart system requires the SRD submodule for rule lookups.
-Run the following command to initialize it:
-
-  git submodule update --init docs/research/daggerheart-srd
-
-Then run /daggerheart-system:init again.
-```
-
-Do not proceed with the remaining steps if the SRD check fails.
-
 ### Step 1: Copy System.md
 
 Read the core rules from the plugin directory and write them to the current directory:
@@ -91,10 +69,6 @@ Next steps:
 
 ## Error Handling
 
-### SRD Submodule Missing
-
-If the SRD submodule check in Step 0 fails, report the error message shown above and do not proceed with other steps.
-
 ### File Operation Errors
 
 If any file operations fail, report the specific error and which step failed. The user may need to check permissions or the plugin installation.
@@ -103,4 +77,4 @@ If any file operations fail, report the specific error and which step failed. Th
 
 - This command is idempotent: running it multiple times will not duplicate content in CLAUDE.md
 - System.md is always refreshed (overwritten) to ensure the latest rules are available
-- The SRD submodule is required but not copied - skills reference it via symlink
+- For authoritative SRD rule lookups during play, use the dh-rules skill
