@@ -1498,24 +1498,35 @@ After updating the files, respond with a brief confirmation (1-2 sentences) of w
       return { continue: true };
     }
 
+    const { tool_name, tool_input } = input;
+
+    // Log every hook call for debugging
+    log.debug(
+      { tool_name, tool_input: typeof tool_input === "object" ? JSON.stringify(tool_input).slice(0, 200) : tool_input },
+      "PostToolUse hook fired"
+    );
+
     const state = this.stateManager.getState();
     const playerRef = state?.playerRef;
 
     // Skip if no player ref set (panels directory unknown)
     if (!playerRef || !this.projectDirectory) {
+      log.debug({ playerRef, projectDirectory: this.projectDirectory }, "Skipping PostToolUse - no playerRef or projectDirectory");
       return { continue: true };
     }
-
-    const { tool_name, tool_input } = input;
 
     // Handle Write tool - check if writing to panel file
     if (tool_name === "Write") {
       const writeInput = tool_input as { file_path?: string; content?: string };
       const filePath = writeInput.file_path;
 
-      if (filePath && isPanelPath(filePath, playerRef)) {
-        log.debug({ filePath }, "Panel file write detected");
-        this.handlePanelFileWrite(filePath, log);
+      if (filePath) {
+        const isPanel = isPanelPath(filePath, playerRef);
+        log.debug({ filePath, playerRef, isPanel }, "Checking Write tool path");
+        if (isPanel) {
+          log.info({ filePath }, "Panel file write detected - processing");
+          this.handlePanelFileWrite(filePath, log);
+        }
       }
     }
 
