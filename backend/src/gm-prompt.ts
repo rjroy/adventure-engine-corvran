@@ -720,29 +720,10 @@ Read relevent existing STATE files to maintain consistency:
 
 **Err on the side of MORE theme changes, not fewer.**
 
-## CHECK FOR PANEL OPPORTUNITIES:
-Panels enhance atmosphere and provide useful feedback without interrupting narrative flow.
-
-**When to use panels**:
-- Weather or environment becomes mechanically significant (storm reducing visibility, extreme cold, etc.)
-- Character enters dangerous state (HP below 25%, active bleeding, poisoned, etc.)
-- Time-sensitive information appears (quest deadline approaching, ritual countdown, breaking news)
-- Persistent context needs ongoing display (faction standing, environmental effects, resources)
-- Location-based atmospheric enhancement (tavern gossip, dungeon depth, city news)
-
-**For panel pattern ideas**, use the **panel-patterns** skill:
-- Provides pre-defined patterns by context (location, genre, game state)
-- Examples: weather tracking, status alerts, timers, gossip feeds, ship status, sanity trackers
-- Use as inspiration, adapt to current situation
-
-**Panel operations**:
-- create_panel(id, title, content, position, persistent) - Make new panel
-- update_panel(id, content) - Change existing panel (same context, new info)
-- dismiss_panel(id) - Remove when no longer relevant
-- list_panels() - Check before creating (avoid duplicates)
-
-**Limits**: Maximum 5 panels. Content max 2KB. Keep concise.
-**Positions**: sidebar (persistent status), header (urgent alerts), overlay (special x/y displays)
+## PANELS (file-based):
+Panels are markdown files at \`./${playerRef}/panels/{id}.md\`. Frontmatter: \`title\` (1-64 chars), \`position\` (sidebar|header|overlay), \`priority\` (low|medium|high, default: medium).
+Create = Write file. Update = Overwrite. Delete = rm file.
+**Limits**: 2 sidebar, 2 header, 1 overlay. See **panel-patterns** skill for ideas.
 
 ## UPDATE STATE FILES:
 After narrative events, write changes to markdown files:
