@@ -132,6 +132,7 @@ export type ListPanelsHandler = () => Promise<Panel[]>;
 /**
  * Callbacks for all MCP tool handlers
  * GameSession will implement this interface to wire tools to managers
+ * Note: Panel callbacks are optional (deprecated, will be removed in TASK-007)
  */
 export interface GMMcpCallbacks {
   onThemeChange: ThemeChangeHandler;
@@ -140,10 +141,11 @@ export interface GMMcpCallbacks {
   onSetWorld: SetWorldHandler;
   onListCharacters: ListCharactersHandler;
   onListWorlds: ListWorldsHandler;
-  onCreatePanel: CreatePanelHandler;
-  onUpdatePanel: UpdatePanelHandler;
-  onDismissPanel: DismissPanelHandler;
-  onListPanels: ListPanelsHandler;
+  // Panel callbacks - deprecated, will be removed in TASK-007
+  onCreatePanel?: CreatePanelHandler;
+  onUpdatePanel?: UpdatePanelHandler;
+  onDismissPanel?: DismissPanelHandler;
+  onListPanels?: ListPanelsHandler;
 }
 
 /**
@@ -611,8 +613,8 @@ export function createGMMcpServer(
 
 /**
  * Create an MCP server with all GM tools
- * Includes: set_theme, set_xp_style, set_character, set_world, list_characters, list_worlds,
- *           create_panel, update_panel, dismiss_panel, list_panels
+ * Includes: set_theme, set_xp_style, set_character, set_world, list_characters, list_worlds
+ * Panel tools are conditionally included if callbacks are provided (deprecated, will be removed in TASK-007)
  * @param callbacks All callback handlers for tool invocations
  */
 export function createGMMcpServerWithCallbacks(callbacks: GMMcpCallbacks) {
@@ -622,26 +624,36 @@ export function createGMMcpServerWithCallbacks(callbacks: GMMcpCallbacks) {
   const setWorldTool = createSetWorldTool(callbacks.onSetWorld);
   const listCharactersTool = createListCharactersTool(callbacks.onListCharacters);
   const listWorldsTool = createListWorldsTool(callbacks.onListWorlds);
-  const createPanelTool = createCreatePanelTool(callbacks.onCreatePanel);
-  const updatePanelTool = createUpdatePanelTool(callbacks.onUpdatePanel);
-  const dismissPanelTool = createDismissPanelTool(callbacks.onDismissPanel);
-  const listPanelsTool = createListPanelsTool(callbacks.onListPanels);
+
+  // Core tools always included
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tools: any[] = [
+    setThemeTool,
+    setXpStyleTool,
+    setCharacterTool,
+    setWorldTool,
+    listCharactersTool,
+    listWorldsTool,
+  ];
+
+  // Conditionally add panel tools if callbacks provided (deprecated)
+  if (callbacks.onCreatePanel) {
+    tools.push(createCreatePanelTool(callbacks.onCreatePanel));
+  }
+  if (callbacks.onUpdatePanel) {
+    tools.push(createUpdatePanelTool(callbacks.onUpdatePanel));
+  }
+  if (callbacks.onDismissPanel) {
+    tools.push(createDismissPanelTool(callbacks.onDismissPanel));
+  }
+  if (callbacks.onListPanels) {
+    tools.push(createListPanelsTool(callbacks.onListPanels));
+  }
 
   return createSdkMcpServer({
     name: "adventure-gm",
     version: "3.0.0",
-    tools: [
-      setThemeTool,
-      setXpStyleTool,
-      setCharacterTool,
-      setWorldTool,
-      listCharactersTool,
-      listWorldsTool,
-      createPanelTool,
-      updatePanelTool,
-      dismissPanelTool,
-      listPanelsTool,
-    ],
+    tools,
   });
 }
 

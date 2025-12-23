@@ -12,10 +12,9 @@ import type { SDKAssistantMessageError, HookJSONOutput, HookInput } from "@anthr
 import { AdventureStateManager } from "./adventure-state";
 import type { AdventureState } from "./types/state";
 import type { ServerMessage, NarrativeEntry, ThemeMood, Genre, Region, XpStyle, HistorySummary } from "./types/protocol";
-import { buildGMSystemPrompt, createGMMcpServerWithCallbacks, type GMMcpCallbacks, type CreatePanelInput } from "./gm-prompt";
+import { buildGMSystemPrompt, createGMMcpServerWithCallbacks, type GMMcpCallbacks } from "./gm-prompt";
 import { PlayerManager } from "./player-manager";
 import { WorldManager } from "./world-manager";
-import { PanelManager } from "./services/panel-manager";
 import {
   mapSDKError,
   mapGenericError,
@@ -139,7 +138,6 @@ export class GameSession {
   private lastThemeChange: { mood: ThemeMood; timestamp: number } | null = null;
   private playerManager: PlayerManager | null = null;
   private worldManager: WorldManager | null = null;
-  private panelManager: PanelManager = new PanelManager();
 
   /** Track recovery attempts to prevent infinite loops */
   private recoveryAttempt = 0;
@@ -248,30 +246,6 @@ export class GameSession {
             // Continue anyway - GM will handle missing files
           }
         }
-      }
-    }
-
-    // Restore panels from saved state (REQ-F-13)
-    if (state?.panels && state.panels.length > 0) {
-      const restoredCount = this.panelManager.restore(state.panels);
-      logger.debug(
-        {
-          totalPanels: state.panels.length,
-          restoredCount,
-          adventureId: state.id,
-        },
-        "Restored persistent panels from state"
-      );
-
-      // Emit panel_create messages for each restored panel to sync frontend
-      const restoredPanels = this.panelManager.list();
-      for (const panel of restoredPanels) {
-        this.sendMessage({
-          type: "panel_create",
-          payload: panel,
-        });
-        // Track restored panels for delete detection (TASK-004)
-        this.knownPanelIds.add(panel.id);
       }
     }
 
@@ -824,76 +798,6 @@ export class GameSession {
         log.debug({ count: worlds.length }, "list_worlds MCP callback completed");
         return worlds;
       },
-      // Create panel callback
-      onCreatePanel: (input: CreatePanelInput) => {
-        log.debug({ id: input.id, position: input.position }, "create_panel MCP callback invoked");
-        const result = this.panelManager.create(input);
-        if (!result.success) {
-          log.warn({ id: input.id, error: result.error }, "create_panel MCP callback failed");
-          return Promise.resolve({ success: false as const, error: result.error });
-        }
-        // Emit panel_create WebSocket message
-        this.sendMessage(
-          {
-            type: "panel_create",
-            payload: result.data,
-          },
-          log
-        );
-        // Sync persistent panels to state (REQ-F-12)
-        void this.syncPanelsToState(log);
-        log.debug({ id: input.id }, "create_panel MCP callback completed successfully");
-        return Promise.resolve({ success: true as const, panel: result.data });
-      },
-      // Update panel callback
-      onUpdatePanel: (id: string, content: string) => {
-        log.debug({ id, contentLength: content.length }, "update_panel MCP callback invoked");
-        const result = this.panelManager.update({ id, content });
-        if (!result.success) {
-          log.warn({ id, error: result.error }, "update_panel MCP callback failed");
-          return Promise.resolve({ success: false as const, error: result.error });
-        }
-        // Emit panel_update WebSocket message
-        this.sendMessage(
-          {
-            type: "panel_update",
-            payload: { id, content },
-          },
-          log
-        );
-        // Sync persistent panels to state (REQ-F-12)
-        void this.syncPanelsToState(log);
-        log.debug({ id }, "update_panel MCP callback completed successfully");
-        return Promise.resolve({ success: true as const, panel: result.data });
-      },
-      // Dismiss panel callback
-      onDismissPanel: (id: string) => {
-        log.debug({ id }, "dismiss_panel MCP callback invoked");
-        const result = this.panelManager.dismiss(id);
-        if (!result.success) {
-          log.warn({ id, error: result.error }, "dismiss_panel MCP callback failed");
-          return Promise.resolve({ success: false as const, error: result.error });
-        }
-        // Emit panel_dismiss WebSocket message
-        this.sendMessage(
-          {
-            type: "panel_dismiss",
-            payload: { id },
-          },
-          log
-        );
-        // Sync persistent panels to state (REQ-F-12)
-        void this.syncPanelsToState(log);
-        log.debug({ id }, "dismiss_panel MCP callback completed successfully");
-        return Promise.resolve({ success: true as const, id });
-      },
-      // List panels callback
-      onListPanels: () => {
-        log.debug("list_panels MCP callback invoked");
-        const panels = this.panelManager.list();
-        log.debug({ count: panels.length }, "list_panels MCP callback completed");
-        return Promise.resolve(panels);
-      },
     };
     const gmMcpServer = createGMMcpServerWithCallbacks(callbacks);
 
@@ -1273,29 +1177,6 @@ export class GameSession {
       },
       log
     );
-  }
-
-  /**
-   * Synchronize persistent panels from PanelManager to AdventureStateManager.
-   * Runs asynchronously without blocking callback return.
-   * Only persistent panels are saved per REQ-F-11, REQ-F-12.
-   * @param requestLogger Optional request-scoped logger for log correlation
-   */
-  private async syncPanelsToState(requestLogger?: Logger): Promise<void> {
-    const log = requestLogger ?? logger;
-
-    try {
-      const persistentPanels = this.panelManager.getPersistent();
-      await this.stateManager.setPanels(persistentPanels);
-
-      log.debug(
-        { panelCount: persistentPanels.length },
-        "Synced persistent panels to state"
-      );
-    } catch (error) {
-      // Non-fatal: log but don't throw to avoid disrupting gameplay
-      log.error({ err: error }, "Failed to sync panels to state");
-    }
   }
 
   /**

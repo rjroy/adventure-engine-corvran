@@ -10,8 +10,8 @@ import {
   PanelFileErrors,
   MAX_TITLE_LENGTH,
   DEFAULT_PRIORITY,
+  MAX_ID_LENGTH,
 } from "../../src/services/panel-file-parser";
-import { MAX_ID_LENGTH } from "../../src/services/panel-manager";
 
 describe("PanelFrontmatterSchema", () => {
   describe("title validation (REQ-F-4)", () => {

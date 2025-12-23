@@ -17,8 +17,17 @@
 
 import matter from "gray-matter";
 import { z } from "zod";
-import { MAX_ID_LENGTH } from "./panel-manager";
 import type { PanelPosition } from "../../../shared/protocol";
+
+// ========================
+// Constants from former panel-manager.ts
+// ========================
+
+/**
+ * Maximum panel ID length in characters.
+ * Previously defined in panel-manager.ts, now defined here for panel file parsing.
+ */
+export const MAX_ID_LENGTH = 32;
 
 // ========================
 // Constants
