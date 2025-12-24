@@ -501,6 +501,9 @@ describe("WorldManager", () => {
 
       const quests = await readFile(join(worldPath, "quests.md"), "utf-8");
       expect(quests).toBe("# Quests\n\n*Active and completed quests will be tracked here.*");
+
+      const artStyle = await readFile(join(worldPath, "art-style.md"), "utf-8");
+      expect(artStyle).toBe("# Art Style\n\n*Optional: Define a visual style for background images in this world.*\n*Example: \"oil painting, impressionist style\" or \"pixel art, 16-bit\"*");
     });
 
     test("throws error for invalid slug", async () => {
