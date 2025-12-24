@@ -56,7 +56,7 @@ describe("buildGMSystemPrompt", () => {
       const prompt = buildGMSystemPrompt(state);
 
       // Should instruct reading markdown files with dynamic paths
-      expect(prompt).toContain("./System.md");
+      // Rules now come from CLAUDE.md (system instructions), not a separate System.md file
       expect(prompt).toContain("./players/test-hero/sheet.md");
       expect(prompt).toContain("./worlds/test-world/characters.md");
       expect(prompt).toContain("./worlds/test-world/world_state.md");
