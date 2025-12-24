@@ -1,5 +1,6 @@
 import { memo, useRef, useCallback } from "react";
 import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { Panel } from "../types/protocol";
 import { usePanels } from "../contexts/PanelContext";
 import "./InfoPanel.css";
@@ -11,6 +12,24 @@ export interface InfoPanelProps {
 }
 
 /**
+ * Allowed markdown elements for panel content.
+ * Whitelist approach prevents XSS by disallowing raw HTML and scripts.
+ */
+const ALLOWED_ELEMENTS = [
+  // Text formatting
+  "p", "strong", "em", "del", "code",
+  // Headings
+  "h1", "h2", "h3", "h4", "h5", "h6",
+  // Lists
+  "ul", "ol", "li",
+  // Tables
+  "table", "thead", "tbody", "tr", "th", "td",
+  // Block elements
+  "blockquote", "hr", "br",
+  // Note: <a> and <img> are intentionally excluded for security
+];
+
+/**
  * Individual info panel display component.
  *
  * Features:
@@ -20,7 +39,7 @@ export interface InfoPanelProps {
  * - Inherits theme styling via CSS variables (REQ-NF-4, TD-7)
  * - Draggable header for overlay panels
  *
- * Security: Only permits p, strong, em, ul, ol, li elements via allowedElements.
+ * Security: Only permits safe elements via ALLOWED_ELEMENTS whitelist.
  * This prevents XSS attacks by disallowing raw HTML and scripts.
  */
 function InfoPanelComponent({ panel, isOverlay = false }: InfoPanelProps) {
@@ -127,7 +146,8 @@ function InfoPanelComponent({ panel, isOverlay = false }: InfoPanelProps) {
       {!minimized && (
         <div className="info-panel__content">
           <Markdown
-            allowedElements={["p", "strong", "em", "ul", "ol", "li"]}
+            remarkPlugins={[remarkGfm]}
+            allowedElements={ALLOWED_ELEMENTS}
             unwrapDisallowed={true}
           >
             {panel.content}
