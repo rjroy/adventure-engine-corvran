@@ -148,17 +148,38 @@ describe("InfoPanel", () => {
       expect(paragraphs.length).toBeGreaterThanOrEqual(1);
     });
 
-    test("filters out disallowed elements (security)", () => {
-      // Headers are not in allowedElements, should be unwrapped
+    test("renders headings", () => {
       const panel = createTestPanel({
         content: "# Header\n\nRegular text",
       });
       renderWithProviders(<InfoPanel panel={panel} />);
 
       const h1 = document.querySelector("h1");
-      expect(h1).not.toBeInTheDocument();
-      // Content should still be present but unwrapped
-      expect(screen.getByText("Header")).toBeInTheDocument();
+      expect(h1).toBeInTheDocument();
+      expect(h1).toHaveTextContent("Header");
+    });
+
+    test("renders tables", () => {
+      const panel = createTestPanel({
+        content: "| Name | Value |\n|------|-------|\n| HP | 20 |",
+      });
+      renderWithProviders(<InfoPanel panel={panel} />);
+
+      const table = document.querySelector("table");
+      expect(table).toBeInTheDocument();
+      expect(screen.getByText("HP")).toBeInTheDocument();
+      expect(screen.getByText("20")).toBeInTheDocument();
+    });
+
+    test("renders blockquotes", () => {
+      const panel = createTestPanel({
+        content: "> Quoted text",
+      });
+      renderWithProviders(<InfoPanel panel={panel} />);
+
+      const blockquote = document.querySelector("blockquote");
+      expect(blockquote).toBeInTheDocument();
+      expect(blockquote).toHaveTextContent("Quoted text");
     });
 
     test("does not render images (security)", () => {

@@ -724,6 +724,11 @@ async function validateAndLoadAdventure(
 
   ws.send(JSON.stringify(loadedMsg));
 
+  // Emit stored panels AFTER adventure_loaded (frontend clears panels on adventure_loaded)
+  if (conn?.gameSession) {
+    conn.gameSession.emitStoredPanels();
+  }
+
   // Send authenticated confirmation
   const authenticatedMsg: ServerMessage = {
     type: "authenticated",
