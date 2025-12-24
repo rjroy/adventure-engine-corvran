@@ -104,7 +104,7 @@ Each skill contains detailed reference materials in its `references/` subdirecto
 
 | Skill | Key References |
 |-------|---------------|
-| dh-players | `sheet-template.md`, `experience-template.md`, `state-template.md` |
+| dh-players | `sheet-template.md`, `experience-template.md`, `story-template.md` |
 | dh-adversaries | `stat-block-template.md`, `encounter-building.md` |
 | dh-combat | `action-outcomes.md`, `encounter-template.md`, `conditions.md` |
 | dh-domains | `domain-overview.md` |

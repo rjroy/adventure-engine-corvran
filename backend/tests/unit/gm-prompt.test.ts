@@ -195,8 +195,8 @@ describe("buildGMSystemPrompt", () => {
       const prompt = buildGMSystemPrompt(state);
 
       // Should use dynamic player paths
-      expect(prompt).toContain("./players/kael-thouls/sheet.md - Player character details");
-      expect(prompt).toContain("./players/kael-thouls/state.md - Character narrative state");
+      expect(prompt).toContain("./players/kael-thouls/sheet.md - Player character stats");
+      expect(prompt).toContain("./players/kael-thouls/story.md - Character story arcs");
     });
 
     test("uses dynamic world paths when worldRef is set", () => {
@@ -245,7 +245,7 @@ describe("buildGMSystemPrompt", () => {
 
       // UPDATE STATE FILES section should use dynamic paths
       expect(prompt).toContain("Update ./players/hero/sheet.md");
-      expect(prompt).toContain("Update ./players/hero/state.md");
+      expect(prompt).toContain("Update ./players/hero/story.md");
       expect(prompt).toContain("Update ./worlds/realm/characters.md");
       expect(prompt).toContain("Update ./worlds/realm/locations.md");
       expect(prompt).toContain("Update ./worlds/realm/quests.md");

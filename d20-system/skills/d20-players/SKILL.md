@@ -15,11 +15,11 @@ Character files follow the corvran directory structure with D20-specific content
 ```
 players/
   {character-slug}/
-    sheet.md   # Use sheet-template.md format (stats, abilities, equipment)
-    state.md   # Use state-template.md format (current HP, conditions, objectives)
+    sheet.md   # Use sheet-template.md format (stats, abilities, equipment, current HP, conditions)
+    story.md   # Use story-template.md format (objectives, story arcs, recent events)
 ```
 
-The `sheet.md` contains permanent character data using the SRD 5.2 format. The `state.md` tracks mutable session data that changes frequently during play.
+The `sheet.md` contains character data including current game state (HP, conditions, spell slots). The `story.md` tracks narrative elements like objectives and story arcs.
 
 ## Character Creation Overview
 
@@ -221,5 +221,5 @@ Detailed rules in this skill's `references/` directory:
 
 - `character-creation.md` - Complete SRD 5.2 character creation rules
 - `sheet-template.md` - Blank character sheet template
-- `state-template.md` - Mutable state template
+- `story-template.md` - Character story template (objectives, arcs, events)
 - `sheet-example.md` - Completed Level 3 Fighter example

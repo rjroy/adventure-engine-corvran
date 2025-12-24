@@ -95,7 +95,7 @@ describe("Multi-Adventure Support", () => {
       // Should have template files
       const files = await readdir(playerDir);
       expect(files).toContain("sheet.md");
-      expect(files).toContain("state.md");
+      expect(files).toContain("story.md");
     });
 
     test("auto-creates world directory when worldRef is set but directory missing", async () => {
@@ -140,7 +140,7 @@ describe("Multi-Adventure Support", () => {
       const playerDir = join(TEST_PROJECT_DIR, "players", "existing-hero");
       await mkdir(playerDir, { recursive: true });
       await writeFile(join(playerDir, "sheet.md"), "# Custom Sheet\nExisting content");
-      await writeFile(join(playerDir, "state.md"), "# Custom State");
+      await writeFile(join(playerDir, "story.md"), "# Custom Story");
 
       // Set ref to existing player
       await stateManager.updatePlayerRef("players/existing-hero");

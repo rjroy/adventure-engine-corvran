@@ -264,7 +264,7 @@ fi
 heading "Test Suite: Skill Reference Files"
 
 # dh-players references
-PLAYER_REFS=("sheet-template.md" "state-template.md" "experience-template.md" "sheet-example.md")
+PLAYER_REFS=("sheet-template.md" "story-template.md" "experience-template.md" "sheet-example.md")
 for ref in "${PLAYER_REFS[@]}"; do
     if [[ -f "${PLUGIN_ROOT}/skills/dh-players/references/${ref}" ]]; then
         pass "dh-players/references/${ref} exists"
