@@ -244,13 +244,25 @@ export class GameSession {
         }
       }
 
-      // Scan for existing panel files and restore them (REQ-F-16)
-      if (state.playerRef) {
-        this.scanExistingPanels(state.playerRef, logger);
-      }
+      // Note: Panel scanning is deferred to emitStoredPanels()
+      // Server calls this AFTER sending adventure_loaded to avoid race condition
     }
 
     return { success: true };
+  }
+
+  /**
+   * Emit stored panels to the frontend.
+   * Must be called AFTER adventure_loaded is sent to avoid panels being cleared.
+   *
+   * Scans existing panel files and player sheet, emitting panel_create messages.
+   * Called by server after authentication completes.
+   */
+  emitStoredPanels(): void {
+    const state = this.stateManager.getState();
+    if (state?.playerRef) {
+      this.scanExistingPanels(state.playerRef, logger);
+    }
   }
 
   /**

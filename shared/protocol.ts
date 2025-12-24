@@ -185,7 +185,7 @@ export type PanelPosition = z.infer<typeof PanelPositionSchema>;
  * Constraints:
  * - ID: alphanumeric + hyphens, max 32 chars
  * - Title: max 64 chars
- * - Content: markdown text, max 2KB (2048 bytes)
+ * - Content: markdown text, max 64KB (65536 bytes)
  * - x/y: percentage-based positioning (0-100), overlay only
  * - Maximum 5 concurrent panels enforced by backend
  */
@@ -203,8 +203,8 @@ export const PanelSchema = z.object({
   /** Display header text (max 64 chars) */
   title: z.string().min(1).max(64),
 
-  /** Markdown content (max 2KB / 2048 bytes) */
-  content: z.string().max(2048),
+  /** Markdown content (max 64KB / 65536 bytes) */
+  content: z.string().max(65536),
 
   /** Panel display position */
   position: PanelPositionSchema,
@@ -367,8 +367,8 @@ export const PanelUpdateMessageSchema = z.object({
         /^[a-zA-Z0-9-]+$/,
         "Panel ID must be alphanumeric with hyphens only"
       ),
-    /** New markdown content (max 2KB / 2048 bytes) */
-    content: z.string().max(2048),
+    /** New markdown content (max 64KB / 65536 bytes) */
+    content: z.string().max(65536),
   }),
 });
 
