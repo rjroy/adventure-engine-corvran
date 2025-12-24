@@ -50,6 +50,8 @@ interface PanelContextValue {
   updatePanel: (id: string, content: string) => void;
   /** Remove a panel by ID */
   removePanel: (id: string) => void;
+  /** Clear all panels (used when changing adventures) */
+  clearAllPanels: () => void;
   /** Toggle minimize state for a panel (REQ-F-18: local-only) */
   toggleMinimize: (id: string) => void;
   /** Check if a specific panel is minimized */
@@ -170,6 +172,19 @@ export function PanelProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
+   * Clear all panels from state.
+   * Used when changing adventures to reset panel state.
+   */
+  const clearAllPanels = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      panels: [],
+      minimized: new Set(),
+      positions: new Map(),
+    }));
+  }, []);
+
+  /**
    * Toggle minimize state for a panel.
    * REQ-F-18: Minimize state is local to browser session, not persisted server-side.
    */
@@ -260,6 +275,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       addPanel,
       updatePanel,
       removePanel,
+      clearAllPanels,
       toggleMinimize,
       isMinimized,
       getPanelPosition,
@@ -274,6 +290,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       addPanel,
       updatePanel,
       removePanel,
+      clearAllPanels,
       toggleMinimize,
       isMinimized,
       getPanelPosition,
