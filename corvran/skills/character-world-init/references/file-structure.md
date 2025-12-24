@@ -12,6 +12,7 @@ players/
 
 worlds/
   {world-slug}/
+    art-style.md     # Visual style for generated images (1-2 lines)
     world_state.md   # Current world conditions
     locations.md     # Known locations
     characters.md    # NPCs and factions
@@ -120,6 +121,44 @@ The character state tracks mutable session data: current location, conditions, a
 ```
 
 ## World Files
+
+### art-style.md
+
+The art style defines the visual aesthetic for all generated background images in this world. The server automatically applies this style to image generation prompts.
+
+```markdown
+# Art Style
+
+[1-2 line visual style description]
+```
+
+**Keep it concise.** This is appended to every image generation prompt, so use only essential style keywords.
+
+#### Examples
+
+```markdown
+# Art Style
+
+Oil painting, impressionist brushwork, warm earth tones
+```
+
+```markdown
+# Art Style
+
+Pixel art, 16-bit SNES era, vibrant colors
+```
+
+```markdown
+# Art Style
+
+Watercolor illustration, soft edges, muted pastels
+```
+
+```markdown
+# Art Style
+
+Dark fantasy digital art, dramatic lighting, Beksinski-inspired
+```
 
 ### world_state.md
 

@@ -704,7 +704,7 @@ Read relevant existing STATE files to maintain consistency:
 
 **When in doubt, call set_theme()** - multiple calls are fine, debouncing prevents spam.
 
-**Art Style**: Check ${paths.artStyle} for this world's visual style (e.g., "painterly oil painting", "pixel art 16-bit", "watercolor illustration"). If the file exists, ALWAYS include its content in the \`image_prompt\` parameter when calling set_theme. Example: if art-style.md contains "oil painting, impressionist style", your image_prompt should be: "A misty forest clearing at dawn. Oil painting, impressionist style."
+**Art Style**: The server automatically reads ${paths.artStyle} and applies it to all generated images. You don't need to include it in image_prompt—it's injected automatically. When creating a new world, write a 1-2 line art style to this file immediately (e.g., "Oil painting, impressionist brushwork, warm earth tones").
 
 **Common patterns** (use these liberally):
 - Entering tavern → set_theme(mood="calm", genre="high-fantasy", region="village")

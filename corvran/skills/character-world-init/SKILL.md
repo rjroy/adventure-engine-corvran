@@ -93,8 +93,18 @@ set_world({ name: "Eldoria", is_new: true })
 
 This creates:
 - Directory: `worlds/eldoria/`
-- Files: `world_state.md`, `locations.md`, `characters.md`, `quests.md` (with templates)
+- Files: `world_state.md`, `locations.md`, `characters.md`, `quests.md`, `art-style.md` (with templates)
 - Updates `worldRef` in adventure state to `"worlds/eldoria"`
+
+**IMPORTANT: After creating a new world, immediately write a 1-2 line art style** to `art-style.md` based on the world's genre and tone. This art style is automatically applied to all generated background images. Example:
+
+```
+# Art Style
+
+Oil painting, impressionist brushwork, warm earth tones
+```
+
+Keep it concise—just the visual style keywords, not a full description.
 
 ### To Use an Existing World
 
@@ -113,8 +123,9 @@ After creating new entries, populate the markdown files with player-provided det
 - Set initial attributes, equipment, and abilities
 - Track current location and objectives in state.md
 
-**World files** (`world_state.md`, `locations.md`, `characters.md`, `quests.md`):
-- Establish genre, era, and tone
+**World files** (`world_state.md`, `locations.md`, `characters.md`, `quests.md`, `art-style.md`):
+- Write the art style FIRST (1-2 lines, e.g., "Watercolor illustration, soft pastels, dreamlike quality")
+- Establish genre, era, and tone in world_state.md
 - Create the starting location with vivid description
 - Add initial NPCs as the player encounters them
 
