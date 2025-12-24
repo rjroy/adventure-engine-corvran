@@ -17,11 +17,11 @@ Character files follow the corvran directory structure with Daggerheart-specific
 ```
 players/
   {character-slug}/
-    sheet.md   # Use sheet-template.md format (traits, HP, Stress, Hope, domain cards)
-    state.md   # Use state-template.md format (current HP, Stress, Hope, conditions)
+    sheet.md   # Use sheet-template.md format (traits, HP, Stress, Hope, domain cards, current status)
+    story.md   # Use story-template.md format (objectives, story arcs, recent events)
 ```
 
-The `sheet.md` contains permanent character data. The `state.md` tracks mutable session data that changes frequently during play.
+The `sheet.md` contains character data including current game state (HP, Stress, Hope, conditions). The `story.md` tracks narrative elements like objectives and story arcs.
 
 ## Character Creation Overview
 
@@ -377,5 +377,5 @@ Detailed templates in this skill's `references/` directory:
 
 - `sheet-template.md` - Blank character sheet template
 - `sheet-example.md` - Completed Level 1 Guardian example
-- `state-template.md` - Mutable session state template
+- `story-template.md` - Character story template (objectives, arcs, events)
 - `experience-template.md` - Bounded Experience constraint template

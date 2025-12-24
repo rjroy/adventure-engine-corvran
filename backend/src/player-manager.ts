@@ -27,12 +27,13 @@ const SHEET_TEMPLATE = `# Character Sheet
 `;
 
 /**
- * Template content for new character state
- * Per TD-5: Empty template for narrative state
+ * Template content for character story
+ * Tracks narrative state: story arcs, objectives, recent events
+ * Game mechanics (HP, conditions, resources) belong in sheet.md
  */
-const STATE_TEMPLATE = `# Character State
+const STORY_TEMPLATE = `# Character Story
 
-*Current situation will be recorded here.*
+*Story arcs and objectives will be recorded here.*
 `;
 
 /**
@@ -46,7 +47,7 @@ const STATE_TEMPLATE = `# Character State
  *
  * Per spec requirements:
  * - REQ-F-1: Character data at {PROJECT_DIR}/players/{character-slug}/
- * - REQ-F-6: Each directory contains sheet.md and state.md
+ * - REQ-F-6: Each directory contains sheet.md and story.md
  * - REQ-F-7: Directory names are filesystem-safe slugs
  * - REQ-F-9: Slug collision appends numeric suffix
  * - REQ-F-26: Creating new character initializes with templates
@@ -90,9 +91,9 @@ export class PlayerManager {
     await mkdir(playerDir, { recursive: true, mode: 0o700 });
 
     const sheetPath = join(playerDir, "sheet.md");
-    const statePath = join(playerDir, "state.md");
+    const storyPath = join(playerDir, "story.md");
     const sheetTempPath = join(playerDir, ".sheet.md.tmp");
-    const stateTempPath = join(playerDir, ".state.md.tmp");
+    const storyTempPath = join(playerDir, ".story.md.tmp");
 
     try {
       // Atomic write for sheet.md (mode 0o600 = owner read/write only)
@@ -102,12 +103,12 @@ export class PlayerManager {
       });
       await rename(sheetTempPath, sheetPath);
 
-      // Atomic write for state.md
-      await writeFile(stateTempPath, STATE_TEMPLATE, {
+      // Atomic write for story.md
+      await writeFile(storyTempPath, STORY_TEMPLATE, {
         encoding: "utf-8",
         mode: 0o600,
       });
-      await rename(stateTempPath, statePath);
+      await rename(storyTempPath, storyPath);
 
       this.log.info({ slug, name }, "Created player directory");
 
@@ -120,7 +121,7 @@ export class PlayerManager {
         /* ignore */
       }
       try {
-        await unlink(stateTempPath);
+        await unlink(storyTempPath);
       } catch {
         /* ignore */
       }
@@ -155,9 +156,9 @@ export class PlayerManager {
     await mkdir(playerDir, { recursive: true, mode: 0o700 });
 
     const sheetPath = join(playerDir, "sheet.md");
-    const statePath = join(playerDir, "state.md");
+    const storyPath = join(playerDir, "story.md");
     const sheetTempPath = join(playerDir, ".sheet.md.tmp");
-    const stateTempPath = join(playerDir, ".state.md.tmp");
+    const storyTempPath = join(playerDir, ".story.md.tmp");
 
     try {
       // Atomic write for sheet.md
@@ -167,12 +168,12 @@ export class PlayerManager {
       });
       await rename(sheetTempPath, sheetPath);
 
-      // Atomic write for state.md
-      await writeFile(stateTempPath, STATE_TEMPLATE, {
+      // Atomic write for story.md
+      await writeFile(storyTempPath, STORY_TEMPLATE, {
         encoding: "utf-8",
         mode: 0o600,
       });
-      await rename(stateTempPath, statePath);
+      await rename(storyTempPath, storyPath);
 
       this.log.info({ slug }, "Created player directory at slug");
     } catch (error) {
@@ -183,7 +184,7 @@ export class PlayerManager {
         /* ignore */
       }
       try {
-        await unlink(stateTempPath);
+        await unlink(storyTempPath);
       } catch {
         /* ignore */
       }

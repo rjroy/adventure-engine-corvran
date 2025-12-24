@@ -1484,7 +1484,7 @@ ${summaryText}
 The player has requested a recap. This is a fresh conversation thread with full access to character and world state files.
 
 Please:
-1. Read the current state from the player's sheet.md and state.md files
+1. Read the current state from the player's sheet.md and story.md files
 2. Read the world_state.md, quests.md, and locations.md files
 3. Provide a brief, engaging narrative summary acknowledging where they are and what they've accomplished
 4. Suggest 2-3 clear options for what they might do next
@@ -1503,11 +1503,12 @@ Begin your response as if greeting a returning adventurer.`;
 Before the adventure history is archived, please ensure all important details are saved to the appropriate state files.
 
 Review the recent narrative and update:
-1. **Player state** (sheet.md, state.md): Any changes to stats, inventory, abilities, conditions, or narrative state
-2. **World state** (world_state.md): Any new facts established about the world
-3. **Locations** (locations.md): Any new places discovered or changes to known locations
-4. **Characters** (characters.md): Any new NPCs met or changes to existing NPCs
-5. **Quests** (quests.md): Any quest progress, new objectives, or completed goals
+1. **Player sheet** (sheet.md): Any changes to stats, inventory, abilities, HP, conditions
+2. **Player story** (story.md): Story arcs, objectives, recent narrative events
+3. **World state** (world_state.md): Any new facts established about the world
+4. **Locations** (locations.md): Any new places discovered or changes to known locations
+5. **Characters** (characters.md): Any new NPCs met or changes to existing NPCs
+6. **Quests** (quests.md): Any quest progress, new objectives, or completed goals
 
 After updating the files, respond with a brief confirmation (1-2 sentences) of what was saved. Do not provide narrative continuation - this is a system checkpoint.`;
   }

@@ -173,9 +173,9 @@ Update this file after:
 - Domain card changes (learning new cards, recalling)
 - Equipment changes (armor, weapons)
 
-### state.md - Session State
+### sheet.md - Current Status Section
 
-Track session-specific status separately from the permanent character sheet:
+Track current status at the bottom of sheet.md (these are game mechanics, not narrative):
 
 ```markdown
 ## Current Status
@@ -191,6 +191,27 @@ Update after:
 - Stress gained (Stress marked)
 - Hope tokens gained/spent
 - Conditions applied/removed
+
+### story.md - Narrative State
+
+Track narrative elements like objectives and story arcs:
+
+```markdown
+## Current Objectives
+- [What the character is trying to accomplish]
+
+## Story Arcs
+- [Arc 1]: [Description and current status]
+
+## Recent Events
+- [What happened last session]
+- [Key decisions made]
+```
+
+Update after:
+- Story progression
+- New objectives
+- Major narrative events
 
 ### encounter.md - Combat State
 

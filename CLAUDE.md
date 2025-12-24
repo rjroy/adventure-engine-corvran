@@ -75,7 +75,8 @@ Adventures persist in `backend/adventures/{adventureId}/`:
 - `history.json` - Narrative history with optional compaction summary
 
 Character/world state lives in markdown files within the project directory (PROJECT_DIR env var):
-- `players/{slug}/sheet.md`, `state.md` - Character data
+- `players/{slug}/sheet.md` - Character stats, inventory, abilities, current HP/conditions
+- `players/{slug}/story.md` - Story arcs, objectives, recent narrative events
 - `worlds/{slug}/world_state.md`, `locations.md`, `characters.md`, `quests.md`
 
 The GM reads/writes these files directly using SDK file tools.

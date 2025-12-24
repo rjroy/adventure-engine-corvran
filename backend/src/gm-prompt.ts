@@ -477,7 +477,7 @@ type FilePaths =
   | {
       hasRefs: true;
       playerSheet: string;
-      playerState: string;
+      playerStory: string;
       worldState: string;
       locations: string;
       characters: string;
@@ -504,7 +504,7 @@ function buildFilePaths(
     return {
       hasRefs: true,
       playerSheet: `./${playerRef}/sheet.md`,
-      playerState: `./${playerRef}/state.md`,
+      playerStory: `./${playerRef}/story.md`,
       worldState: `./${worldRef}/world_state.md`,
       locations: `./${worldRef}/locations.md`,
       characters: `./${worldRef}/characters.md`,
@@ -685,8 +685,8 @@ ${xpGuidance}
 
 ## CHECK STATE FILES:
 Read relevant existing STATE files to maintain consistency:
-- ${paths.playerSheet} - Player character details and stats
-- ${paths.playerState} - Character narrative state
+- ${paths.playerSheet} - Player character stats, inventory, abilities, and current HP/conditions
+- ${paths.playerStory} - Character story arcs, objectives, and recent narrative events
 - ${paths.characters} - NPCs and their details
 - ${paths.worldState} - Established world facts
 - ${paths.locations} - Known places
@@ -730,10 +730,10 @@ Create = Write file. Update = Overwrite. Delete = rm file.
 
 ## UPDATE STATE FILES:
 After narrative events, write changes to markdown files:
-- Player gained/lost items, stats changed, leveled up, learned abilities
-  → Update ${paths.playerSheet} with new values
-- Character situation changed (moved location, gained companions, ongoing conditions, injuries)
-  → Update ${paths.playerState} with current situation
+- Player gained/lost items, stats changed, leveled up, learned abilities, HP changed, conditions applied
+  → Update ${paths.playerSheet} with new values (this is for GAME MECHANICS)
+- Story arc progressed, new objective, important narrative event, companions joined
+  → Update ${paths.playerStory} with narrative updates (this is for STORY/NARRATIVE)
 - New NPCs introduced or existing NPCs had significant development/interactions
   → Update ${paths.characters} with NPC entries or new details
 - New locations discovered or existing locations revealed new details
@@ -747,7 +747,8 @@ After narrative events, write changes to markdown files:
 File examples:
 - Player creates character → Write "${paths.playerSheet}" with name, stats, background
 - Player finds sword → Update "${paths.playerSheet}" inventory section
-- Character narrative state → Write "${paths.playerState}" with current situation
+- Player takes damage → Update "${paths.playerSheet}" HP section
+- Story arc updates → Write "${paths.playerStory}" with current objectives and recent events
 - Meet innkeeper → Write "${paths.characters}" with "## Mira\\nInnkeeper at Rusty Tankard."
 - Discover village → Write "${paths.locations}" with "## Thorndale\\nSmall farming village."
 

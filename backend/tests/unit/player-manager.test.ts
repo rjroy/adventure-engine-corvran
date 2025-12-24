@@ -47,7 +47,7 @@ describe("PlayerManager", () => {
       expect(slug).toBe("kael-thouls");
       expect(existsSync(join(playersDir, "kael-thouls"))).toBe(true);
       expect(existsSync(join(playersDir, "kael-thouls", "sheet.md"))).toBe(true);
-      expect(existsSync(join(playersDir, "kael-thouls", "state.md"))).toBe(true);
+      expect(existsSync(join(playersDir, "kael-thouls", "story.md"))).toBe(true);
     });
 
     test("creates sheet.md with correct template content", async () => {
@@ -61,15 +61,15 @@ describe("PlayerManager", () => {
       expect(await content).toContain("*Details to be established in adventure.*");
     });
 
-    test("creates state.md with correct template content", async () => {
+    test("creates story.md with correct template content", async () => {
       const manager = new PlayerManager(tempDir);
 
       await manager.create("Test Character");
 
-      const statePath = join(playersDir, "test-character", "state.md");
-      const content = Bun.file(statePath).text();
-      expect(await content).toContain("# Character State");
-      expect(await content).toContain("*Current situation will be recorded here.*");
+      const storyPath = join(playersDir, "test-character", "story.md");
+      const content = Bun.file(storyPath).text();
+      expect(await content).toContain("# Character Story");
+      expect(await content).toContain("*Story arcs and objectives will be recorded here.*");
     });
 
     test("creates players directory if it does not exist", async () => {
@@ -153,10 +153,10 @@ describe("PlayerManager", () => {
       await manager.createAtSlug("template-test");
 
       const sheetPath = join(playersDir, "template-test", "sheet.md");
-      const statePath = join(playersDir, "template-test", "state.md");
+      const storyPath = join(playersDir, "template-test", "story.md");
 
       expect(existsSync(sheetPath)).toBe(true);
-      expect(existsSync(statePath)).toBe(true);
+      expect(existsSync(storyPath)).toBe(true);
     });
 
     test("throws error for invalid slug", async () => {
@@ -286,7 +286,7 @@ describe("PlayerManager", () => {
         "# Sir Percival the Brave\n\n**Class**: Knight\n"
       );
       writeFileSync(
-        join(playersDir, "test-player", "state.md"),
+        join(playersDir, "test-player", "story.md"),
         "# Character State\n"
       );
 
@@ -316,7 +316,7 @@ describe("PlayerManager", () => {
       // Create player directory without sheet.md
       mkdirSync(join(playersDir, "incomplete-player"), { recursive: true });
       writeFileSync(
-        join(playersDir, "incomplete-player", "state.md"),
+        join(playersDir, "incomplete-player", "story.md"),
         "# State\n"
       );
 
@@ -549,7 +549,7 @@ describe("PlayerManager", () => {
 
       // Verify files were created
       expect(existsSync(join(playersDir, "secure-player", "sheet.md"))).toBe(true);
-      expect(existsSync(join(playersDir, "secure-player", "state.md"))).toBe(true);
+      expect(existsSync(join(playersDir, "secure-player", "story.md"))).toBe(true);
     });
   });
 

@@ -71,7 +71,7 @@ set_character({ name: "Kael Thouls", is_new: true })
 
 This creates:
 - Directory: `players/kael-thouls/`
-- Files: `sheet.md`, `state.md` (with templates)
+- Files: `sheet.md`, `story.md` (with templates)
 - Updates `playerRef` in adventure state to `"players/kael-thouls"`
 
 ### To Use an Existing Character
@@ -118,10 +118,10 @@ set_world({ name: "eldoria", is_new: false })
 
 After creating new entries, populate the markdown files with player-provided details.
 
-**Character files** (`sheet.md`, `state.md`):
+**Character files** (`sheet.md`, `story.md`):
 - Gather name, race, class, and background from the player
-- Set initial attributes, equipment, and abilities
-- Track current location and objectives in state.md
+- Set initial attributes, equipment, and abilities in sheet.md
+- Track current objectives and story arcs in story.md
 
 **World files** (`world_state.md`, `locations.md`, `characters.md`, `quests.md`, `art-style.md`):
 - Write the art style FIRST (1-2 lines, e.g., "Watercolor illustration, soft pastels, dreamlike quality")

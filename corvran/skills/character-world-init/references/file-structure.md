@@ -7,8 +7,8 @@ This document details the markdown file templates used for character and world s
 ```
 players/
   {character-slug}/
-    sheet.md      # Character identity, stats, abilities, equipment
-    state.md      # Current resources, conditions, objectives
+    sheet.md      # Character identity, stats, abilities, equipment, current HP/resources
+    story.md      # Story arcs, objectives, recent narrative events
 
 worlds/
   {world-slug}/
@@ -96,28 +96,30 @@ The character sheet contains permanent character data. Adapt sections to match t
 - **Look**: Woman, vintage wear, deep eyes
 ```
 
-### state.md
+### story.md
 
-The character state tracks mutable session data: current location, conditions, and objectives.
+The character story tracks narrative elements: story arcs, objectives, and recent events. Game mechanics (HP, conditions, spell slots) belong in sheet.md.
 
 ```markdown
-# Character State
-
-## Current Status
-- **Location**: [Where the character currently is]
-- **Condition**: [Normal, Wounded, Stressed, etc.]
-- **Active Effects**: [Temporary conditions or buffs]
-
-## Resources
-<!-- Track consumables, currency, expendable items -->
-- **[Currency]**: [Amount]
-- **Consumables**: [List]
+# Character Story
 
 ## Current Objectives
 - [What the character is trying to accomplish]
 
+## Story Arcs
+<!-- Ongoing narrative threads for this character -->
+- [Arc 1]: [Description and current status]
+- [Arc 2]: [Description and current status]
+
 ## Recent Events
-- [Session/narrative state tracking]
+<!-- Brief notes on what happened recently in the adventure -->
+- [What happened last session]
+- [Key decisions made]
+- [Important NPCs encountered]
+
+## Companions & Allies
+<!-- NPCs currently traveling with or closely allied to the character -->
+- [Companion Name]: [Brief description and relationship]
 ```
 
 ## World Files
