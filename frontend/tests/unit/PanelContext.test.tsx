@@ -461,6 +461,89 @@ describe("PanelContext", () => {
     });
   });
 
+  describe("clearAllPanels", () => {
+    test("clears all panels from state", () => {
+      const { result } = renderHook(() => usePanels(), {
+        wrapper: createWrapper(),
+      });
+
+      // Add some panels
+      act(() => {
+        result.current.addPanel(createTestPanel({ id: "a", createdAt: "2025-01-01T00:00:00Z" }));
+        result.current.addPanel(createTestPanel({ id: "b", createdAt: "2025-01-01T00:00:01Z" }));
+        result.current.addPanel(createTestPanel({ id: "c", createdAt: "2025-01-01T00:00:02Z" }));
+      });
+
+      expect(result.current.panels).toHaveLength(3);
+
+      act(() => {
+        result.current.clearAllPanels();
+      });
+
+      expect(result.current.panels).toHaveLength(0);
+    });
+
+    test("clears minimize state when clearing all panels", () => {
+      const { result } = renderHook(() => usePanels(), {
+        wrapper: createWrapper(),
+      });
+
+      // Add panels and minimize some
+      act(() => {
+        result.current.addPanel(createTestPanel({ id: "a", createdAt: "2025-01-01T00:00:00Z" }));
+        result.current.addPanel(createTestPanel({ id: "b", createdAt: "2025-01-01T00:00:01Z" }));
+        result.current.toggleMinimize("a");
+        result.current.toggleMinimize("b");
+      });
+
+      expect(result.current.minimized.size).toBe(2);
+
+      act(() => {
+        result.current.clearAllPanels();
+      });
+
+      expect(result.current.minimized.size).toBe(0);
+    });
+
+    test("clears position overrides when clearing all panels", () => {
+      const { result } = renderHook(() => usePanels(), {
+        wrapper: createWrapper(),
+      });
+
+      // Add overlay panel and set position
+      act(() => {
+        result.current.addPanel(createTestPanel({
+          id: "overlay-panel",
+          position: "overlay",
+          createdAt: "2025-01-01T00:00:00Z",
+        }));
+        result.current.updatePanelPosition("overlay-panel", 100, 200);
+      });
+
+      expect(result.current.getPanelPosition("overlay-panel")).toEqual({ x: 100, y: 200 });
+
+      act(() => {
+        result.current.clearAllPanels();
+      });
+
+      expect(result.current.getPanelPosition("overlay-panel")).toBeUndefined();
+    });
+
+    test("works when already empty", () => {
+      const { result } = renderHook(() => usePanels(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(result.current.panels).toHaveLength(0);
+
+      act(() => {
+        result.current.clearAllPanels();
+      });
+
+      expect(result.current.panels).toHaveLength(0);
+    });
+  });
+
   describe("edge cases", () => {
     test("handles rapid add/remove sequences", () => {
       const { result } = renderHook(() => usePanels(), {

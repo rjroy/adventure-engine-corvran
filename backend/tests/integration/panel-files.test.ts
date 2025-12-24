@@ -221,6 +221,97 @@ Some content`;
     });
   });
 
+  describe("Edit tool panel detection", () => {
+    test("Edit tool on panel file emits panel_update message", async () => {
+      const { ws, messages } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      const panelPath = join(TEST_PROJECT_DIR, playerRef, "panels", "weather.md");
+
+      // First create the panel via Write
+      const initialContent = `---
+title: Weather Status
+position: sidebar
+priority: medium
+---
+Clear skies, light breeze.`;
+      await writeFile(panelPath, initialContent);
+
+      // Use any cast to access private handlePostToolUse method
+      const sessionWithHook = session as unknown as {
+        handlePostToolUse(input: TestHookInput, log: typeof logger): TestHookOutput;
+        knownPanelIds: Set<string>;
+      };
+
+      sessionWithHook.handlePostToolUse({
+        hook_event_name: "PostToolUse",
+        tool_name: "Write",
+        tool_input: { file_path: panelPath, content: initialContent },
+      } as TestHookInput, logger);
+
+      // Panel should now be tracked
+      expect(sessionWithHook.knownPanelIds.has("weather")).toBe(true);
+
+      // Clear messages
+      messages.length = 0;
+
+      // Now simulate Edit tool updating the panel
+      const updatedContent = `---
+title: Weather Status
+position: sidebar
+priority: medium
+---
+Storm approaching from the west.`;
+      await writeFile(panelPath, updatedContent);
+
+      sessionWithHook.handlePostToolUse({
+        hook_event_name: "PostToolUse",
+        tool_name: "Edit",
+        tool_input: { file_path: panelPath },
+      } as TestHookInput, logger);
+
+      // Find panel_update message
+      const panelUpdateMsg = messages.find(m => m.type === "panel_update");
+      expect(panelUpdateMsg).toBeDefined();
+      expect(panelUpdateMsg?.payload?.id).toBe("weather");
+      expect(panelUpdateMsg?.payload?.content).toBe("Storm approaching from the west.");
+    });
+
+    test("Edit tool on new panel file emits panel_create message", async () => {
+      const { ws, messages } = createMockWS();
+      const session = new GameSession(ws, stateManager);
+      await session.initialize(adventureId, sessionToken);
+
+      const panelPath = join(TEST_PROJECT_DIR, playerRef, "panels", "timer.md");
+      const panelContent = `---
+title: Countdown Timer
+position: header
+---
+5 rounds remaining`;
+      await writeFile(panelPath, panelContent);
+
+      // Simulate Edit tool (could happen if file was created via edit)
+      const sessionWithHook = session as unknown as {
+        handlePostToolUse(input: TestHookInput, log: typeof logger): TestHookOutput;
+        knownPanelIds: Set<string>;
+      };
+
+      sessionWithHook.handlePostToolUse({
+        hook_event_name: "PostToolUse",
+        tool_name: "Edit",
+        tool_input: { file_path: panelPath },
+      } as TestHookInput, logger);
+
+      // Find panel_create message
+      const panelCreateMsg = messages.find(m => m.type === "panel_create");
+      expect(panelCreateMsg).toBeDefined();
+      expect(panelCreateMsg?.payload?.id).toBe("timer");
+      expect(panelCreateMsg?.payload?.title).toBe("Countdown Timer");
+      expect(panelCreateMsg?.payload?.content).toBe("5 rounds remaining");
+    });
+  });
+
   describe("Bash rm panel detection", () => {
     test("rm command on panel file emits panel_dismiss message", async () => {
       const { ws, messages } = createMockWS();
