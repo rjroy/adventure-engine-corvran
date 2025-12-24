@@ -91,7 +91,7 @@ describe("WorldManager", () => {
       expect(content).toBe("# Quests\n\n*Active and completed quests will be tracked here.*");
     });
 
-    test("creates all four template files", async () => {
+    test("creates all five template files", async () => {
       const slug = await manager.create("Complete World");
 
       const files = await readdir(join(TEST_WORLDS_DIR, slug));
@@ -99,7 +99,8 @@ describe("WorldManager", () => {
       expect(files).toContain("locations.md");
       expect(files).toContain("characters.md");
       expect(files).toContain("quests.md");
-      expect(files.length).toBe(4);
+      expect(files).toContain("art-style.md");
+      expect(files.length).toBe(5);
     });
 
     test("creates directory with 0o700 permissions", async () => {
@@ -470,7 +471,7 @@ describe("WorldManager", () => {
       expect(await manager.exists("eldoria")).toBe(true);
     });
 
-    test("creates all four template files", async () => {
+    test("creates all five template files", async () => {
       await manager.createAtSlug("test-world");
 
       const worldPath = join(TEST_WORLDS_DIR, "test-world");
@@ -480,7 +481,8 @@ describe("WorldManager", () => {
       expect(files).toContain("locations.md");
       expect(files).toContain("characters.md");
       expect(files).toContain("quests.md");
-      expect(files.length).toBe(4);
+      expect(files).toContain("art-style.md");
+      expect(files.length).toBe(5);
     });
 
     test("creates template files with correct content", async () => {
