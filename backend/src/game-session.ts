@@ -1593,17 +1593,25 @@ After updating the files, respond with a brief confirmation (1-2 sentences) of w
       return { continue: true };
     }
 
-    // Handle Write and Edit tools - check if modifying a panel file
+    // Handle Write and Edit tools - check if modifying a panel file or sheet.md
     if (tool_name === "Write" || tool_name === "Edit") {
       const toolInput = tool_input as { file_path?: string };
       const filePath = toolInput.file_path;
 
       if (filePath) {
+        // Check for panel file modifications
         const isPanel = isPanelPath(filePath, playerRef);
         log.debug({ filePath, playerRef, isPanel, tool_name }, "Checking file tool path");
         if (isPanel) {
           log.info({ filePath, tool_name }, "Panel file modification detected - processing");
           this.handlePanelFileWrite(filePath, log);
+        }
+
+        // Check for player sheet modifications (#225)
+        const isSheet = this.isPlayerSheetPath(filePath, playerRef);
+        if (isSheet) {
+          log.info({ filePath, tool_name }, "Player sheet modification detected - updating panel");
+          this.handlePlayerSheetUpdate(playerRef, log);
         }
       }
     }
@@ -1653,7 +1661,11 @@ After updating the files, respond with a brief confirmation (1-2 sentences) of w
     const deletedPanels: string[] = [];
 
     for (const panelId of this.knownPanelIds) {
-      const panelPath = join(panelsDir, `${panelId}.md`);
+      // Player sheet panel has a special path (#225)
+      const panelPath = panelId === GameSession.PLAYER_SHEET_PANEL_ID
+        ? join(this.projectDirectory, playerRef, "sheet.md")
+        : join(panelsDir, `${panelId}.md`);
+
       if (!existsSync(panelPath)) {
         deletedPanels.push(panelId);
       }
@@ -1698,6 +1710,15 @@ After updating the files, respond with a brief confirmation (1-2 sentences) of w
       return;
     }
     const panelId = idResult.id;
+
+    // Block reserved player-sheet panel ID (#225) - this is managed automatically
+    if (panelId === GameSession.PLAYER_SHEET_PANEL_ID) {
+      log.warn({ filePath }, "Cannot create panel with reserved ID 'player-sheet'");
+      this.panelValidationErrors.push(
+        `Panel file validation failed: ${filePath} - 'player-sheet' is a reserved panel ID`
+      );
+      return;
+    }
 
     // Construct absolute path if needed
     const absolutePath = filePath.startsWith("/")
@@ -1813,8 +1834,154 @@ After updating the files, respond with a brief confirmation (1-2 sentences) of w
     log.debug({ panelId }, "Panel dismissed from file delete");
   }
 
+  /** Reserved panel ID for the player sheet sidebar panel (#225) */
+  private static readonly PLAYER_SHEET_PANEL_ID = "player-sheet";
+
+  /**
+   * Emit the player's sheet.md as a special sidebar panel (#225).
+   * This panel is always present when a character is active, providing
+   * quick reference to stats and abilities without extra navigation.
+   *
+   * @param playerRef - Player reference path (e.g., "players/theron-ashwind")
+   * @param log - Logger for correlation
+   */
+  private emitPlayerSheetPanel(playerRef: string, log: Logger): void {
+    if (!this.projectDirectory) {
+      return;
+    }
+
+    const sheetPath = join(this.projectDirectory, playerRef, "sheet.md");
+
+    // Check if sheet exists
+    if (!existsSync(sheetPath)) {
+      log.debug({ sheetPath }, "Player sheet does not exist, skipping panel");
+      return;
+    }
+
+    // Read sheet content
+    let content: string;
+    try {
+      content = readFileSync(sheetPath, "utf-8");
+    } catch (error) {
+      log.warn({ sheetPath, err: error }, "Failed to read player sheet");
+      return;
+    }
+
+    // Extract character name from sheet (first H1 heading or first line)
+    let title = "Character Sheet";
+    const nameMatch = content.match(/^#\s+(.+)$/m);
+    if (nameMatch) {
+      title = nameMatch[1].trim();
+    }
+
+    // Get file creation time for ordering
+    let createdAt: string;
+    try {
+      const stats = statSync(sheetPath);
+      createdAt = stats.birthtime.toISOString();
+    } catch {
+      createdAt = new Date().toISOString();
+    }
+
+    // Emit panel_create for player sheet
+    const panel = {
+      id: GameSession.PLAYER_SHEET_PANEL_ID,
+      title,
+      content,
+      position: "sidebar" as const,
+      priority: "high" as const, // Always show prominently
+      persistent: true,
+      createdAt,
+    };
+
+    this.sendMessage(
+      {
+        type: "panel_create",
+        payload: panel,
+      },
+      log
+    );
+
+    // Track as known panel
+    this.knownPanelIds.add(GameSession.PLAYER_SHEET_PANEL_ID);
+    log.info({ panelId: GameSession.PLAYER_SHEET_PANEL_ID, title }, "Player sheet panel emitted");
+  }
+
+  /**
+   * Check if a file path is the player's sheet.md (#225).
+   *
+   * @param filePath - File path to check (relative or absolute)
+   * @param playerRef - Player reference path (e.g., "players/theron-ashwind")
+   * @returns true if the path is the player's sheet.md
+   */
+  private isPlayerSheetPath(filePath: string, playerRef: string): boolean {
+    // Normalize path for comparison
+    const normalizedPath = filePath.replace(/^\.\//, "");
+
+    // Check for exact match: {playerRef}/sheet.md
+    const expectedPath = `${playerRef}/sheet.md`;
+    if (normalizedPath === expectedPath) {
+      return true;
+    }
+
+    // Check for absolute path match
+    if (this.projectDirectory) {
+      const absoluteExpected = join(this.projectDirectory, expectedPath);
+      if (filePath === absoluteExpected) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Handle a player sheet update by emitting panel_update (#225).
+   * Re-reads the sheet.md file and sends updated content to the frontend.
+   *
+   * @param playerRef - Player reference path (e.g., "players/theron-ashwind")
+   * @param log - Logger for correlation
+   */
+  private handlePlayerSheetUpdate(playerRef: string, log: Logger): void {
+    if (!this.projectDirectory) {
+      return;
+    }
+
+    // Only update if we've already emitted the panel
+    if (!this.knownPanelIds.has(GameSession.PLAYER_SHEET_PANEL_ID)) {
+      log.debug("Player sheet panel not yet emitted, skipping update");
+      return;
+    }
+
+    const sheetPath = join(this.projectDirectory, playerRef, "sheet.md");
+
+    // Read updated sheet content
+    let content: string;
+    try {
+      content = readFileSync(sheetPath, "utf-8");
+    } catch (error) {
+      log.warn({ sheetPath, err: error }, "Failed to read player sheet for update");
+      return;
+    }
+
+    // Emit panel_update with new content
+    this.sendMessage(
+      {
+        type: "panel_update",
+        payload: {
+          id: GameSession.PLAYER_SHEET_PANEL_ID,
+          content,
+        },
+      },
+      log
+    );
+
+    log.debug({ panelId: GameSession.PLAYER_SHEET_PANEL_ID }, "Player sheet panel updated");
+  }
+
   /**
    * Scan existing panel files and emit panel_create messages (REQ-F-16).
+   * Also emits a special "player-sheet" panel from sheet.md (#225).
    * Called during session initialization to restore panels on reconnect/reload.
    *
    * @param playerRef - Player reference path (e.g., "players/theron-ashwind")
@@ -1824,6 +1991,9 @@ After updating the files, respond with a brief confirmation (1-2 sentences) of w
     if (!this.projectDirectory) {
       return;
     }
+
+    // Emit player sheet as a special sidebar panel (#225)
+    this.emitPlayerSheetPanel(playerRef, log);
 
     const panelsDir = join(this.projectDirectory, playerRef, "panels");
 
@@ -1859,6 +2029,12 @@ After updating the files, respond with a brief confirmation (1-2 sentences) of w
         continue;
       }
       const panelId = idResult.id;
+
+      // Skip reserved player-sheet panel ID (#225) - handled separately by emitPlayerSheetPanel()
+      if (panelId === GameSession.PLAYER_SHEET_PANEL_ID) {
+        log.debug({ filePath }, "Skipping reserved player-sheet panel ID");
+        continue;
+      }
 
       // Read file content
       let content: string;
