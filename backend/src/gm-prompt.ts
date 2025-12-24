@@ -482,6 +482,7 @@ type FilePaths =
       locations: string;
       characters: string;
       quests: string;
+      artStyle: string;
     }
   | {
       hasRefs: false;
@@ -508,6 +509,7 @@ function buildFilePaths(
       locations: `./${worldRef}/locations.md`,
       characters: `./${worldRef}/characters.md`,
       quests: `./${worldRef}/quests.md`,
+      artStyle: `./${worldRef}/art-style.md`,
     };
   }
 
@@ -702,6 +704,8 @@ Read relevent existing STATE files to maintain consistency:
 - First response of a session (set the current atmosphere)
 
 **When in doubt, call set_theme()** - multiple calls are fine, debouncing prevents spam.
+
+**Art Style**: Check ${paths.artStyle} for this world's visual style (e.g., "painterly oil painting", "pixel art 16-bit", "watercolor illustration"). If the file exists, ALWAYS include its content in the \`image_prompt\` parameter when calling set_theme. Example: if art-style.md contains "oil painting, impressionist style", your image_prompt should be: "A misty forest clearing at dawn. Oil painting, impressionist style."
 
 **Common patterns** (use these liberally):
 - Entering tavern → set_theme(mood="calm", genre="high-fantasy", region="village")

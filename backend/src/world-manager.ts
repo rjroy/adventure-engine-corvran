@@ -22,6 +22,7 @@ const WORLD_TEMPLATES = {
   "locations.md": "# Locations\n\n*Discovered places will be recorded here.*",
   "characters.md": "# Characters\n\n*NPCs and notable characters will be recorded here.*",
   "quests.md": "# Quests\n\n*Active and completed quests will be tracked here.*",
+  "art-style.md": "# Art Style\n\n*Optional: Define a visual style for background images in this world.*\n*Example: \"oil painting, impressionist style\" or \"pixel art, 16-bit\"*",
 } as const;
 
 /**
