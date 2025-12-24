@@ -32,7 +32,7 @@ import { HistoryCompactor } from "./services/history-compactor";
 import { env } from "./env";
 import { mockQuery } from "./mock-sdk";
 import type { BackgroundImageService } from "./services/background-image";
-import { sanitizePlayerInput } from "./validation";
+import { sanitizePlayerInput, safeResolvePath } from "./validation";
 import {
   parsePanelFile,
   derivePanelId,
@@ -1118,7 +1118,8 @@ export class GameSession {
     requestLogger?: Logger
   ): Promise<void> {
     const log = requestLogger ?? logger;
-    const { mood, genre, region, image_prompt, force_generate = false } = input;
+    const { mood, genre, region, force_generate = false } = input;
+    let { image_prompt } = input;
     const now = Date.now();
 
     log.debug({ mood, genre, region, promptPreview: image_prompt?.slice(0, 50), forceGenerate: force_generate }, "handleSetThemeTool");
@@ -1135,6 +1136,16 @@ export class GameSession {
 
     // Update debounce tracker
     this.lastThemeChange = { mood, timestamp: now };
+
+    // Inject world art style into image prompt if available
+    // This ensures consistent visual style across all generated images for a world
+    const artStyle = this.getWorldArtStyle(log);
+    if (artStyle) {
+      image_prompt = image_prompt
+        ? `${image_prompt}. ${artStyle}`
+        : artStyle;
+      log.debug({ artStyle }, "Injected world art style into image prompt");
+    }
 
     // Get background image URL using GM-provided tags for catalog lookup
     // The catalog searches by mood+genre+region first, only generating if no match
@@ -1189,6 +1200,71 @@ export class GameSession {
     log.debug({ xpStyle }, "handleSetXpStyleTool");
     await this.stateManager.updateXpStyle(xpStyle);
     log.info({ xpStyle }, "XP style preference saved");
+  }
+
+  /**
+   * Get the art style for the current world, if available.
+   * Reads from {worldRef}/art-style.md and extracts meaningful content.
+   * Returns null if no world is set, file doesn't exist, or content is just template.
+   * @param log Logger for correlation
+   * @returns Art style string or null
+   */
+  private getWorldArtStyle(log: Logger): string | null {
+    const state = this.stateManager.getState();
+    const worldRef = state?.worldRef;
+
+    if (!worldRef || !this.projectDirectory) {
+      return null;
+    }
+
+    // Use safeResolvePath to prevent path traversal attacks (defense in depth)
+    const worldPath = safeResolvePath(this.projectDirectory, worldRef);
+    if (!worldPath) {
+      log.warn({ worldRef }, "Invalid worldRef - path traversal detected");
+      return null;
+    }
+
+    const artStylePath = join(worldPath, "art-style.md");
+
+    if (!existsSync(artStylePath)) {
+      log.debug({ artStylePath }, "Art style file does not exist");
+      return null;
+    }
+
+    try {
+      const content = readFileSync(artStylePath, "utf-8");
+
+      // Extract meaningful art style content
+      // Skip template placeholder text and header
+      const lines = content.split("\n");
+      const meaningfulLines: string[] = [];
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        // Skip empty lines, markdown headers, and template placeholder text
+        if (
+          !trimmed ||
+          trimmed.startsWith("#") ||
+          trimmed.startsWith("*Optional:") ||
+          trimmed.startsWith("*Example:")
+        ) {
+          continue;
+        }
+        meaningfulLines.push(trimmed);
+      }
+
+      const artStyle = meaningfulLines.join(" ").trim();
+
+      if (!artStyle) {
+        log.debug({ artStylePath }, "Art style file contains only template/placeholder content");
+        return null;
+      }
+
+      return artStyle;
+    } catch (error) {
+      log.warn({ err: error, artStylePath }, "Failed to read art style file");
+      return null;
+    }
   }
 
   /**
