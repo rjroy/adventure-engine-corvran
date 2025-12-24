@@ -812,6 +812,7 @@ export class GameSession {
       "Skill",
       "Read",
       "Write",
+      "Edit",
       "Glob",
       "Grep",
       "Bash",
@@ -1592,16 +1593,16 @@ After updating the files, respond with a brief confirmation (1-2 sentences) of w
       return { continue: true };
     }
 
-    // Handle Write tool - check if writing to panel file
-    if (tool_name === "Write") {
-      const writeInput = tool_input as { file_path?: string; content?: string };
-      const filePath = writeInput.file_path;
+    // Handle Write and Edit tools - check if modifying a panel file
+    if (tool_name === "Write" || tool_name === "Edit") {
+      const toolInput = tool_input as { file_path?: string };
+      const filePath = toolInput.file_path;
 
       if (filePath) {
         const isPanel = isPanelPath(filePath, playerRef);
-        log.debug({ filePath, playerRef, isPanel }, "Checking Write tool path");
+        log.debug({ filePath, playerRef, isPanel, tool_name }, "Checking file tool path");
         if (isPanel) {
-          log.info({ filePath }, "Panel file write detected - processing");
+          log.info({ filePath, tool_name }, "Panel file modification detected - processing");
           this.handlePanelFileWrite(filePath, log);
         }
       }

@@ -211,6 +211,79 @@ describe("useWebSocket", () => {
 
       expect(onMessage).toHaveBeenCalledWith(loadedMessage);
     });
+
+    test("adventure_loaded clears existing panels", () => {
+      const onMessage = vi.fn();
+      const panelContextRef: { current: ReturnType<typeof usePanels> | null } = { current: null };
+
+      // Helper wrapper to capture panel context
+      function CaptureWrapper({ children }: { children: ReactNode }) {
+        return (
+          <ThemeProvider>
+            <PanelProvider>
+              <PanelContextCapture onCapture={(ctx) => { panelContextRef.current = ctx; }} />
+              {children}
+            </PanelProvider>
+          </ThemeProvider>
+        );
+      }
+
+      // Capture component
+      function PanelContextCapture({ onCapture }: { onCapture: (ctx: ReturnType<typeof usePanels>) => void }) {
+        const ctx = usePanels();
+        onCapture(ctx);
+        return null;
+      }
+
+      renderHook(
+        () => useWebSocket({ ...defaultOptions, onMessage }),
+        { wrapper: CaptureWrapper }
+      );
+
+      act(() => {
+        mockWebSocketInstance?.simulateOpen();
+      });
+
+      // Create some panels first
+      act(() => {
+        mockWebSocketInstance?.simulateMessage({
+          type: "panel_create",
+          payload: {
+            id: "panel-1",
+            title: "Panel 1",
+            content: "Content 1",
+            position: "sidebar",
+            persistent: false,
+            createdAt: new Date().toISOString(),
+          },
+        });
+        mockWebSocketInstance?.simulateMessage({
+          type: "panel_create",
+          payload: {
+            id: "panel-2",
+            title: "Panel 2",
+            content: "Content 2",
+            position: "header",
+            persistent: false,
+            createdAt: new Date().toISOString(),
+          },
+        });
+      });
+
+      // Verify panels exist
+      expect(panelContextRef.current!.panels).toHaveLength(2);
+
+      // Simulate adventure_loaded - should clear panels
+      act(() => {
+        mockWebSocketInstance?.simulateMessage({
+          type: "adventure_loaded",
+          payload: { adventureId: "new-adventure", history: [] },
+        });
+      });
+
+      // Panels should be cleared
+      expect(panelContextRef.current!.panels).toHaveLength(0);
+    });
   });
 
   describe("sendMessage", () => {

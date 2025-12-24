@@ -51,7 +51,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
   const { applyTheme } = useTheme();
 
   // Access panel context for handling panel messages
-  const { addPanel, updatePanel, removePanel } = usePanels();
+  const { addPanel, updatePanel, removePanel, clearAllPanels } = usePanels();
 
   const updateStatus = useCallback(
     (newStatus: ConnectionStatus) => {
@@ -173,6 +173,13 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
             updateStatus("connected");
           }
 
+          // Clear existing panels when a new adventure loads
+          // New panels will be restored via panel_create messages from scanExistingPanels
+          if (message.type === "adventure_loaded") {
+            console.log("[useWebSocket] Adventure loaded, clearing existing panels");
+            clearAllPanels();
+          }
+
           // Handle theme_change messages by applying theme
           if (message.type === "theme_change") {
             const { mood, backgroundUrl, transitionDuration } = message.payload;
@@ -263,6 +270,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     addPanel,
     updatePanel,
     removePanel,
+    clearAllPanels,
   ]);
 
   const disconnect = useCallback(() => {
