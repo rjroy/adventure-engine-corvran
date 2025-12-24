@@ -10,9 +10,7 @@ After installing this plugin, run the init command in your adventure directory t
 /daggerheart-system:init
 ```
 
-This command:
-1. Copies `System.md` to your adventure directory (core Daggerheart rules the GM reads during play)
-2. Merges Daggerheart-specific GM guidance into your project's `CLAUDE.md`
+This command merges complete Daggerheart GM guidance (including quick reference tables for all core mechanics) into your project's `CLAUDE.md`.
 
 ## Installed Skills
 
@@ -122,7 +120,6 @@ daggerheart-system/
 ├── .claude-plugin/plugin.json
 ├── CLAUDE.md              # This file (plugin-level guidance)
 ├── dh-CLAUDE.md           # Adventure-level content (merged via init)
-├── System.md              # Core rules (copied to adventure via init)
 ├── commands/
 │   └── init.md            # /daggerheart-system:init command
 └── skills/

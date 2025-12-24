@@ -482,6 +482,7 @@ type FilePaths =
       locations: string;
       characters: string;
       quests: string;
+      artStyle: string;
     }
   | {
       hasRefs: false;
@@ -508,6 +509,7 @@ function buildFilePaths(
       locations: `./${worldRef}/locations.md`,
       characters: `./${worldRef}/characters.md`,
       quests: `./${worldRef}/quests.md`,
+      artStyle: `./${worldRef}/art-style.md`,
     };
   }
 
@@ -551,7 +553,7 @@ ${BOUNDARY}
 This adventure does not have a character or world configured yet.
 
 TO PERFORM SETUP:
-1. You must read ./System.md to understand the RPG rules if it exists. Do NOT attempt to read or write game files until setup is complete.
+1. Use the RPG rules from your system instructions (CLAUDE.md). Do NOT attempt to read or write game files until setup is complete.
 2. Invoke the character-world-init skill for setup guidance
 3. This skill will help the player select or create a character and world
 4. Use the MCP tools (list_characters, list_worlds, set_character, set_world) to configure the adventure
@@ -661,8 +663,8 @@ ${BOUNDARY}
 ${safeDescription}
 
 # GAME MECHANICS:
-- This is an RPG with rules quick reference in ./System.md. An RPG is as much about storytelling as mechanics - balance both well.
-- ALWAYS enforce rules fairly and consistently
+- This is an RPG - rules are in your system instructions (CLAUDE.md) and available via skills. An RPG is as much about storytelling as mechanics - balance both well.
+- ALWAYS enforce rules fairly and consistently. Use the rules skill for detailed lookups.
 
 # NARRATIVE GUIDELINES:
 - Write vivid, engaging narrative that maintains consistency with state files
@@ -682,8 +684,7 @@ ${xpGuidance}
 5. REMEMBER SKILLS (consult for domain guidance)
 
 ## CHECK STATE FILES:
-Read relevent existing STATE files to maintain consistency:
-- ./System.md - Core RPG rules for common situations (use rules skill for detailed lookups)
+Read relevant existing STATE files to maintain consistency:
 - ${paths.playerSheet} - Player character details and stats
 - ${paths.playerState} - Character narrative state
 - ${paths.characters} - NPCs and their details
@@ -702,6 +703,8 @@ Read relevent existing STATE files to maintain consistency:
 - First response of a session (set the current atmosphere)
 
 **When in doubt, call set_theme()** - multiple calls are fine, debouncing prevents spam.
+
+**Art Style**: Check ${paths.artStyle} for this world's visual style (e.g., "painterly oil painting", "pixel art 16-bit", "watercolor illustration"). If the file exists, ALWAYS include its content in the \`image_prompt\` parameter when calling set_theme. Example: if art-style.md contains "oil painting, impressionist style", your image_prompt should be: "A misty forest clearing at dawn. Oil painting, impressionist style."
 
 **Common patterns** (use these liberally):
 - Entering tavern → set_theme(mood="calm", genre="high-fantasy", region="village")

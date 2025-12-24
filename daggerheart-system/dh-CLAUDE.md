@@ -2,21 +2,102 @@
 
 This section is merged into your adventure's CLAUDE.md when you run `/daggerheart-system:init`. It provides guidance for running Daggerheart adventures using the official SRD mechanics.
 
-## Key Differences from d20 Systems
+---
 
-Daggerheart is **not** a d20 system. If you have D&D/Pathfinder habits, unlearn them here:
+## CRITICAL: Daggerheart Is NOT D&D
 
-| Concept | d20 Systems | Daggerheart |
-|---------|-------------|-------------|
-| **Core Dice** | 1d20 vs target | 2d12 (Duality Dice) - higher die determines Hope/Fear |
-| **Turn Order** | Initiative rolls | Spotlight flow - GM acts on Fear rolls or failures |
-| **Armor** | Reduces damage taken | Armor Slots reduce HP marked (player choice when hit) |
-| **Evasion/AC** | Calculated from ability scores | Class base; modified by features/items, NOT traits |
-| **Ability Scores** | 3-18 with modifiers | Six Traits with direct modifiers (+2 to -1) |
-| **GM Resources** | None tracked | Fear tokens (max 12) fuel GM moves |
-| **Success/Failure** | Binary (hit or miss) | Five outcomes based on total AND which die was higher |
+**STOP. READ THIS BEFORE DOING ANYTHING.**
 
-**Critical habit to break**: Don't think "roll to hit, roll damage." Think "roll creates narrative momentum for players OR GM."
+Daggerheart is a **completely different game** that happens to share some class names with D&D. The similarities end at the names. Every mechanic, ability, feature, and progression system is fundamentally different.
+
+### The Cardinal Rule
+
+**NEVER rely on D&D knowledge for Daggerheart mechanics.**
+
+When creating a character, describing abilities, or adjudicating rules:
+1. **ALWAYS invoke `dh-rules` or `dh-players` to look up actual Daggerheart mechanics**
+2. **NEVER assume a class works like its D&D counterpart**
+3. **NEVER invent abilities based on D&D patterns**
+
+### What Does NOT Exist in Daggerheart
+
+These D&D concepts have **NO equivalent** in Daggerheart:
+
+- **Spell slots** - Domain cards work completely differently
+- **Ability scores 3-18** - Starting traits are just +2, +1, +1, +0, +0, -1
+- **Skills/Proficiencies** - Experiences replace these but work differently
+- **Initiative rolls** - Spotlight flow replaces turn order entirely
+- **Saving throws** - Does not exist as a concept
+- **Opportunity attacks** - Does not exist
+- **Bonus actions/Reactions** - Does not exist as separate action types
+- **Concentration** - Does not exist
+- **Short/Long rests** - Rest mechanics are narrative, not mechanical
+- **Spell components (V/S/M)** - Does not exist
+- **Cantrips vs leveled spells** - Domain cards are all equal in type
+- **Multiattack by default** - Attack actions work differently
+- **Proficiency bonus scaling** - Proficiency works differently
+- **Advantage/Disadvantage (2d20)** - Daggerheart uses d6 add/subtract instead (see Quick Reference)
+
+### Classes: Same Names, DIFFERENT Games
+
+Daggerheart has 9 classes. Some share names with D&D but are **mechanically unrelated**:
+
+| Daggerheart Class | IS NOT D&D's... | Daggerheart Primary Traits | Domains |
+|-------------------|-----------------|---------------------------|---------|
+| **Bard** | bard | Presence, Knowledge | Codex, Grace |
+| **Druid** | druid | Instinct, Agility | Sage, Arcana |
+| **Guardian** | paladin/fighter | Strength, Agility | Valor, Blade |
+| **Ranger** | ranger | Instinct, Finesse | Bone, Sage |
+| **Rogue** | rogue | Finesse, Agility | Midnight, Grace |
+| **Seraph** | cleric | Presence, Strength | Splendor, Valor |
+| **Sorcerer** | sorcerer | Presence, Instinct | Arcana, Midnight |
+| **Warrior** | fighter/barbarian | Strength, Finesse | Blade, Bone |
+| **Wizard** | wizard | Knowledge, Presence | Codex, Splendor |
+
+**A Daggerheart Ranger has:**
+- Bone and Sage domain cards (not spell slots)
+- Instinct and Finesse as primary traits
+- Specific class features defined in the SRD
+- **NO**: Favored enemy, natural explorer, ranger spells, beast companions (unless granted by specific features)
+
+**ALWAYS look up actual class features using `dh-rules` before describing what a class can do.**
+
+### Dice Differences
+
+| Concept | D&D | Daggerheart |
+|---------|-----|-------------|
+| Core mechanic | 1d20 + mod vs DC | 2d12 (Duality Dice) + mod vs difficulty |
+| Success/Failure | Binary | 5 outcomes (success/fail × hope/fear + critical) |
+| Natural 20 | Critical hit | Both dice matching = critical success |
+| Damage | Roll dice, reduce HP | Roll dice, compare to thresholds, mark HP slots |
+
+### Token Economy (D&D Has Nothing Like This)
+
+- **Hope tokens** (player, max 6): Gained when hope die is higher; spend to boost rolls, reroll, or activate features
+- **Fear tokens** (GM, max 12): Gained when fear die is higher; spend to activate adversary abilities or escalate
+
+This economy **drives the entire game flow**. Every roll shifts resources between players and GM.
+
+### Spotlight Flow (Not Initiative)
+
+There is no initiative. Combat flows narratively:
+1. Players act until a roll results in Fear
+2. GM acts, spending Fear tokens
+3. Players resume
+
+The GM gains narrative control when the dice favor Fear, not through a fixed turn order.
+
+---
+
+## If You're Unsure, LOOK IT UP
+
+Before assuming how anything works:
+
+```
+Invoke dh-rules to search the SRD for exact mechanics
+```
+
+This is not optional. Guessing based on D&D will produce incorrect results.
 
 ## Available Skills
 
@@ -243,6 +324,106 @@ For lighter mechanical play:
 - Auto-succeed on trivial tasks (no rolls)
 - Group rolls for party actions
 - Focus on spotlight flow over strict token tracking
+
+---
+
+## Quick Reference
+
+### Action Roll Outcomes
+
+| Outcome | Condition | Effect |
+|---------|-----------|--------|
+| **Critical Success** | Both dice show same value | Automatic success + bonus effect |
+| **Success with Hope** | Total ≥ difficulty, hope die higher | Success, player gains Hope |
+| **Success with Fear** | Total ≥ difficulty, fear die higher | Success, GM gains Fear |
+| **Failure with Hope** | Total < difficulty, hope die higher | Failure, player gains Hope |
+| **Failure with Fear** | Total < difficulty, fear die higher | Failure, GM gains Fear |
+
+On ties between dice (not matching), player chooses Hope or Fear.
+
+### Difficulty Table
+
+| Difficulty | Target |
+|------------|--------|
+| Easy | 10 |
+| Moderate | 15 |
+| Hard | 20 |
+| Formidable | 25 |
+| Legendary | 30 |
+
+### Advantage and Disadvantage
+
+**NOT like D&D.** Daggerheart uses d6 modifiers:
+
+- **Advantage**: Roll an additional d6, **add** it to your total
+- **Disadvantage**: Roll a d6, **subtract** it from your total
+- Multiple advantages/disadvantages **stack** (roll multiple d6s)
+- Advantages and disadvantages cancel one-to-one
+
+### Trait Modifiers
+
+At character creation, distribute: **+2, +1, +1, +0, +0, -1** across the six traits.
+
+| Trait | Measures |
+|-------|----------|
+| Agility | Speed, reflexes, coordination |
+| Strength | Physical power, lifting, endurance |
+| Finesse | Precision, dexterity, fine control |
+| Instinct | Awareness, intuition, quick reactions |
+| Presence | Charisma, willpower, force of personality |
+| Knowledge | Learning, memory, reasoning |
+
+### Damage Thresholds
+
+- **Major** = Level + Armor Major Base
+- **Severe** = Level + Armor Severe Base
+
+| Damage vs Threshold | HP Marked |
+|---------------------|-----------|
+| Below Major | 1 |
+| ≥ Major | 2 |
+| ≥ Severe | 3 |
+
+### Conditions
+
+| Condition | Effect |
+|-----------|--------|
+| **Vulnerable** | All rolls targeting you have advantage |
+| **Hidden** | Rolls against you have disadvantage; ends when seen, you attack, or move into line of sight |
+| **Restrained** | Cannot move; can still act from current position |
+
+### The Nine Domains
+
+| Domain | Focus |
+|--------|-------|
+| Arcana | Pure magical manipulation |
+| Blade | Weapon enhancement, martial magic |
+| Bone | Tactics, body mastery, combat awareness |
+| Codex | Knowledge, divination, words |
+| Grace | Charisma, charm, language mastery |
+| Midnight | Shadow, stealth, fear |
+| Sage | Nature, growth, beasts |
+| Splendor | Life, healing, restoration |
+| Valor | Courage, strength, battle |
+
+### Encounter Building
+
+**Battle Points = (3 × Number of PCs) + 2**
+
+| BP Cost | Adversary Type |
+|---------|----------------|
+| 1 | Group of Minions (= party size), Social, or Support |
+| 2 | Horde, Ranged, Skulk, or Standard |
+| 3 | Leader |
+| 4 | Bruiser |
+| 5 | Solo |
+
+### Rest
+
+- **Short Rest** (10-15 min): Clear some Stress, recover minor resources
+- **Long Rest** (6-8 hours): Clear all Stress and HP, recall domain cards
+
+---
 
 ## License
 

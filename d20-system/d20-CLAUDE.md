@@ -289,6 +289,129 @@ For lighter mechanical play:
 - Group similar rolls (one Stealth check for the party)
 - Use passive scores for perception and insight (10 + modifier)
 
+---
+
+## Quick Reference
+
+### Core Formula
+
+**d20 + Ability Modifier + Proficiency Bonus (if proficient) vs DC or AC**
+
+### Ability Modifiers
+
+| Score | Modifier | Score | Modifier |
+|-------|----------|-------|----------|
+| 1 | -5 | 16-17 | +3 |
+| 2-3 | -4 | 18-19 | +4 |
+| 4-5 | -3 | 20-21 | +5 |
+| 6-7 | -2 | 22-23 | +6 |
+| 8-9 | -1 | 24-25 | +7 |
+| 10-11 | +0 | 26-27 | +8 |
+| 12-13 | +1 | 28-29 | +9 |
+| 14-15 | +2 | 30 | +10 |
+
+**Formula**: (Score - 10) / 2, rounded down
+
+### Proficiency Bonus by Level
+
+| Level | Bonus | Level | Bonus |
+|-------|-------|-------|-------|
+| 1-4 | +2 | 13-16 | +5 |
+| 5-8 | +3 | 17-20 | +6 |
+| 9-12 | +4 | | |
+
+### Difficulty Class
+
+| Task | DC |
+|------|----|
+| Very Easy | 5 |
+| Easy | 10 |
+| Medium | 15 |
+| Hard | 20 |
+| Very Hard | 25 |
+| Nearly Impossible | 30 |
+
+### Advantage and Disadvantage
+
+- **Advantage**: Roll 2d20, use the higher
+- **Disadvantage**: Roll 2d20, use the lower
+- Multiple sources don't stack (still only 2d20)
+- Advantage and disadvantage cancel out (roll 1d20)
+
+### The 18 Skills
+
+| Skill | Ability | Skill | Ability |
+|-------|---------|-------|---------|
+| Acrobatics | DEX | Medicine | WIS |
+| Animal Handling | WIS | Nature | INT |
+| Arcana | INT | Perception | WIS |
+| Athletics | STR | Performance | CHA |
+| Deception | CHA | Persuasion | CHA |
+| History | INT | Religion | INT |
+| Insight | WIS | Sleight of Hand | DEX |
+| Intimidation | CHA | Stealth | DEX |
+| Investigation | INT | Survival | WIS |
+
+### Cover
+
+| Cover | AC/DEX Save Bonus |
+|-------|-------------------|
+| Half | +2 |
+| Three-Quarters | +5 |
+| Total | Can't be targeted |
+
+### Critical Hits
+
+Natural 20 on attack roll = Critical Hit
+- Roll all damage dice twice
+- Add modifiers once
+- Example: Longsword crit = 2d8 + STR (not 1d8×2 + STR)
+
+### Damage Types
+
+| Physical | Elemental | Other |
+|----------|-----------|-------|
+| Bludgeoning | Acid | Force |
+| Piercing | Cold | Necrotic |
+| Slashing | Fire | Poison |
+| | Lightning | Psychic |
+| | Thunder | Radiant |
+
+### Resistance, Vulnerability, Immunity
+
+- **Resistance**: Halve damage of that type
+- **Vulnerability**: Double damage of that type
+- **Immunity**: Take no damage of that type
+
+Order: Apply other modifiers → Resistance (halve) → Vulnerability (double)
+
+### Death Saves
+
+At 0 HP, roll d20 at start of each turn:
+
+| Roll | Result |
+|------|--------|
+| 1 | Two failures |
+| 2-9 | One failure |
+| 10-19 | One success |
+| 20 | Regain 1 HP, wake up |
+
+Three successes = Stable. Three failures = Death.
+
+### Resting
+
+**Short Rest** (1 hour):
+- Spend Hit Dice to heal (roll HD + CON mod per die)
+- Some abilities recharge
+
+**Long Rest** (8 hours, 6 sleeping):
+- Regain all HP
+- Regain spent Hit Dice (up to half total)
+- Major abilities recharge
+- One per 24 hours
+
+---
+
 ## License
 
 This work includes material from the System Reference Document 5.2.1 ("SRD 5.2.1") by Wizards of the Coast LLC, available at https://www.dndbeyond.com/resources/1781-systems-reference-document-srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License (CC-BY-4.0), available at https://creativecommons.org/licenses/by/4.0/legalcode.

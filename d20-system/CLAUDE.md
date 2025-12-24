@@ -10,9 +10,7 @@ After installing this plugin, run the init command in your adventure directory t
 /d20-system:init
 ```
 
-This command:
-1. Copies `System.md` to your adventure directory (core rules the GM reads during play)
-2. Merges d20-specific GM guidance into your project's `CLAUDE.md`
+This command merges complete d20 GM guidance (including quick reference tables for all core mechanics) into your project's `CLAUDE.md`.
 
 ## Installed Skills
 
@@ -91,7 +89,6 @@ d20-system/
 ├── .claude-plugin/plugin.json
 ├── CLAUDE.md              # This file (plugin-level guidance)
 ├── d20-CLAUDE.md          # Adventure-level content (merged via init)
-├── System.md              # Core rules (copied to adventure via init)
 ├── commands/
 │   └── init.md            # /d20-system:init command
 └── skills/
