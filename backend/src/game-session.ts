@@ -1151,13 +1151,20 @@ export class GameSession {
     this.lastThemeChange = { mood, timestamp: now };
 
     // Inject world art style into image prompt if available
-    // This ensures consistent visual style across all generated images for a world
+    // Art style comes FIRST to set the visual tone, then scene description
     const artStyle = this.getWorldArtStyle(log);
     if (artStyle) {
+      const originalPrompt = image_prompt;
+      // Art style prefix, then scene description
       image_prompt = image_prompt
-        ? `${image_prompt}. ${artStyle}`
+        ? `${artStyle}. ${image_prompt}`
         : artStyle;
-      log.debug({ artStyle }, "Injected world art style into image prompt");
+      log.info(
+        { artStyle: artStyle.slice(0, 100), originalPrompt: originalPrompt?.slice(0, 50), finalPrompt: image_prompt.slice(0, 200) },
+        "Injected world art style as prefix"
+      );
+    } else {
+      log.debug("No art style found for world");
     }
 
     // Get background image URL using GM-provided tags for catalog lookup

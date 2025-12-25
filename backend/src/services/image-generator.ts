@@ -276,12 +276,15 @@ export class ImageGeneratorService {
    * - Mood-specific atmosphere and lighting
    * - Genre-appropriate visual style and elements
    * - Region-specific location and environment
-   * - Optional narrative context for specific details
+   * - Optional narrative context (may include scene description and/or art style)
+   *
+   * When narrativeContext is provided (from GM's image_prompt + world art style),
+   * it takes precedence and the constructed prompt provides fallback structure.
    *
    * @param mood - Theme mood state
    * @param genre - Genre classification
    * @param region - Region/location type
-   * @param narrativeContext - Optional narrative context
+   * @param narrativeContext - Optional context including scene description and art style
    * @returns Constructed prompt string
    */
   private constructPrompt(
@@ -302,7 +305,40 @@ export class ImageGeneratorService {
         "enigmatic, misty, ethereal light, hidden secrets, sense of wonder",
     };
 
-    // Genre-specific visual style
+    // Region-specific location
+    const regionSettings: Record<Region, string> = {
+      city: "urban landscape, buildings and streets, populated area",
+      village: "small settlement, humble dwellings, rural community",
+      forest: "dense woodland, ancient trees, natural wilderness",
+      desert: "arid landscape, sand dunes, sparse vegetation",
+      mountain: "towering peaks, rocky terrain, high altitude",
+      ocean: "vast waters, coastal or seafaring setting, maritime",
+      underground: "subterranean cavern, underground chambers, dim lighting",
+      castle: "fortress architecture, imposing structure, defensive walls",
+      ruins: "abandoned structures, crumbling architecture, overgrown decay",
+    };
+
+    // If narrativeContext is provided, use it as the primary prompt
+    // It typically contains: art style + scene description
+    if (narrativeContext) {
+      // Start with the narrative context (art style + scene)
+      const parts = [
+        narrativeContext,
+        `${moodDescriptors[mood]}`,
+        `${regionSettings[region]}`,
+        "Cinematic composition, highly detailed, professional quality, suitable for game background, wide aspect ratio 16:9",
+      ];
+
+      const prompt = parts.join(". ") + ".";
+      logger.info(
+        { promptLength: prompt.length, promptPreview: prompt.slice(0, 200) },
+        "constructPrompt: built prompt with narrative context"
+      );
+      return prompt;
+    }
+
+    // Fallback: construct prompt from mood/genre/region only
+    // Genre-specific visual style (only used as fallback when no art style provided)
     const genreStyles: Record<Genre, string> = {
       "sci-fi":
         "futuristic technology, neon accents, sleek architecture, cyberpunk aesthetic",
@@ -318,35 +354,19 @@ export class ImageGeneratorService {
         "period-accurate architecture, historical setting, authentic details",
     };
 
-    // Region-specific location
-    const regionSettings: Record<Region, string> = {
-      city: "urban landscape, buildings and streets, populated area",
-      village: "small settlement, humble dwellings, rural community",
-      forest: "dense woodland, ancient trees, natural wilderness",
-      desert: "arid landscape, sand dunes, sparse vegetation",
-      mountain: "towering peaks, rocky terrain, high altitude",
-      ocean: "vast waters, coastal or seafaring setting, maritime",
-      underground: "subterranean cavern, underground chambers, dim lighting",
-      castle: "fortress architecture, imposing structure, defensive walls",
-      ruins: "abandoned structures, crumbling architecture, overgrown decay",
-    };
-
-    // Construct the full prompt
     const parts = [
       `A ${moodDescriptors[mood]} scene`,
       `in a ${genreStyles[genre]} style`,
       `depicting a ${regionSettings[region]}`,
+      "Cinematic composition, highly detailed, professional quality, suitable for game background, wide aspect ratio 16:9",
     ];
 
-    if (narrativeContext) {
-      parts.push(`with context: ${narrativeContext}`);
-    }
-
-    parts.push(
-      "Cinematic composition, highly detailed, professional quality, suitable for game background, wide aspect ratio 16:9"
+    const prompt = parts.join(". ") + ".";
+    logger.info(
+      { promptLength: prompt.length, promptPreview: prompt.slice(0, 200) },
+      "constructPrompt: built fallback prompt (no narrative context)"
     );
-
-    return parts.join(". ") + ".";
+    return prompt;
   }
 
   /**
