@@ -32,7 +32,7 @@ import { HistoryCompactor } from "./services/history-compactor";
 import { env } from "./env";
 import { mockQuery } from "./mock-sdk";
 import type { BackgroundImageService } from "./services/background-image";
-import { sanitizePlayerInput, safeResolvePath } from "./validation";
+import { sanitizePlayerInput } from "./validation";
 import {
   parsePanelFile,
   derivePanelId,
@@ -1230,14 +1230,16 @@ export class GameSession {
       return null;
     }
 
-    // Use safeResolvePath to prevent path traversal attacks (defense in depth)
-    const worldPath = safeResolvePath(this.projectDirectory, worldRef);
-    if (!worldPath) {
-      log.warn({ worldRef }, "Invalid worldRef - path traversal detected");
+    // Validate worldRef format: must be "worlds/{slug}" with valid slug
+    // This prevents path traversal while allowing the expected path format
+    const worldRefMatch = worldRef.match(/^worlds\/([a-z0-9-]+)$/);
+    if (!worldRefMatch) {
+      log.warn({ worldRef }, "Invalid worldRef format - expected 'worlds/{slug}'");
       return null;
     }
 
-    const artStylePath = join(worldPath, "art-style.md");
+    // Construct path safely - worldRef is validated to be in expected format
+    const artStylePath = join(this.projectDirectory, worldRef, "art-style.md");
 
     if (!existsSync(artStylePath)) {
       log.debug({ artStylePath }, "Art style file does not exist");
