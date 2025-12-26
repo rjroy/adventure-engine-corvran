@@ -71,7 +71,6 @@ describe("buildGMSystemPrompt", () => {
       // Should list available skills including dice-roller
       expect(prompt).toContain("SKILLS");
       expect(prompt).toContain("dice-roller");
-      expect(prompt).toContain("JSON");
     });
 
     test("includes set_theme instructions", () => {
@@ -90,10 +89,10 @@ describe("buildGMSystemPrompt", () => {
       const prompt = buildGMSystemPrompt(state);
 
       // Should have theme usage examples
-      expect(prompt).toContain("Entering tavern");
-      expect(prompt).toContain("Exploring ruins");
-      expect(prompt).toContain("Combat begins");
-      expect(prompt).toContain("Victory");
+      expect(prompt).toContain("tavern");
+      expect(prompt).toContain("ruins");
+      expect(prompt).toContain("combat");
+      expect(prompt).toContain("victory");
     });
   });
 
@@ -130,8 +129,8 @@ describe("buildGMSystemPrompt", () => {
 
       // Should truncate to reasonable length (500 chars based on sanitizeStateValue)
       // Prompt includes dynamic paths, theme checks, panel guidance, and state update instructions
-      // Threshold accommodates PLAYER AGENCY, GM ADVERSARY, GM LOOP sections, and detailed examples
-      expect(prompt.length).toBeLessThan(14000);
+      // Threshold accommodates PLAYER AGENCY, GM ADVERSARY, GM LOOP sections
+      expect(prompt.length).toBeLessThan(11000);
     });
   });
 
@@ -166,7 +165,6 @@ describe("buildGMSystemPrompt", () => {
 
       expect(prompt).toContain("relative paths");
       expect(prompt).toContain("./file.md");
-      expect(prompt).toContain("never /tmp/");
     });
   });
 
@@ -252,28 +250,13 @@ describe("buildGMSystemPrompt", () => {
       expect(prompt).toContain("Update ./worlds/realm/world_state.md");
     });
 
-    test("uses dynamic paths in file examples section", () => {
-      const state = createTestState({
-        playerRef: "players/hero",
-        worldRef: "worlds/realm",
-      });
-      const prompt = buildGMSystemPrompt(state);
-
-      // File examples should use dynamic paths
-      expect(prompt).toContain(`"./players/hero/sheet.md" with name, stats, background`);
-      expect(prompt).toContain(`"./worlds/realm/characters.md"`);
-      expect(prompt).toContain(`"./worlds/realm/locations.md"`);
-    });
-
-    test("shows setup-required prompt in file examples when refs are null", () => {
+    test("shows setup-required prompt when refs are null", () => {
       const state = createTestState({
         playerRef: null,
         worldRef: null,
       });
       const prompt = buildGMSystemPrompt(state);
 
-      // Should NOT contain file examples - setup required first
-      expect(prompt).not.toContain(`with name, stats, background`);
       expect(prompt).toContain("**SETUP REQUIRED**");
     });
 
