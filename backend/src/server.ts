@@ -18,6 +18,7 @@ import {
 } from "./error-handler";
 import { BackgroundImageService } from "./services/background-image";
 import { ImageCatalogService } from "./services/image-catalog";
+import { DEFAULT_PATHS } from "./paths";
 import { ImageGeneratorService } from "./services/image-generator";
 import {
   validateAdventureId,
@@ -766,6 +767,9 @@ async function validateAndLoadAdventure(
 
 // Serve static frontend files - uses validated env config
 const STATIC_ROOT = env.staticRoot;
+
+// Serve backend assets (logo, etc.) at /media/*
+app.use("/media/*", serveStatic({ root: DEFAULT_PATHS.assets, rewriteRequestPath: (path) => path.replace(/^\/media/, "") }));
 
 // Serve background images at /backgrounds/*
 // This must come before SPA fallback to avoid conflicts

@@ -45,6 +45,8 @@ export const DEFAULT_PATHS = {
   adventures: resolveFromBackend("adventures"),
   /** Log file output directory */
   logs: resolveFromBackend("logs"),
+  /** Backend assets directory (logo, etc.) */
+  assets: resolveFromBackend("assets"),
   /** Background images directory (for catalog and generation) */
   backgrounds: resolveFromBackend("assets", "backgrounds"),
   /** Frontend static files (Vite build output) */
