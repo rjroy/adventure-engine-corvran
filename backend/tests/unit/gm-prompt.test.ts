@@ -130,8 +130,8 @@ describe("buildGMSystemPrompt", () => {
 
       // Should truncate to reasonable length (500 chars based on sanitizeStateValue)
       // Prompt includes dynamic paths, theme checks, panel guidance, and state update instructions
-      // Threshold accommodates PLAYER AGENCY section, GM LOOP section, and detailed theme examples
-      expect(prompt.length).toBeLessThan(11000);
+      // Threshold accommodates PLAYER AGENCY, GM ADVERSARY, GM LOOP sections, and detailed examples
+      expect(prompt.length).toBeLessThan(14000);
     });
   });
 
