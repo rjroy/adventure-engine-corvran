@@ -1,24 +1,26 @@
 #!/usr/bin/env bash
 #
 # Stop the Adventure Engine application
-# Usage: stop-world.sh [project-directory]
+# Usage: stop-world.sh [run-directory]
 #
-# Reads the PID file from the project directory and stops the server.
+# The run directory is where launch-world.sh stored the .adventure-engine.pid
+# and .adventure-engine.log files. This is typically the project directory
+# passed to launch-world.sh.
 
 set -euo pipefail
 
-PROJECT_DIR="${1:-.}"
+RUN_DIR="${1:-.}"
 
 # Convert to absolute path if exists
-if [[ -d "$PROJECT_DIR" ]]; then
-    PROJECT_DIR="$(cd "$PROJECT_DIR" && pwd)"
+if [[ -d "$RUN_DIR" ]]; then
+    RUN_DIR="$(cd "$RUN_DIR" && pwd)"
 else
-    echo "Error: Project directory does not exist: $PROJECT_DIR" >&2
+    echo "Error: Run directory does not exist: $RUN_DIR" >&2
     exit 1
 fi
 
-PID_FILE="$PROJECT_DIR/.adventure-engine.pid"
-LOG_FILE="$PROJECT_DIR/.adventure-engine.log"
+PID_FILE="$RUN_DIR/.adventure-engine.pid"
+LOG_FILE="$RUN_DIR/.adventure-engine.log"
 
 if [[ ! -f "$PID_FILE" ]]; then
     echo "No running Adventure Engine found (PID file not found: $PID_FILE)"
