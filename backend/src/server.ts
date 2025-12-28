@@ -103,6 +103,8 @@ function isAllowedOrigin(origin: string | undefined, host: string | undefined): 
 
   // Same-origin requests are always allowed
   // Extract host from origin (e.g., "http://192.168.1.1:3000" -> "192.168.1.1:3000")
+  // Note: Host header doesn't include protocol, so this check is protocol-agnostic
+  // (allows both http:// and https:// origins for the same host)
   try {
     const originUrl = new URL(origin);
     if (host && originUrl.host === host) {

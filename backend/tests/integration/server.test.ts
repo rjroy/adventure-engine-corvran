@@ -201,9 +201,14 @@ describe("WebSocket CSRF Protection", () => {
       expect(isAllowedOrigin("https://evil-site.com", "localhost:3000")).toBe(false);
     });
 
-    test("allows same-origin with different protocols", () => {
-      // HTTPS origin matching HTTPS host
+    test("same-origin check is protocol-agnostic (HTTPS origin)", () => {
+      // Host header doesn't include protocol, so HTTPS origins work too
       expect(isAllowedOrigin("https://192.168.1.100:3000", "192.168.1.100:3000")).toBe(true);
+    });
+
+    test("falls back to ALLOWED_ORIGINS when host doesn't match", () => {
+      // Origin is in ALLOWED_ORIGINS even though Host header differs
+      expect(isAllowedOrigin("http://localhost:5173", "192.168.1.100:3000")).toBe(true);
     });
   });
 
