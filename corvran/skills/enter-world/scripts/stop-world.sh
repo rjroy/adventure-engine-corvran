@@ -7,18 +7,18 @@
 
 set -euo pipefail
 
-PROJECT_DIR="${1:-.}"
+LOG_DIR="${1:-.}"
 
 # Convert to absolute path if exists
-if [[ -d "$PROJECT_DIR" ]]; then
-    PROJECT_DIR="$(cd "$PROJECT_DIR" && pwd)"
+if [[ -d "$LOG_DIR" ]]; then
+    LOG_DIR="$(cd "$LOG_DIR" && pwd)"
 else
-    echo "Error: Project directory does not exist: $PROJECT_DIR" >&2
+    echo "Error: Project directory does not exist: $LOG_DIR" >&2
     exit 1
 fi
 
-PID_FILE="$PROJECT_DIR/.adventure-engine.pid"
-LOG_FILE="$PROJECT_DIR/.adventure-engine.log"
+PID_FILE="$LOG_DIR/.adventure-engine.pid"
+LOG_FILE="$LOG_DIR/.adventure-engine.log"
 
 if [[ ! -f "$PID_FILE" ]]; then
     echo "No running Adventure Engine found (PID file not found: $PID_FILE)"
