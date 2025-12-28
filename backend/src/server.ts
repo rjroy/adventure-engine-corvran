@@ -78,14 +78,27 @@ const MAX_CONNECTIONS: number =
 
 /**
  * Validate Origin header for WebSocket CSRF protection
+ * Same-origin requests are always allowed, otherwise checks ALLOWED_ORIGINS.
  * Returns true if origin is allowed, false otherwise
  */
-function isAllowedOrigin(origin: string | undefined): boolean {
+function isAllowedOrigin(origin: string | undefined, host: string | undefined): boolean {
   // Origin header is required for browser WebSocket connections
   // Non-browser clients (curl, etc.) may not send Origin - reject them
   if (!origin) {
     return false;
   }
+
+  // Same-origin requests are always allowed
+  // Extract host from origin (e.g., "http://192.168.1.1:3000" -> "192.168.1.1:3000")
+  try {
+    const originUrl = new URL(origin);
+    if (host && originUrl.host === host) {
+      return true;
+    }
+  } catch {
+    // Invalid origin URL - fall through to explicit check
+  }
+
   return ALLOWED_ORIGINS.has(origin);
 }
 
@@ -314,8 +327,9 @@ app.get(
   // CSRF protection middleware - validates Origin before WebSocket upgrade
   async (c, next) => {
     const origin = c.req.header("origin");
-    if (!isAllowedOrigin(origin)) {
-      logger.warn({ origin }, "WebSocket upgrade rejected - invalid origin");
+    const host = c.req.header("host");
+    if (!isAllowedOrigin(origin, host)) {
+      logger.warn({ origin, host }, "WebSocket upgrade rejected - invalid origin");
       return c.text("Forbidden - invalid origin", 403);
     }
     return next();

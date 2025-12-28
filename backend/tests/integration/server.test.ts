@@ -163,32 +163,47 @@ describe("Server REST Endpoints", () => {
 describe("WebSocket CSRF Protection", () => {
   describe("isAllowedOrigin()", () => {
     test("allows localhost:5173 (Vite dev server)", () => {
-      expect(isAllowedOrigin("http://localhost:5173")).toBe(true);
+      expect(isAllowedOrigin("http://localhost:5173", undefined)).toBe(true);
     });
 
     test("allows localhost:3000 (production)", () => {
-      expect(isAllowedOrigin("http://localhost:3000")).toBe(true);
+      expect(isAllowedOrigin("http://localhost:3000", undefined)).toBe(true);
     });
 
     test("rejects undefined origin", () => {
-      expect(isAllowedOrigin(undefined)).toBe(false);
+      expect(isAllowedOrigin(undefined, undefined)).toBe(false);
     });
 
     test("rejects malicious origin", () => {
-      expect(isAllowedOrigin("https://evil-site.com")).toBe(false);
+      expect(isAllowedOrigin("https://evil-site.com", undefined)).toBe(false);
     });
 
     test("rejects similar but different origin", () => {
-      expect(isAllowedOrigin("http://localhost:5174")).toBe(false);
+      expect(isAllowedOrigin("http://localhost:5174", undefined)).toBe(false);
     });
 
     test("rejects https variant of allowed http origin", () => {
       // Protocol matters - http://localhost:5173 is allowed, not https
-      expect(isAllowedOrigin("https://localhost:5173")).toBe(false);
+      expect(isAllowedOrigin("https://localhost:5173", undefined)).toBe(false);
     });
 
     test("rejects origin with path", () => {
-      expect(isAllowedOrigin("http://localhost:5173/path")).toBe(false);
+      expect(isAllowedOrigin("http://localhost:5173/path", undefined)).toBe(false);
+    });
+
+    test("allows same-origin requests (LAN IP access)", () => {
+      // iOS Safari on LAN: Origin and Host headers match
+      expect(isAllowedOrigin("http://192.168.1.100:3000", "192.168.1.100:3000")).toBe(true);
+    });
+
+    test("rejects cross-origin requests even with Host header", () => {
+      // Malicious site trying to connect to local server
+      expect(isAllowedOrigin("https://evil-site.com", "localhost:3000")).toBe(false);
+    });
+
+    test("allows same-origin with different protocols", () => {
+      // HTTPS origin matching HTTPS host
+      expect(isAllowedOrigin("https://192.168.1.100:3000", "192.168.1.100:3000")).toBe(true);
     });
   });
 
