@@ -232,6 +232,7 @@ export const AuthenticateMessageSchema = z.object({
   type: z.literal("authenticate"),
   payload: z.object({
     token: z.string(),
+    adventureId: z.string().optional(), // Optional for backward compat, but preferred over URL param
   }),
 });
 

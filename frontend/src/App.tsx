@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   AdventureMenu,
   NarrativeLog,
@@ -16,10 +16,10 @@ import {
   MobilePanelView,
 } from "./components/PanelZones";
 import { MobileTabBar } from "./components/MobileTabBar";
-import { useWebSocket } from "./hooks/useWebSocket";
 import type { ServerMessage, NarrativeEntry, HistorySummary, ErrorCode, ThemeMood } from "../../shared/protocol";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { PanelProvider, usePanels } from "./contexts/PanelContext";
+import { WebSocketProvider, useWebSocketContext } from "./contexts/WebSocketContext";
 import "./App.css";
 
 // Fallback UUID generator for insecure contexts (non-HTTPS, non-localhost)
@@ -69,6 +69,7 @@ export function GameView({
 }: GameViewProps) {
   const { currentMood, applyTheme } = useTheme();
   const { mobileTab } = usePanels();
+  const { status, sendMessage, authenticate, onMessage } = useWebSocketContext();
 
   const [narrativeHistory, setNarrativeHistory] = useState<NarrativeEntry[]>(
     []
@@ -89,6 +90,11 @@ export function GameView({
   const [isAborting, setIsAborting] = useState(false);
   const [isRecapping, setIsRecapping] = useState(false);
   const [showRecapConfirm, setShowRecapConfirm] = useState(false);
+
+  // Authenticate with the adventure when component mounts
+  useEffect(() => {
+    authenticate(session.adventureId, session.sessionToken);
+  }, [session.adventureId, session.sessionToken, authenticate]);
 
   const handleMessage = useCallback((message: ServerMessage) => {
     switch (message.type) {
@@ -203,13 +209,12 @@ export function GameView({
         });
         break;
     }
-  }, []);
+  }, [currentMood, applyTheme, previousMood]);
 
-  const { status, sendMessage } = useWebSocket({
-    adventureId: session.adventureId,
-    sessionToken: session.sessionToken,
-    onMessage: handleMessage,
-  });
+  // Register message handler with the WebSocket context
+  useEffect(() => {
+    return onMessage(handleMessage);
+  }, [onMessage, handleMessage]);
 
   const handleSubmit = useCallback(
     (text: string) => {
@@ -379,12 +384,14 @@ function App() {
   return (
     <ThemeProvider>
       <PanelProvider>
-        <BackgroundLayer />
-        {!session ? (
-          <AdventureMenu onAdventureStart={handleAdventureStart} />
-        ) : (
-          <GameView session={session} onQuit={handleQuit} />
-        )}
+        <WebSocketProvider>
+          <BackgroundLayer />
+          {!session ? (
+            <AdventureMenu onAdventureStart={handleAdventureStart} />
+          ) : (
+            <GameView session={session} onQuit={handleQuit} />
+          )}
+        </WebSocketProvider>
       </PanelProvider>
     </ThemeProvider>
   );

@@ -45,16 +45,10 @@ describe("Message Flows Integration", { timeout: 15000 }, () => {
 
       const messages = wsController.getSentMessages();
 
-      // Should send authenticate first
+      // Should send authenticate with adventureId (new format for Safari compatibility)
       expect(messages[0]).toEqual({
         type: "authenticate",
-        payload: { token: "test-session-token" },
-      });
-
-      // Then start_adventure
-      expect(messages[1]).toEqual({
-        type: "start_adventure",
-        payload: { adventureId: "test-adventure-id" },
+        payload: { token: "test-session-token", adventureId: "test-adventure-id" },
       });
     });
 
