@@ -1,4 +1,4 @@
-import type { ConnectionStatus as StatusType } from "../hooks/useWebSocket";
+import type { ConnectionStatus as StatusType } from "../contexts/WebSocketContext";
 import "./ConnectionStatus.css";
 
 export interface ConnectionStatusProps {

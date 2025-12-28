@@ -9,6 +9,7 @@ import { vi, type MockInstance } from "vitest";
 import type { ReactNode } from "react";
 import { ThemeProvider } from "../../../src/contexts/ThemeContext";
 import { PanelProvider } from "../../../src/contexts/PanelContext";
+import { WebSocketProvider } from "../../../src/contexts/WebSocketContext";
 import { GameView, type AdventureSession } from "../../../src/App";
 import type {
   ServerMessage,
@@ -435,7 +436,9 @@ export function renderGameView(
   const result = render(
     <ThemeProvider>
       <PanelProvider>
-        <GameView session={session} onQuit={onQuit} />
+        <WebSocketProvider>
+          <GameView session={session} onQuit={onQuit} />
+        </WebSocketProvider>
       </PanelProvider>
     </ThemeProvider>
   );

@@ -53,6 +53,19 @@ const { upgradeWebSocket, websocket } = createBunWebSocket();
 // Initialize Hono app
 const app = new Hono();
 
+// Request logging middleware - log all incoming requests
+app.use("*", async (c, next) => {
+  const start = Date.now();
+  const method = c.req.method;
+  const path = c.req.path;
+  const userAgent = c.req.header("user-agent")?.slice(0, 80);
+
+  await next();
+
+  const duration = Date.now() - start;
+  logger.info({ method, path, status: c.res.status, duration, userAgent }, "HTTP request");
+});
+
 // Adventures directory - uses validated env config
 const ADVENTURES_DIR = env.adventuresDir;
 
@@ -328,8 +341,10 @@ app.get(
   async (c, next) => {
     const origin = c.req.header("origin");
     const host = c.req.header("host");
+
     if (!isAllowedOrigin(origin, host)) {
-      logger.warn({ origin, host }, "WebSocket upgrade rejected - invalid origin");
+      const userAgent = c.req.header("user-agent");
+      logger.warn({ origin, host, userAgent: userAgent?.slice(0, 100) }, "WebSocket upgrade rejected - invalid origin");
       return c.text("Forbidden - invalid origin", 403);
     }
     return next();
@@ -368,41 +383,30 @@ app.get(
           return;
         }
 
-        // Validate adventureId (token comes via message)
-        if (!adventureId) {
-          const errorMsg: ServerMessage = {
-            type: "error",
-            payload: {
-              code: "INVALID_TOKEN",
-              message: "Missing adventureId",
-              retryable: false,
-            },
-          };
-          ws.send(JSON.stringify(errorMsg));
-          ws.close(1008, "Missing adventureId parameter");
-          return;
-        }
-
-        // Validate adventure ID format to prevent path traversal
-        const validation = validateAdventureId(adventureId);
-        if (!validation.valid) {
-          const errorMsg: ServerMessage = {
-            type: "error",
-            payload: {
-              code: "INVALID_TOKEN",
-              message: validation.error || "Invalid adventure ID",
-              retryable: false,
-            },
-          };
-          ws.send(JSON.stringify(errorMsg));
-          ws.close(1008, "Invalid adventureId parameter");
-          return;
+        // adventureId can come from URL query param (legacy) or authenticate message (preferred)
+        // If provided in URL, validate it now; otherwise validation happens in authenticate handler
+        if (adventureId) {
+          const validation = validateAdventureId(adventureId);
+          if (!validation.valid) {
+            const errorMsg: ServerMessage = {
+              type: "error",
+              payload: {
+                code: "INVALID_TOKEN",
+                message: validation.error || "Invalid adventure ID",
+                retryable: false,
+              },
+            };
+            ws.send(JSON.stringify(errorMsg));
+            ws.close(1008, "Invalid adventureId parameter");
+            return;
+          }
         }
 
         // Store connection in pending state (not authenticated yet)
+        // adventureId may be empty here if it will come via authenticate message
         connections.set(connId, {
           ws,
-          adventureId,
+          adventureId: adventureId || "",
           sessionToken: null,
           authenticated: false,
           lastPing: Date.now(),
@@ -483,6 +487,10 @@ app.get(
             }
 
             const token = message.payload.token;
+            // Prefer adventureId from message (Safari compat), fall back to URL query param
+            const adventureIdFromMessage = message.payload.adventureId;
+            const effectiveAdventureId = adventureIdFromMessage || conn.adventureId;
+
             if (!token) {
               const errorMsg: ServerMessage = {
                 type: "error",
@@ -498,12 +506,49 @@ app.get(
               return;
             }
 
+            if (!effectiveAdventureId) {
+              const errorMsg: ServerMessage = {
+                type: "error",
+                payload: {
+                  code: "INVALID_TOKEN",
+                  message: "Missing adventureId",
+                  retryable: false,
+                },
+              };
+              ws.send(JSON.stringify(errorMsg));
+              ws.close(1008, "Missing adventureId");
+              connections.delete(connId);
+              return;
+            }
+
+            // Validate adventureId format
+            const validation = validateAdventureId(effectiveAdventureId);
+            if (!validation.valid) {
+              const errorMsg: ServerMessage = {
+                type: "error",
+                payload: {
+                  code: "INVALID_TOKEN",
+                  message: validation.error || "Invalid adventure ID",
+                  retryable: false,
+                },
+              };
+              ws.send(JSON.stringify(errorMsg));
+              ws.close(1008, "Invalid adventureId");
+              connections.delete(connId);
+              return;
+            }
+
+            // Update connection with adventureId from message if provided
+            if (adventureIdFromMessage) {
+              conn.adventureId = adventureIdFromMessage;
+            }
+
             // Store token and validate asynchronously
             conn.sessionToken = token;
             connections.set(connId, conn);
 
             // Validate adventure and token, initialize GameSession
-            void validateAndLoadAdventure(ws, conn.adventureId, token, connId);
+            void validateAndLoadAdventure(ws, effectiveAdventureId, token, connId);
             break;
           }
 
