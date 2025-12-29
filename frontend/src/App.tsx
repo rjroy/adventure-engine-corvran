@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import {
   AdventureMenu,
   NarrativeLog,
@@ -91,6 +91,19 @@ export function GameView({
   const [isRecapping, setIsRecapping] = useState(false);
   const [showRecapConfirm, setShowRecapConfirm] = useState(false);
 
+  // Refs to track mood values for use in callbacks (avoids stale closures)
+  const currentMoodRef = useRef<ThemeMood>(currentMood);
+  const previousMoodRef = useRef<ThemeMood>(previousMood);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    currentMoodRef.current = currentMood;
+  }, [currentMood]);
+
+  useEffect(() => {
+    previousMoodRef.current = previousMood;
+  }, [previousMood]);
+
   // Authenticate with the adventure when component mounts
   useEffect(() => {
     authenticate(session.adventureId, session.sessionToken);
@@ -114,9 +127,9 @@ export function GameView({
         setIsGMResponding(true);
         setError(null);
 
-        // Restore previous theme if error mood is active
-        if (currentMood === "tense" || currentMood === "ominous") {
-          applyTheme({ mood: previousMood });
+        // Restore previous theme if error mood is active (use refs to avoid stale closures)
+        if (currentMoodRef.current === "tense" || currentMoodRef.current === "ominous") {
+          applyTheme({ mood: previousMoodRef.current });
         }
         break;
 
@@ -171,9 +184,10 @@ export function GameView({
           technicalDetails: errorState.technicalDetails,
         });
 
-        // Apply theme based on error severity
+        // Apply theme based on error severity (use ref to avoid stale closure)
         const errorMood: ThemeMood = message.payload.retryable ? "tense" : "ominous";
-        setPreviousMood(currentMood); // Save current mood for restoration
+        previousMoodRef.current = currentMoodRef.current; // Update ref immediately
+        setPreviousMood(currentMoodRef.current); // Save current mood for restoration
         applyTheme({ mood: errorMood });
         break;
       }
@@ -209,7 +223,7 @@ export function GameView({
         });
         break;
     }
-  }, [currentMood, applyTheme, previousMood]);
+  }, [applyTheme]); // Using refs for mood values to avoid stale closures
 
   // Register message handler with the WebSocket context
   useEffect(() => {
@@ -243,14 +257,14 @@ export function GameView({
     if (!lastPlayerInput || isGMResponding) return;
 
     setError(null); // Clear error
-    applyTheme({ mood: previousMood }); // Restore previous theme
+    applyTheme({ mood: previousMoodRef.current }); // Restore previous theme (use ref)
     sendMessage({ type: "player_input", payload: { text: lastPlayerInput } });
-  }, [lastPlayerInput, isGMResponding, previousMood, sendMessage, applyTheme]);
+  }, [lastPlayerInput, isGMResponding, sendMessage, applyTheme]);
 
   const handleDismissError = useCallback(() => {
     setError(null);
-    applyTheme({ mood: previousMood }); // Restore previous theme
-  }, [previousMood, applyTheme]);
+    applyTheme({ mood: previousMoodRef.current }); // Restore previous theme (use ref)
+  }, [applyTheme]);
 
   const handleAbort = useCallback(() => {
     if (!isGMResponding || isAborting) return;
