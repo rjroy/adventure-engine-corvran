@@ -1,11 +1,10 @@
 // Image Generator Service Tests
-// Unit and integration tests for Replicate-based image generation
+// Unit tests for Replicate-based image generation with LRU eviction
 
 import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
 import { rm, mkdir } from "node:fs/promises";
 import {
   ImageGeneratorService,
-  RateLimitError,
   GenerationTimeoutError,
 } from "../../src/services/image-generator";
 import type { ThemeMood, Genre, Region } from "../../../shared/protocol";
@@ -64,7 +63,7 @@ describe("ImageGeneratorService", () => {
     service = new ImageGeneratorService({
       outputDirectory: TEST_OUTPUT_DIR,
       timeout: 1000, // 1 second for faster tests
-      maxGenerationsPerSession: 3, // Lower limit for testing
+      maxImages: 100, // LRU limit for testing
       apiToken: TEST_API_TOKEN,
     });
   });
@@ -194,16 +193,6 @@ describe("ImageGeneratorService", () => {
       expect(result.prompt).toContain("architecture");
     });
 
-    test("increments generation count", async () => {
-      expect(service.getGenerationCount()).toBe(0);
-
-      await service.generateImage("calm", "low-fantasy", "village");
-      expect(service.getGenerationCount()).toBe(1);
-
-      await service.generateImage("tense", "sci-fi", "city");
-      expect(service.getGenerationCount()).toBe(2);
-    });
-
     test("throws error if not initialized", async () => {
       const uninitializedService = new ImageGeneratorService({
         outputDirectory: TEST_OUTPUT_DIR,
@@ -214,37 +203,6 @@ describe("ImageGeneratorService", () => {
       await expect(
         uninitializedService.generateImage("calm", "low-fantasy", "forest")
       ).rejects.toThrow("not initialized");
-    });
-
-    test("enforces rate limiting", async () => {
-      // Generate up to limit (3 in test config)
-      await service.generateImage("calm", "low-fantasy", "forest");
-      await service.generateImage("tense", "sci-fi", "city");
-      await service.generateImage("ominous", "horror", "ruins");
-
-      // Fourth should fail
-      // eslint-disable-next-line @typescript-eslint/await-thenable
-      await expect(
-        service.generateImage("triumphant", "high-fantasy", "castle")
-      ).rejects.toThrow(RateLimitError);
-    });
-
-    test("includes rate limit details in error", async () => {
-      // Exhaust limit
-      await service.generateImage("calm", "low-fantasy", "forest");
-      await service.generateImage("tense", "sci-fi", "city");
-      await service.generateImage("ominous", "horror", "ruins");
-
-      try {
-        await service.generateImage("triumphant", "high-fantasy", "castle");
-        throw new Error("Should have thrown RateLimitError");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RateLimitError);
-        if (error instanceof RateLimitError) {
-          expect(error.current).toBe(3);
-          expect(error.limit).toBe(3);
-        }
-      }
     });
 
     test("handles timeout properly", async () => {
@@ -320,61 +278,6 @@ describe("ImageGeneratorService", () => {
     });
   });
 
-  describe("getGenerationCount()", () => {
-    test("returns 0 initially", () => {
-      expect(service.getGenerationCount()).toBe(0);
-    });
-
-    test("returns correct count after generations", async () => {
-      await service.initialize();
-
-      await service.generateImage("calm", "low-fantasy", "forest");
-      expect(service.getGenerationCount()).toBe(1);
-
-      await service.generateImage("tense", "sci-fi", "city");
-      expect(service.getGenerationCount()).toBe(2);
-    });
-  });
-
-  describe("getRemainingGenerations()", () => {
-    test("returns max initially", () => {
-      expect(service.getRemainingGenerations()).toBe(3);
-    });
-
-    test("decrements after each generation", async () => {
-      await service.initialize();
-
-      await service.generateImage("calm", "low-fantasy", "forest");
-      expect(service.getRemainingGenerations()).toBe(2);
-
-      await service.generateImage("tense", "sci-fi", "city");
-      expect(service.getRemainingGenerations()).toBe(1);
-
-      await service.generateImage("ominous", "horror", "ruins");
-      expect(service.getRemainingGenerations()).toBe(0);
-    });
-
-    test("never goes below 0", async () => {
-      await service.initialize();
-
-      // Exhaust limit
-      await service.generateImage("calm", "low-fantasy", "forest");
-      await service.generateImage("tense", "sci-fi", "city");
-      await service.generateImage("ominous", "horror", "ruins");
-
-      expect(service.getRemainingGenerations()).toBe(0);
-
-      // Try to generate one more (will fail, but counter shouldn't go negative)
-      try {
-        await service.generateImage("triumphant", "high-fantasy", "castle");
-      } catch {
-        // Expected to fail
-      }
-
-      expect(service.getRemainingGenerations()).toBe(0);
-    });
-  });
-
   describe("close()", () => {
     test("clears Replicate client", async () => {
       await service.initialize();
@@ -396,6 +299,64 @@ describe("ImageGeneratorService", () => {
       service.close();
       // If we got here without throwing, the test passes
       expect(true).toBe(true);
+    });
+  });
+
+  describe("LRU eviction", () => {
+    test("does not evict when under limit", async () => {
+      // Service with limit of 100, we generate 1 image
+      await service.initialize();
+      await service.generateImage("calm", "low-fantasy", "forest");
+
+      // Verify the generated image still exists
+      const { readdir } = await import("fs/promises");
+      const files = await readdir(TEST_OUTPUT_DIR);
+      const pngFiles = files.filter((f: string) => f.endsWith(".png"));
+      expect(pngFiles.length).toBe(1);
+    });
+
+    test("evicts oldest files when over limit", async () => {
+      const { writeFile, utimes, readdir } = await import("fs/promises");
+      const path = await import("path");
+
+      // Create a service with maxImages: 2
+      const limitedService = new ImageGeneratorService({
+        outputDirectory: TEST_OUTPUT_DIR,
+        timeout: 1000,
+        maxImages: 2,
+        apiToken: TEST_API_TOKEN,
+      });
+      await limitedService.initialize();
+
+      // Pre-create 2 "old" files with earlier timestamps
+      const oldFile1 = path.resolve(TEST_OUTPUT_DIR, "old-image-1.png");
+      const oldFile2 = path.resolve(TEST_OUTPUT_DIR, "old-image-2.png");
+      await writeFile(oldFile1, "fake png data");
+      await writeFile(oldFile2, "fake png data");
+
+      // Set old timestamps (1 hour ago, 30 minutes ago)
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
+      await utimes(oldFile1, oneHourAgo, oneHourAgo);
+      await utimes(oldFile2, thirtyMinAgo, thirtyMinAgo);
+
+      // Generate a new image (should trigger eviction of oldest)
+      await limitedService.generateImage("calm", "low-fantasy", "forest");
+
+      // Check remaining files
+      const files = await readdir(TEST_OUTPUT_DIR);
+      const pngFiles = files.filter((f: string) => f.endsWith(".png"));
+
+      // Should have exactly 2 files (limit is 2)
+      expect(pngFiles.length).toBe(2);
+
+      // The oldest file (old-image-1.png) should be gone
+      expect(pngFiles).not.toContain("old-image-1.png");
+
+      // The second oldest (old-image-2.png) should still exist
+      expect(pngFiles).toContain("old-image-2.png");
+
+      limitedService.close();
     });
   });
 
@@ -423,7 +384,7 @@ describe("ImageGeneratorService", () => {
         service = new ImageGeneratorService({
           outputDirectory: TEST_OUTPUT_DIR,
           timeout: 1000,
-          maxGenerationsPerSession: 10,
+          maxImages: 100,
           apiToken: TEST_API_TOKEN,
         });
         await service.initialize();
@@ -451,7 +412,7 @@ describe("ImageGeneratorService", () => {
         service = new ImageGeneratorService({
           outputDirectory: TEST_OUTPUT_DIR,
           timeout: 1000,
-          maxGenerationsPerSession: 10,
+          maxImages: 100,
           apiToken: TEST_API_TOKEN,
         });
         await service.initialize();
@@ -481,7 +442,7 @@ describe("ImageGeneratorService", () => {
         service = new ImageGeneratorService({
           outputDirectory: TEST_OUTPUT_DIR,
           timeout: 1000,
-          maxGenerationsPerSession: 15,
+          maxImages: 100,
           apiToken: TEST_API_TOKEN,
         });
         await service.initialize();

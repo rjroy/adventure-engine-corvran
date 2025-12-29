@@ -1,26 +1,25 @@
 /**
  * Background Image Orchestrator
  *
- * Implements catalog-first strategy for background image retrieval:
- * 1. Search catalog for existing image matching mood+genre+region
- * 2. If not found, generate new image via art-gen-mcp
- * 3. If generation fails, return fallback image
+ * Generates fresh background images for each theme change:
+ * 1. Generate new image via Replicate API
+ * 2. Apply LRU eviction to keep disk usage bounded (100 images max)
+ * 3. If generation fails, return fallback image from catalog
  *
  * This orchestrator composes ImageCatalogService and ImageGeneratorService,
- * coordinating the cascade logic and error handling to ensure the UI
- * always receives a valid background URL.
+ * coordinating generation and error handling to ensure the UI always
+ * receives a valid background URL.
  *
  * Architecture:
- * - Catalog-first: Prefer cached images to avoid API costs and latency
+ * - Generate-first: Always create fresh images for visual variety
+ * - LRU eviction: Automatically prune old images to bound disk usage
  * - Graceful degradation: Fallback at every failure point
- * - Force generation: Optional flag to skip catalog lookup for fresh images
  * - Path-to-URL conversion: Translates file system paths to HTTP URLs
  */
 
 import { ImageCatalogService } from "./image-catalog";
 import {
   ImageGeneratorService,
-  RateLimitError,
   GenerationTimeoutError,
   ReplicateAPIError,
 } from "./image-generator";
@@ -107,17 +106,15 @@ export class BackgroundImageService {
   }
 
   /**
-   * Get background image URL following catalog-first cascade:
-   * 1. If forceGenerate is true, skip to step 3
-   * 2. Search catalog for existing image matching mood+genre+region
-   * 3. If not found, attempt to generate new image
-   * 4. If generation succeeds, store in catalog and return URL
-   * 5. If generation fails (timeout, rate limit, error), return fallback URL
+   * Get background image URL by generating a fresh image.
+   *
+   * Always generates a new image to ensure visual variety across scenes.
+   * Falls back to catalog images only if generation fails.
    *
    * @param mood - Theme mood state
    * @param genre - Genre classification
    * @param region - Region/location type
-   * @param forceGenerate - If true, skip catalog lookup and generate new image
+   * @param _forceGenerate - Deprecated, kept for API compatibility
    * @param narrativeContext - Optional narrative context for image generation prompts
    * @returns Background image result with URL and source metadata
    */
@@ -125,30 +122,10 @@ export class BackgroundImageService {
     mood: ThemeMood,
     genre: Genre,
     region: Region,
-    forceGenerate = false,
+    _forceGenerate = false,
     narrativeContext?: string
   ): Promise<BackgroundImageResult> {
-    // Step 1: Check if we should skip catalog lookup
-    if (forceGenerate) {
-      this.log(`Force generate requested for ${mood}/${genre}/${region}`);
-      return this.generateAndStore(mood, genre, region, narrativeContext);
-    }
-
-    // Step 2: Search catalog for existing image
-    this.log(`Searching catalog for ${mood}/${genre}/${region}`);
-    const catalogPath = this.catalog.findImage(mood, genre, region);
-
-    if (catalogPath) {
-      this.log(`Catalog hit: ${catalogPath}`);
-      const url = this.pathToUrl(catalogPath);
-      return {
-        url,
-        source: "catalog",
-      };
-    }
-
-    // Step 3: Catalog miss - attempt to generate new image
-    this.log(`Catalog miss for ${mood}/${genre}/${region}, attempting generation`);
+    this.log(`Generating fresh image for ${mood}/${genre}/${region}`);
     return this.generateAndStore(mood, genre, region, narrativeContext);
   }
 
@@ -196,9 +173,7 @@ export class BackgroundImageService {
       };
     } catch (error) {
       // Handle specific error types
-      if (error instanceof RateLimitError) {
-        this.log(`Rate limit exceeded: ${error.message}`, "error");
-      } else if (error instanceof GenerationTimeoutError) {
+      if (error instanceof GenerationTimeoutError) {
         this.log(`Generation timeout: ${error.message}`, "error");
       } else if (error instanceof ReplicateAPIError) {
         this.log(

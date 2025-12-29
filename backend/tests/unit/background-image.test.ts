@@ -1,5 +1,5 @@
 // Background Image Service Tests
-// Unit tests for orchestration logic: catalog-first cascade, force generation,
+// Unit tests for orchestration logic: always-generate strategy,
 // error handling, and fallback behavior
 
 import { describe, test, expect, beforeEach, mock } from "bun:test";
@@ -7,7 +7,6 @@ import { BackgroundImageService } from "../../src/services/background-image";
 import { ImageCatalogService } from "../../src/services/image-catalog";
 import {
   ImageGeneratorService,
-  RateLimitError,
   GenerationTimeoutError
 } from "../../src/services/image-generator";
 import type { ThemeMood, Genre, Region } from "../../../shared/protocol";
@@ -38,8 +37,6 @@ class MockImageGeneratorService {
         durationMs: 1000,
       })
   );
-  getGenerationCount = mock(() => 0);
-  getRemainingGenerations = mock(() => 5);
   initialize = mock((): void => {});
   close = mock((): void => {});
 }
@@ -76,80 +73,15 @@ describe("BackgroundImageService", () => {
     });
   });
 
-  describe("getBackgroundImage() - catalog hit", () => {
-    test("returns catalog image when match exists", async () => {
-      // Setup: catalog has an image
-      catalogService.findImage.mockReturnValue("./data/images/calm-fantasy-forest.png");
-
-      const result = await orchestrator.getBackgroundImage(
-        "calm",
-        "high-fantasy",
-        "forest"
-      );
-
-      // Verify catalog was checked
-      expect(catalogService.findImage).toHaveBeenCalledWith(
-        "calm",
-        "high-fantasy",
-        "forest"
-      );
-
-      // Verify generator was NOT called
-      expect(generatorService.generateImage).not.toHaveBeenCalled();
-
-      // Verify result
-      expect(result).toEqual({
-        url: `${BASE_URL}/calm-fantasy-forest.png`,
-        source: "catalog",
-      });
-    });
-
-    test("converts absolute paths to URLs correctly", async () => {
-      catalogService.findImage.mockReturnValue("/absolute/path/to/images/image.png");
-
-      const result = await orchestrator.getBackgroundImage(
-        "tense",
-        "sci-fi",
-        "city"
-      );
-
-      expect(result.url).toBe(`${BASE_URL}/image.png`);
-      expect(result.source).toBe("catalog");
-    });
-
-    test("handles Windows-style paths", async () => {
-      catalogService.findImage.mockReturnValue("C:\\data\\images\\image.png");
-
-      const result = await orchestrator.getBackgroundImage(
-        "ominous",
-        "horror",
-        "ruins"
-      );
-
-      expect(result.url).toBe(`${BASE_URL}/image.png`);
-      expect(result.source).toBe("catalog");
-    });
-  });
-
-  describe("getBackgroundImage() - catalog miss with generation", () => {
-    test("generates new image when catalog miss", async () => {
-      // Setup: catalog has no match
-      catalogService.findImage.mockReturnValue(null);
-
+  describe("getBackgroundImage() - always generates fresh images", () => {
+    test("generates new image for each request", async () => {
       const result = await orchestrator.getBackgroundImage(
         "triumphant",
         "steampunk",
         "castle"
       );
 
-      // Verify catalog was checked first
-      expect(catalogService.findImage).toHaveBeenCalledWith(
-        "triumphant",
-        "steampunk",
-        "castle"
-      );
-
-      // Verify generation was attempted
+      // Verify generation was called (catalog is NOT checked)
       expect(generatorService.generateImage).toHaveBeenCalledWith(
         "triumphant",
         "steampunk",
@@ -157,8 +89,8 @@ describe("BackgroundImageService", () => {
         undefined
       );
 
-      // Note: storeImage is NOT called - images are discovered by glob patterns
-      // based on naming convention (mood-genre-region-timestamp.png)
+      // Verify catalog lookup was NOT called
+      expect(catalogService.findImage).not.toHaveBeenCalled();
 
       // Verify result
       expect(result).toEqual({
@@ -173,8 +105,6 @@ describe("BackgroundImageService", () => {
     });
 
     test("passes narrative context to generator", async () => {
-      catalogService.findImage.mockReturnValue(null);
-
       await orchestrator.getBackgroundImage(
         "mysterious",
         "low-fantasy",
@@ -190,21 +120,19 @@ describe("BackgroundImageService", () => {
         "An ancient ritual takes place in the town square"
       );
     });
-  });
 
-  describe("getBackgroundImage() - force generation", () => {
-    test("skips catalog lookup when forceGenerate is true", async () => {
+    test("forceGenerate parameter is ignored (always generates)", async () => {
       const result = await orchestrator.getBackgroundImage(
         "calm",
         "modern",
         "city",
-        true // force generate
+        true // force generate - now a no-op
       );
 
-      // Verify catalog was NOT checked
+      // Catalog is never checked
       expect(catalogService.findImage).not.toHaveBeenCalled();
 
-      // Verify generation was called
+      // Generation always happens
       expect(generatorService.generateImage).toHaveBeenCalledWith(
         "calm",
         "modern",
@@ -212,54 +140,12 @@ describe("BackgroundImageService", () => {
         undefined
       );
 
-      // Note: storeImage is NOT called - images are discovered by glob patterns
-
       expect(result.source).toBe("generated");
-    });
-
-    test("force generation with narrative context", async () => {
-      await orchestrator.getBackgroundImage(
-        "tense",
-        "historical",
-        "desert",
-        true,
-        "Soldiers march across the dunes at sunset"
-      );
-
-      expect(generatorService.generateImage).toHaveBeenCalledWith(
-        "tense",
-        "historical",
-        "desert",
-        "Soldiers march across the dunes at sunset"
-      );
-      expect(catalogService.findImage).not.toHaveBeenCalled();
     });
   });
 
   describe("getBackgroundImage() - error handling", () => {
-    test("returns fallback on rate limit error", async () => {
-      catalogService.findImage.mockReturnValue(null);
-      generatorService.generateImage.mockRejectedValue(new RateLimitError(5, 5));
-
-      const result = await orchestrator.getBackgroundImage(
-        "ominous",
-        "horror",
-        "underground"
-      );
-
-      // Verify fallback was used
-      expect(catalogService.getFallback).toHaveBeenCalledWith("ominous");
-      expect(result).toEqual({
-        url: `${BASE_URL}/ominous.jpg`,
-        source: "fallback",
-      });
-
-      // Verify image was NOT stored in catalog (because generation failed)
-      expect(catalogService.storeImage).not.toHaveBeenCalled();
-    });
-
     test("returns fallback on timeout error", async () => {
-      catalogService.findImage.mockReturnValue(null);
       generatorService.generateImage.mockRejectedValue(new GenerationTimeoutError(30000));
 
       const result = await orchestrator.getBackgroundImage(
@@ -276,8 +162,7 @@ describe("BackgroundImageService", () => {
     });
 
     test("returns fallback on generic generation error", async () => {
-      catalogService.findImage.mockReturnValue(null);
-      generatorService.generateImage.mockRejectedValue(new Error("MCP server crashed"));
+      generatorService.generateImage.mockRejectedValue(new Error("Replicate API error"));
 
       const result = await orchestrator.getBackgroundImage(
         "mysterious",
@@ -293,7 +178,6 @@ describe("BackgroundImageService", () => {
     });
 
     test("returns fallback on non-Error rejection", async () => {
-      catalogService.findImage.mockReturnValue(null);
       generatorService.generateImage.mockRejectedValue("String error message");
 
       const result = await orchestrator.getBackgroundImage(
@@ -310,8 +194,6 @@ describe("BackgroundImageService", () => {
     const moods: ThemeMood[] = ["calm", "tense", "ominous", "triumphant", "mysterious"];
 
     test.each(moods)("handles %s mood correctly", async (mood) => {
-      catalogService.findImage.mockReturnValue(null);
-
       const result = await orchestrator.getBackgroundImage(
         mood,
         "high-fantasy",
@@ -335,8 +217,6 @@ describe("BackgroundImageService", () => {
     ];
 
     test.each(genres)("handles %s genre correctly", async (genre) => {
-      catalogService.findImage.mockReturnValue(null);
-
       const result = await orchestrator.getBackgroundImage(
         "calm",
         genre,
@@ -367,8 +247,6 @@ describe("BackgroundImageService", () => {
     ];
 
     test.each(regions)("handles %s region correctly", async (region) => {
-      catalogService.findImage.mockReturnValue(null);
-
       const result = await orchestrator.getBackgroundImage(
         "calm",
         "high-fantasy",
@@ -385,87 +263,45 @@ describe("BackgroundImageService", () => {
     });
   });
 
-  describe("cascade flow - complete integration", () => {
-    test("catalog hit bypasses generation entirely", async () => {
-      catalogService.findImage.mockReturnValue("./data/images/cached.png");
-
+  describe("generation flow", () => {
+    test("always generates without checking catalog", async () => {
       await orchestrator.getBackgroundImage("calm", "sci-fi", "city");
 
-      expect(catalogService.findImage).toHaveBeenCalled();
-      expect(generatorService.generateImage).not.toHaveBeenCalled();
-      expect(catalogService.storeImage).not.toHaveBeenCalled();
-      expect(catalogService.getFallback).not.toHaveBeenCalled();
-    });
-
-    test("catalog miss triggers generation", async () => {
-      catalogService.findImage.mockReturnValue(null);
-
-      await orchestrator.getBackgroundImage("tense", "horror", "ruins");
-
-      expect(catalogService.findImage).toHaveBeenCalled();
+      expect(catalogService.findImage).not.toHaveBeenCalled();
       expect(generatorService.generateImage).toHaveBeenCalled();
-      // Note: storeImage is NOT called - images are discovered by glob patterns
       expect(catalogService.getFallback).not.toHaveBeenCalled();
     });
 
     test("generation failure triggers fallback", async () => {
-      catalogService.findImage.mockReturnValue(null);
       generatorService.generateImage.mockRejectedValue(new Error("Failed"));
 
       await orchestrator.getBackgroundImage("ominous", "steampunk", "underground");
 
-      expect(catalogService.findImage).toHaveBeenCalled();
       expect(generatorService.generateImage).toHaveBeenCalled();
       expect(catalogService.getFallback).toHaveBeenCalled();
     });
 
-    test("force generation skips catalog lookup", async () => {
-      await orchestrator.getBackgroundImage("triumphant", "modern", "city", true);
+    test("invalidates cache after successful generation", async () => {
+      await orchestrator.getBackgroundImage("triumphant", "modern", "city");
 
-      expect(catalogService.findImage).not.toHaveBeenCalled();
-      expect(generatorService.generateImage).toHaveBeenCalled();
-      // Note: storeImage is NOT called - images are discovered by glob patterns
-      expect(catalogService.getFallback).not.toHaveBeenCalled();
-    });
-
-    test("force generation failure triggers fallback", async () => {
-      generatorService.generateImage.mockRejectedValue(new RateLimitError(5, 5));
-
-      await orchestrator.getBackgroundImage("mysterious", "low-fantasy", "forest", true);
-
-      expect(catalogService.findImage).not.toHaveBeenCalled();
-      expect(generatorService.generateImage).toHaveBeenCalled();
-      expect(catalogService.getFallback).toHaveBeenCalled();
+      expect(catalogService.invalidateCache).toHaveBeenCalled();
     });
   });
 
-  describe("URL conversion edge cases", () => {
-    test("handles filenames with special characters", async () => {
-      catalogService.findImage.mockReturnValue("./data/images/calm-fantasy-forest (1).png");
-
+  describe("URL conversion", () => {
+    test("extracts filename from generated image path", async () => {
       const result = await orchestrator.getBackgroundImage(
         "calm",
         "high-fantasy",
         "forest"
       );
 
-      expect(result.url).toBe(`${BASE_URL}/calm-fantasy-forest (1).png`);
+      // Mock returns "./data/images/generated-image.png"
+      expect(result.url).toBe(`${BASE_URL}/generated-image.png`);
     });
 
-    test("handles nested directory paths", async () => {
-      catalogService.findImage.mockReturnValue("./data/images/2024/12/image.png");
-
-      const result = await orchestrator.getBackgroundImage(
-        "calm",
-        "sci-fi",
-        "city"
-      );
-
-      expect(result.url).toBe(`${BASE_URL}/image.png`);
-    });
-
-    test("handles paths with only filename", async () => {
-      catalogService.findImage.mockReturnValue("image.png");
+    test("handles fallback image paths", async () => {
+      generatorService.generateImage.mockRejectedValue(new Error("Failed"));
 
       const result = await orchestrator.getBackgroundImage(
         "calm",
@@ -473,30 +309,23 @@ describe("BackgroundImageService", () => {
         "village"
       );
 
-      expect(result.url).toBe(`${BASE_URL}/image.png`);
+      // Fallback returns "./assets/backgrounds/{mood}.jpg"
+      expect(result.url).toBe(`${BASE_URL}/calm.jpg`);
     });
   });
 
   describe("verbose logging", () => {
     test("does not throw when verbose is false", async () => {
-      // Verbose logging now uses pino logger (tested separately)
-      // This test verifies the code path executes without errors
-      catalogService.findImage.mockReturnValue("./test.png");
-
       const result = await orchestrator.getBackgroundImage("calm", "sci-fi", "city");
       expect(result).toBeDefined();
     });
 
     test("does not throw when verbose is true", async () => {
-      // Verbose logging now uses pino logger (tested separately)
-      // This test verifies the verbose code path executes without errors
       const verboseOrchestrator = new BackgroundImageService(
         catalogService as unknown as ImageCatalogService,
         generatorService as unknown as ImageGeneratorService,
         { baseUrl: BASE_URL, verbose: true }
       );
-
-      catalogService.findImage.mockReturnValue("./test.png");
 
       const result = await verboseOrchestrator.getBackgroundImage("calm", "sci-fi", "city");
       expect(result).toBeDefined();
