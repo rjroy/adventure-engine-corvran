@@ -8,11 +8,10 @@
  * - Uses official Replicate SDK for direct API calls
  * - Constructs prompts from theme metadata and narrative context
  * - Implements 30-second timeout with AbortController
- * - Enforces rate limiting (max 5 generations per session)
+ * - LRU eviction keeps disk usage bounded (configurable max images)
  *
  * Security:
  * - Validates output paths to prevent directory traversal
- * - Rate limiting prevents API abuse
  * - API token stored in environment variable
  */
 
@@ -31,8 +30,8 @@ const DEFAULT_CONFIG = {
   outputDirectory: DEFAULT_PATHS.backgrounds,
   /** Timeout for image generation in milliseconds (30 seconds) */
   timeout: 30000,
-  /** Maximum number of generations allowed per session */
-  maxGenerationsPerSession: 5,
+  /** Maximum number of images to keep (LRU eviction) */
+  maxImages: 100,
   /** Default model to use for image generation */
   defaultModel: "black-forest-labs/flux-schnell",
   /** Replicate API token (from environment) */
@@ -51,19 +50,6 @@ export interface GenerationResult {
   model: string;
   /** Generation duration in milliseconds */
   durationMs: number;
-}
-
-/**
- * Error thrown when rate limit is exceeded
- */
-export class RateLimitError extends Error {
-  constructor(
-    public readonly current: number,
-    public readonly limit: number
-  ) {
-    super(`Rate limit exceeded: ${current}/${limit} generations used`);
-    this.name = "RateLimitError";
-  }
 }
 
 /**
@@ -112,10 +98,9 @@ export class ReplicateAPIError extends Error {
  */
 export class ImageGeneratorService {
   private replicate: Replicate | null = null;
-  private generationCount = 0;
   private readonly outputDirectory: string;
   private readonly timeout: number;
-  private readonly maxGenerations: number;
+  private readonly maxImages: number;
   private readonly defaultModel: string;
   private readonly apiToken: string | undefined;
 
@@ -129,8 +114,7 @@ export class ImageGeneratorService {
       config.outputDirectory ?? DEFAULT_CONFIG.outputDirectory
     );
     this.timeout = config.timeout ?? DEFAULT_CONFIG.timeout;
-    this.maxGenerations =
-      config.maxGenerationsPerSession ?? DEFAULT_CONFIG.maxGenerationsPerSession;
+    this.maxImages = config.maxImages ?? DEFAULT_CONFIG.maxImages;
     this.defaultModel = config.defaultModel ?? DEFAULT_CONFIG.defaultModel;
     this.apiToken = config.apiToken ?? DEFAULT_CONFIG.apiToken;
 
@@ -179,7 +163,6 @@ export class ImageGeneratorService {
    * @param region - Region/location type
    * @param narrativeContext - Optional narrative context for more specific imagery
    * @returns Generation result with file path and metadata
-   * @throws RateLimitError if max generations exceeded
    * @throws GenerationTimeoutError if generation exceeds timeout
    * @throws ReplicateAPIError if API call fails
    * @throws Error if client not initialized or generation fails
@@ -197,11 +180,6 @@ export class ImageGeneratorService {
       );
     }
 
-    // Check rate limiting
-    if (this.generationCount >= this.maxGenerations) {
-      throw new RateLimitError(this.generationCount, this.maxGenerations);
-    }
-
     // Construct prompt from context
     const prompt = this.constructPrompt(mood, genre, region, narrativeContext);
 
@@ -215,8 +193,8 @@ export class ImageGeneratorService {
       // Call Replicate API with timeout
       const filePath = await this.callReplicateWithTimeout(prompt, filename);
 
-      // Increment generation counter
-      this.generationCount++;
+      // Evict old images to stay under limit
+      await this.evictOldImages();
 
       const durationMs = Date.now() - startTime;
 
@@ -230,7 +208,6 @@ export class ImageGeneratorService {
       // Re-throw typed errors
       if (
         error instanceof GenerationTimeoutError ||
-        error instanceof RateLimitError ||
         error instanceof ReplicateAPIError
       ) {
         throw error;
@@ -243,30 +220,60 @@ export class ImageGeneratorService {
   }
 
   /**
-   * Get the current generation count for this session.
-   *
-   * @returns Number of images generated in this session
-   */
-  getGenerationCount(): number {
-    return this.generationCount;
-  }
-
-  /**
-   * Get the remaining generation allowance for this session.
-   *
-   * @returns Number of generations remaining before rate limit
-   */
-  getRemainingGenerations(): number {
-    return Math.max(0, this.maxGenerations - this.generationCount);
-  }
-
-  /**
    * Close the service and cleanup resources.
    *
    * Should be called when shutting down the service.
    */
   close(): void {
     this.replicate = null;
+  }
+
+  /**
+   * Evict old images to stay under the maxImages limit.
+   * Uses LRU strategy based on file modification time.
+   */
+  private async evictOldImages(): Promise<void> {
+    try {
+      const { readdir, stat, unlink } = await import("fs/promises");
+
+      const files = await readdir(this.outputDirectory);
+      const pngFiles = files.filter((f) => f.endsWith(".png"));
+
+      if (pngFiles.length <= this.maxImages) {
+        return;
+      }
+
+      // Get file stats for sorting by mtime
+      const fileStats = await Promise.all(
+        pngFiles.map(async (filename) => {
+          const filePath = resolve(this.outputDirectory, filename);
+          const stats = await stat(filePath);
+          return { filename, filePath, mtime: stats.mtimeMs };
+        })
+      );
+
+      // Sort by mtime ascending (oldest first)
+      fileStats.sort((a, b) => a.mtime - b.mtime);
+
+      // Delete oldest files to get under limit
+      const toDelete = fileStats.slice(0, fileStats.length - this.maxImages);
+
+      for (const file of toDelete) {
+        await unlink(file.filePath);
+        logger.info({ file: file.filename }, "Evicted old background image");
+      }
+
+      logger.info(
+        { evicted: toDelete.length, remaining: this.maxImages },
+        "LRU eviction complete"
+      );
+    } catch (error) {
+      // Log but don't fail - eviction is best-effort
+      logger.warn(
+        { error: error instanceof Error ? error.message : String(error) },
+        "Failed to evict old images"
+      );
+    }
   }
 
   /**
