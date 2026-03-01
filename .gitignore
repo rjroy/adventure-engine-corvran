@@ -1,6 +1,7 @@
 # Environment files
 .env
 .env.*
+setup/adventure-engine.env
 
 # Test artifacts (created by integration tests)
 test-*/
