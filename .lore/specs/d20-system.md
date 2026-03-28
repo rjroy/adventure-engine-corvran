@@ -1,12 +1,9 @@
 ---
-version: 1.1.0
-status: Under Review
-created: 2025-12-20
-last_updated: 2025-12-20
-authored_by:
-  - Claude (Reverse-Engineered)
-reviewed_by:
-  - User (Design Decisions)
+title: d20-System plugin specification
+date: 2025-12-20
+status: implemented
+tags: [spec, reverse-engineered, d20, rpg-mechanics, srd]
+modules: [d20-system, corvran]
 ---
 
 # d20-System Plugin Specification

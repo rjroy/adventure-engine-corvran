@@ -1,12 +1,11 @@
 ---
-specification: [.sdd/specs/2025-12-22-daggerheart-system.md](./../specs/2025-12-22-daggerheart-system.md)
-plan: [.sdd/plans/2025-12-22-daggerheart-system-plan.md](./../plans/2025-12-22-daggerheart-system-plan.md)
-status: Ready for Implementation
-version: 1.0.0
-created: 2025-12-22
-last_updated: 2025-12-22
-authored_by:
-  - Ronald Roy <gsdwig@gmail.com>
+title: "Task breakdown: daggerheart-system"
+date: 2025-12-22
+status: complete
+tags: [task, daggerheart, implementation]
+source: .lore/plans/daggerheart-system.md
+sequence: 1
+modules: [daggerheart-system, corvran]
 ---
 
 # Daggerheart System Plugin - Task Breakdown

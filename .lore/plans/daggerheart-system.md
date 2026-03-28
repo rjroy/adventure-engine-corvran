@@ -1,11 +1,10 @@
 ---
-specification: [.sdd/specs/2025-12-22-daggerheart-system.md](./../specs/2025-12-22-daggerheart-system.md)
-status: Approved
-version: 1.0.0
-created: 2025-12-22
-last_updated: 2025-12-22
-authored_by:
-  - Ronald Roy <gsdwig@gmail.com>
+title: "Implementation plan: daggerheart-system"
+date: 2025-12-22
+status: executed
+tags: [plan, daggerheart, plugin-architecture, dice-roller]
+modules: [daggerheart-system, corvran]
+related: [.lore/specs/daggerheart-system.md]
 ---
 
 # Daggerheart System Plugin - Technical Plan

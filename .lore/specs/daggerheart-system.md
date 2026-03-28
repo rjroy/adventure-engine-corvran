@@ -1,10 +1,9 @@
 ---
-version: 1.0.0
-status: Draft
-created: 2025-12-22
-last_updated: 2025-12-22
-authored_by:
-  - Ronald Roy <gsdwig@gmail.com>
+title: Daggerheart system plugin specification
+date: 2025-12-22
+status: implemented
+tags: [spec, daggerheart, rpg-mechanics, duality-dice, hope-fear]
+modules: [daggerheart-system, corvran]
 ---
 
 # Daggerheart System Plugin Specification

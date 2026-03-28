@@ -1,13 +1,10 @@
 ---
-specification: [.sdd/specs/2025-12-22-daggerheart-system.md](./../specs/2025-12-22-daggerheart-system.md)
-plan: [.sdd/plans/2025-12-22-daggerheart-system-plan.md](./../plans/2025-12-22-daggerheart-system-plan.md)
-tasks: [.sdd/tasks/2025-12-22-daggerheart-system-tasks.md](./../tasks/2025-12-22-daggerheart-system-tasks.md)
-status: Complete
-version: 1.0.0
-created: 2025-12-22
-last_updated: 2025-12-22
-authored_by:
-  - Ronald Roy <gsdwig@gmail.com>
+title: "Implementation retro: daggerheart-system"
+date: 2025-12-22
+status: complete
+tags: [retro, daggerheart, implementation-record]
+modules: [daggerheart-system, corvran]
+related: [.lore/specs/daggerheart-system.md, .lore/plans/daggerheart-system.md]
 ---
 
 # Daggerheart System Plugin - Implementation Progress
