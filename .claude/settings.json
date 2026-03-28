@@ -1,1 +1,16 @@
-{}
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun install",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
