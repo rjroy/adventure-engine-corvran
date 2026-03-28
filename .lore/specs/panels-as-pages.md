@@ -1,10 +1,9 @@
 ---
-version: 1.2.0
-status: Approved
-created: 2025-12-23
-last_updated: 2025-12-23
-authored_by:
-  - Ronald Roy <gsdwig@gmail.com>
+title: Panels as pages specification
+date: 2025-12-23
+status: implemented
+tags: [spec, panels, file-based, mcp-removal, post-tool-use]
+modules: [backend, corvran]
 ---
 
 # Panels as Pages Specification

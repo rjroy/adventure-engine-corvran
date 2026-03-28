@@ -1,10 +1,9 @@
 ---
-version: 1.0.0
-status: Approved
-created: 2025-12-20
-last_updated: 2025-12-20
-authored_by:
-  - Reverse-Engineered Specification 
+title: Adventure Engine specification
+date: 2025-12-20
+status: implemented
+tags: [spec, reverse-engineered, backend, frontend, shared, corvran]
+modules: [backend, frontend, shared, corvran]
 ---
 
 # Adventure Engine Specification

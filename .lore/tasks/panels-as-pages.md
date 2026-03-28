@@ -1,12 +1,11 @@
 ---
-specification: [.sdd/specs/2025-12-23-panels-as-pages.md](./../specs/2025-12-23-panels-as-pages.md)
-plan: [.sdd/plans/2025-12-23-panels-as-pages-plan.md](./../plans/2025-12-23-panels-as-pages-plan.md)
-status: Ready for Implementation
-version: 1.0.0
-created: 2025-12-23
-last_updated: 2025-12-23
-authored_by:
-  - Ronald Roy <gsdwig@gmail.com>
+title: "Task breakdown: panels-as-pages"
+date: 2025-12-23
+status: complete
+tags: [task, panels, implementation]
+source: .lore/plans/panels-as-pages.md
+sequence: 1
+modules: [backend, corvran]
 ---
 
 # Panels as Pages - Task Breakdown

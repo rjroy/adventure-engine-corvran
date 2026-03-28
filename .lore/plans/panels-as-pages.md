@@ -1,11 +1,10 @@
 ---
-specification: [.sdd/specs/2025-12-23-panels-as-pages.md](./../specs/2025-12-23-panels-as-pages.md)
-status: Approved
-version: 1.0.0
-created: 2025-12-23
-last_updated: 2025-12-23
-authored_by:
-  - Ronald Roy <gsdwig@gmail.com>
+title: "Implementation plan: panels-as-pages"
+date: 2025-12-23
+status: executed
+tags: [plan, panels, post-tool-use, frontmatter, mcp-removal]
+modules: [backend, corvran]
+related: [.lore/specs/panels-as-pages.md]
 ---
 
 # Panels as Pages - Technical Plan
