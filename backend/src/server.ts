@@ -78,6 +78,11 @@ const ALLOWED_ORIGINS: Set<string> = new Set(
     : DEFAULT_ORIGINS
 );
 
+// Wildcard origin patterns (checked when exact match fails)
+const ALLOWED_ORIGIN_PATTERNS = [
+  /^https?:\/\/[^/]+\.raptor-piranha\.ts\.net(:\d+)?$/,
+];
+
 // Maximum concurrent WebSocket connections
 // Prevents resource exhaustion from runaway clients or malicious actors
 const DEFAULT_MAX_CONNECTIONS = 100;
@@ -114,7 +119,12 @@ function isAllowedOrigin(origin: string | undefined, host: string | undefined): 
     // Invalid origin URL - fall through to explicit check
   }
 
-  return ALLOWED_ORIGINS.has(origin);
+  if (ALLOWED_ORIGINS.has(origin)) {
+    return true;
+  }
+
+  // Check wildcard patterns (e.g., Tailscale hostnames)
+  return ALLOWED_ORIGIN_PATTERNS.some((pattern) => pattern.test(origin));
 }
 
 // Shared AdventureStateManager instance
