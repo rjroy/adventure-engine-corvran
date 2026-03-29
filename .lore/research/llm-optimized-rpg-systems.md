@@ -1,7 +1,7 @@
 ---
 title: RPG Systems Optimized for LLM Game Masters
 date: 2026-03-29
-status: current
+status: open
 tags: [research, rpg-systems, llm-integration, game-design, adventure-engine]
 ---
 
