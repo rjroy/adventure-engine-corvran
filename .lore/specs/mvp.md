@@ -19,21 +19,21 @@ This spec defines what to build and how to verify it's done. For structural patt
 ## Entry Points
 
 - Player opens the web client in a browser (from [web client URL, localhost in development])
-- Player has manually created an adventure directory with at least `character.md` and `world.md`
+- Player has created an adventure directory (may be empty; character and world files are optional and can be created through play)
 
 ## Requirements
 
 ### Adventures
 
 - REQ-MVP-1: An adventure is a directory under a configurable `adventures/` root path. The daemon discovers adventures by listing directories in this path.
-- REQ-MVP-2: Each adventure directory must contain at minimum `character.md` and `world.md`. The daemon treats these as required. If either is missing, the adventure is listed but marked as incomplete and cannot start a session.
+- REQ-MVP-2: An adventure directory may contain `character.md`, `world.md`, and `history.md`. All are optional. The daemon lists the adventure regardless of which files exist. A player can start a session in an empty adventure directory and create character/world content through conversation with the GM (the RPG system plugins have skills for guided character creation and world building).
 - REQ-MVP-3: `history.md` is created by the daemon on first player message if it does not exist. It is not required for adventure discovery.
 - REQ-MVP-4: Adventure identity is its directory name. No manifest file, no metadata. The directory name is the adventure's display name and its ID.
-- REQ-MVP-5: Adventures are created manually by the player (mkdir, create files). No creation UI in the MVP.
+- REQ-MVP-5: Adventure directories are created manually by the player (mkdir). State files (`character.md`, `world.md`) can be created manually or through conversation with the GM. There is no dedicated creation UI in the MVP; the conversation *is* the creation UI when plugin skills handle it.
 
 ### Daemon
 
-- REQ-MVP-6: The daemon is a Hono application served on a Unix socket via `Bun.serve()`. It is the only process that reads or writes adventure state.
+- REQ-MVP-6: The daemon is a Hono application served on a Unix socket via `Bun.serve()`. The daemon and the Agent SDK subprocess it spawns are the only processes that read or write adventure state. The daemon manages `history.md` directly; the SDK subprocess (the AI) may create or update `character.md` and `world.md` via its tool access, scoped to the adventure's `cwd`.
 - REQ-MVP-7: The daemon exposes the following REST endpoints:
 
 #### `GET /adventures`
@@ -47,14 +47,15 @@ Response:
     {
       "id": "lost-mines",
       "name": "lost-mines",
-      "status": "ready" | "incomplete",
+      "hasCharacter": true | false,
+      "hasWorld": true | false,
       "hasHistory": true | false
     }
   ]
 }
 ```
 
-`status` is `"ready"` when both `character.md` and `world.md` exist. `"incomplete"` otherwise. `hasHistory` indicates whether `history.md` exists (i.e., has the adventure been played before).
+`hasCharacter`, `hasWorld`, and `hasHistory` indicate whether the respective files exist. All adventures are playable regardless of which files are present. The web client may use these flags for display hints (e.g., "New adventure" vs. "Continue").
 
 #### `GET /adventures/:id`
 
@@ -65,14 +66,13 @@ Response:
 {
   "id": "lost-mines",
   "name": "lost-mines",
-  "status": "ready" | "incomplete",
   "character": "# Thorin Ironforge\n...",
   "world": "# The Lost Mines\n...",
   "hasHistory": true | false
 }
 ```
 
-Returns 404 if the adventure directory does not exist. `character` and `world` are the raw markdown content of the respective files. Either may be `null` if the file is missing (when `status` is `"incomplete"`).
+Returns 404 if the adventure directory does not exist. `character` and `world` are the raw markdown content of the respective files. Either may be `null` if the file does not exist yet.
 
 #### `POST /adventures/:id/message`
 
@@ -94,9 +94,11 @@ Response: Server-Sent Events stream. Each SSE event has a `type` field:
 | `done` | `{ "fullResponse": "..." }` | Stream complete. Full response text for client-side display without buffering. |
 | `error` | `{ "error": "..." }` | Something went wrong. |
 
-Returns 404 if adventure does not exist. Returns 400 if adventure is incomplete. Returns 400 if `message` is empty or missing.
+Returns 404 if adventure does not exist. Returns 400 if `message` is empty or missing.
 
 **Streaming behavior**: The daemon begins streaming SSE events as the Agent SDK `query()` yields messages. The client receives text incrementally. This is the only long-lived connection in the system.
+
+**Stop behavior**: When the client closes the SSE connection (e.g., the player clicks "Stop"), the daemon aborts the in-flight `query()` call. This is a collaborative game, not background work. The AI is playing *with* the player; if the player disconnects, there's no game to continue. The GM's response up to that point is still appended to `history.md`. Any file writes the GM completed before the abort (character updates, world state changes) remain on disk. Partial progress is better than rollback, and the player can always edit the files.
 
 #### `GET /adventures/:id/history`
 
@@ -139,20 +141,21 @@ Response:
 | `systemPrompt` | Custom GM prompt (see REQ-MVP-12) | Defines GM identity and behavioral constraints |
 | `cwd` | Adventure directory path | Scopes file access to the adventure |
 | `plugins` | `[{ type: 'local', path: '<repo>/plugins/corvran' }, { type: 'local', path: '<repo>/plugins/d20-system' }, { type: 'local', path: '<repo>/plugins/daggerheart-system' }]` | Plugin paths hardcoded for MVP. Absolute paths resolved from the repo root at startup. |
-| `tools` | `['Bash', 'Read']` | Restricts available tools. Dice roller needs Bash. Read for reference files. |
-| `allowedTools` | `['Bash', 'Read']` | Auto-approves these tools so `permissionMode: 'dontAsk'` doesn't silently deny them |
+| `tools` | `['Bash', 'Read', 'Write', 'Edit', 'Grep', 'Glob']` | Bash for dice roller. Read/Grep/Glob for reference files and adventure state. Write/Edit for creating and updating state files (character.md, world.md) through plugin skills. |
+| `allowedTools` | `['Bash', 'Read', 'Write', 'Edit', 'Grep', 'Glob']` | Auto-approves these tools so `permissionMode: 'dontAsk'` doesn't silently deny them |
 | `permissionMode` | `'dontAsk'` | No interactive permission prompts in daemon context |
 | `persistSession` | `false` | We manage our own history; SDK session persistence is unnecessary |
-| `maxTurns` | `1` | One response per player message. The GM responds, then the turn ends. |
+| `maxTurns` | Not set (unlimited) | The GM takes as many turns as it needs: rolling dice, writing files, looking up rules, narrating. The player stops it, not an arbitrary cap. |
 | `model` | Configurable, default `'claude-sonnet-4-5-20250929'` | Sonnet balances quality and speed for interactive play |
 
 - REQ-MVP-12: The system prompt assembles the GM's identity. It is a plain string (not the `claude_code` preset) with these sections in order:
 
 1. **Identity**: "You are the Game Master for a tabletop RPG adventure."
 2. **Principles**: Player agency is sacred (Principle 3). Never narrate player actions or decisions. Describe the world; the player describes their character.
-3. **Adventure state**: The full content of `character.md` and `world.md`, each under a labeled header.
-4. **Conversation history**: The full content of `history.md` (if it exists), under a labeled header.
-5. **Instructions**: Respond to the player's latest message. Use available skills for dice rolls, rules lookup, and GM techniques. When you roll dice or look up rules, include the meaningful result in your narrative (e.g., "You rolled 14 + 3 = 17, a success!") but not the raw tool invocation.
+3. **Adventure state**: The full content of `character.md` and `world.md`, each under a labeled header. If either file does not exist, include a note under that header: "No character/world has been created yet." Do not include a header for a missing file with no note; the absence should be visible, not silent.
+4. **Onboarding** (only when character or world is missing): "The player hasn't set up [character/world/both] yet. You can help them create one through conversation. Ask what kind of adventure they want to play, then use your skills to guide character creation and world building. Let the player drive the choices."
+5. **Conversation history**: The full content of `history.md` (if it exists), under a labeled header.
+6. **Instructions**: Respond to the player's latest message. Use available skills for dice rolls, rules lookup, and GM techniques. When you roll dice or look up rules, include the meaningful result in your narrative (e.g., "You rolled 14 + 3 = 17, a success!") but not the raw tool invocation.
 
 The player's message is passed as the `prompt` parameter to `query()`.
 
@@ -200,11 +203,11 @@ If `query()` fails after the player message has been appended (step 1) but befor
 
 **Adventure List** (`/`)
 - Fetches `GET /adventures` on load
-- Shows each adventure's name and status
-- Ready adventures are clickable. Incomplete adventures show a message ("Missing character.md or world.md")
-- If only one ready adventure exists, navigate directly to it
-- If no ready adventures exist, show a message explaining how to create one (create a directory under `adventures/` with `character.md` and `world.md`)
-- Shows whether the adventure has prior history (resuming vs. starting fresh)
+- Shows each adventure's name. All adventures are clickable.
+- Shows context hints per adventure: "New adventure" (no history), "Continue" (has history). May show whether character/world exist as secondary info.
+- If only one adventure exists, navigate directly to it
+- If no adventures exist, show a message explaining how to create one (create a directory under `adventures/`)
+- No adventure is ever blocked from starting. An empty directory is a valid starting point; the GM will help the player set up.
 
 **Adventure Play** (`/adventure/[id]`)
 - Fetches `GET /adventures/:id` on load for initial state
@@ -212,7 +215,7 @@ If `query()` fails after the player message has been appended (step 1) but befor
 - Shows a text input at the bottom for player messages
 - On submit: POST to `/adventures/:id/message`, consume the SSE stream, display text incrementally
 - Scroll to bottom as new text arrives
-- Disable input while the GM is responding
+- Disable input while the GM is responding. Show a "Stop" button that closes the SSE connection, aborting the GM's response.
 - Show tool use events inline (e.g., "Rolled 15 + 3 = 18") in a visually distinct way (lighter text, italic, or similar)
 - Show errors from the stream clearly
 
@@ -224,7 +227,7 @@ If `query()` fails after the player message has been appended (step 1) but befor
 
 - REQ-MVP-22: `character.md` is freeform markdown. The engine imposes no schema. The content is whatever the player and the RPG system need. For a D&D 5e character, it might follow the template in `plugins/d20-system/skills/d20-players/references/sheet-template.md`. For freeform narrative, it might be three sentences. The AI reads it as context.
 
-- REQ-MVP-23: `world.md` is freeform markdown. It describes the adventure setting, active quests, NPCs, locations, and any world state the GM needs to maintain continuity. The AI reads it as context. The AI may be instructed to suggest updates to `world.md` in its responses (e.g., "The bridge has collapsed; consider updating world.md"), but the AI does not write to `world.md` in the MVP. The player updates it by hand.
+- REQ-MVP-23: `world.md` is freeform markdown. It describes the adventure setting, active quests, NPCs, locations, and any world state the GM needs to maintain continuity. The AI reads it as context and updates it as the story progresses: recording NPC deaths, location changes, quest completions, faction shifts, and other world-state consequences of play. The AI may also create `world.md` during initial setup (through plugin skills like `dh-frame`). This is the GM maintaining continuity, the same job a human GM does with their notes.
 
 - REQ-MVP-24: `history.md` is managed by the daemon (see REQ-MVP-14 through REQ-MVP-17). The player can read and edit it freely between turns.
 
@@ -257,8 +260,8 @@ Types flow one direction: `shared` is imported by `backend` and `web`. Neither `
 
 | Exit | Triggers When | Target |
 |------|---------------|--------|
-| Adventure creation | Player wants a new adventure | Manual (mkdir + create files). No UI. |
-| State editing | Player wants to edit character/world/history | Manual (text editor). No UI. |
+| Adventure creation | Player wants a new adventure | Manual (mkdir). Character/world creation through GM conversation or manual file creation. |
+| State editing | Player wants to manually edit character/world/history | Manual (text editor). The AI also updates state files during normal play as part of game mastering. |
 | Plugin configuration | Player wants different RPG systems | [STUB: plugin-configuration] |
 | History compaction | History exceeds context window | [STUB: history-compaction] |
 | Session recovery | Daemon restarts mid-conversation | [STUB: session-recovery] |
@@ -267,7 +270,7 @@ Types flow one direction: `shared` is imported by `backend` and `web`. Neither `
 
 These are playability criteria, not just technical checks. Criteria 1-4 require a human playtest session to fully verify. Automated tests validate the machinery; playtesting validates the experience.
 
-- [ ] A player can create an adventure directory with `character.md` and `world.md`, start the daemon, open the web client, and begin playing without reading documentation beyond this spec.
+- [ ] A player can create an adventure directory (even an empty one), start the daemon, open the web client, and begin playing. The GM helps them create a character and world through conversation if the files don't exist yet.
 - [ ] A one-evening D&D 5e session (2-3 hours of play) works without hitting the context window limit. The AI references rules correctly, rolls dice, and maintains narrative continuity.
 - [ ] A Daggerheart session works with the same engine. No code changes, just different content in `character.md` and `world.md`.
 - [ ] A freeform narrative session (no RPG system) works. The AI game masters without rules reference.
@@ -288,8 +291,8 @@ These are playability criteria, not just technical checks. Criteria 1-4 require 
 **Custom**:
 - SSE stream integration test: mock SDK query that yields multiple text events, verify the SSE stream delivers them incrementally with correct event types
 - History append test: send two messages, verify `history.md` contains both exchanges in the correct format with correct labels
-- Adventure discovery test: create temp directories with/without required files, verify the list endpoint returns correct status for each
-- Prompt assembly test: verify the assembled system prompt contains character, world, and history content in the correct order with correct labels
+- Adventure discovery test: create temp directories with various combinations of files (all, some, none), verify the list endpoint returns correct file-existence flags for each
+- Prompt assembly test: verify the assembled system prompt contains character, world, and history content in the correct order with correct labels. When files are missing, verify the prompt includes the absence note and onboarding section.
 - Context overflow test: verify the daemon returns the expected error (not a crash) when history is too large
 
 ## Constraints
@@ -300,19 +303,19 @@ These are playability criteria, not just technical checks. Criteria 1-4 require 
 - **No compaction.** If history exceeds context, the player gets an error and edits the file. This is the honest failure mode for the MVP.
 - **No adventure creation UI.** The player uses a file manager and text editor.
 - **Plugin paths are hardcoded.** All three plugin sets load on every adventure. RPG system selection is deferred.
-- **The AI does not write to state files.** `character.md` and `world.md` are read-only from the daemon's perspective. `history.md` is append-only by the daemon.
+- **The AI manages state files as part of game mastering.** The AI creates, reads, and updates `character.md` and `world.md` as needed: tracking HP after combat, recording inventory changes, noting that an NPC died or a location changed. This is bookkeeping, not authority. The boundary is player agency (Principle 3), not file access. The AI never makes decisions that belong to the player (choosing to attack, selling an item, abandoning a quest), but it tracks the consequences of play without asking permission for each write. `history.md` is append-only by the daemon, not the AI.
 
 ## Deferred (Not in Scope)
 
 These items are acknowledged as natural next steps but are explicitly excluded from this spec. They are listed here to prevent scope creep during implementation.
 
-- Adventure creation UI
+- Adventure creation UI (directory creation is manual; character/world creation happens through GM conversation)
 - RPG system selection per adventure
 - Conversation history compaction and summarization
 - Scene-based history (Approach 3 from conversation-history brainstorm)
 - SDK session resume for conversation continuity
 - Session recovery after daemon restart mid-stream
-- World state updates by the AI (writing to `world.md`)
+- Structured state schema (the AI manages freeform markdown; structured/typed state tracking is deferred)
 - Panels, theming, background images, or any UI beyond conversation
 - CLI client (the operations registry enables it, but no CLI binary is in MVP scope)
 - Multi-player or authentication
