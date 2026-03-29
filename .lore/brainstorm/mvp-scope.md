@@ -92,8 +92,13 @@ Who creates the adventure directory? For the MVP: the player. You make a folder,
 ## Open Questions
 
 - What markdown structure does an adventure directory need at minimum? (Character sheet, world state, what else?)
+USER RESPONSE: Let's not over engineer it yet. Allowing the Claude Agent SDK to run from a particular directory may be the bare minimum. Then simply two files "character.md" and "world.md" at least for the MVP
+
 - How does conversation history persist between sessions? (Append to a file? Rotating files with compaction?)
+USER RESPONSE: We'll have a separate brainstorm.
+
 - What's the prompt assembly look like? (System prompt + gm-craft + game system docs + adventure state + conversation history)
+USER RESPONSE: The way the craft and system docs are to be integrated are by referencing the skill not by full integration. Can we use this same philosophy for the adventure state? As for the conversation history. That will warrant its own brainstorm.
 
 ## Next Steps
 
