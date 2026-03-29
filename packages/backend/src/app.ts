@@ -101,6 +101,14 @@ export function createApp(deps?: AppDeps): Hono {
 
   const app = new Hono();
 
+  // Request logging middleware
+  app.use("*", async (c, next) => {
+    const start = Date.now();
+    await next();
+    const ms = Date.now() - start;
+    console.log(`[daemon] ${c.req.method} ${c.req.path} ${c.res.status} ${ms}ms`);
+  });
+
   const tailscaleHostname = process.env.TAILSCALE_HOSTNAME || "gsai.raptor-piranha.ts.net";
   app.use(
     "*",

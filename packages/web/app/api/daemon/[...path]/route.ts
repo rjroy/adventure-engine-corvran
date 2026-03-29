@@ -1,83 +1,183 @@
 import { NextRequest } from "next/server";
+import * as http from "node:http";
+import { Readable } from "node:stream";
 
 const SOCKET_PATH = process.env.DAEMON_SOCKET_PATH || "./corvran.sock";
 
 /**
+ * Pipe a web ReadableStream body into a Node http.ClientRequest.
+ */
+function pipeBodyToRequest(
+  body: ReadableStream<Uint8Array>,
+  req: http.ClientRequest,
+): void {
+  const reader = body.getReader();
+  function pump(): void {
+    reader.read().then(({ done, value }) => {
+      if (done) {
+        req.end();
+        return;
+      }
+      req.write(value);
+      pump();
+    }).catch((err) => {
+      req.destroy(err instanceof Error ? err : new Error(String(err)));
+    });
+  }
+  pump();
+}
+
+/**
+ * Collect response headers from a Node IncomingMessage into a plain object.
+ */
+function collectHeaders(res: http.IncomingMessage): Record<string, string> {
+  const headers: Record<string, string> = {};
+  for (const [key, value] of Object.entries(res.headers)) {
+    if (key === "connection" || key === "transfer-encoding") continue;
+    if (typeof value === "string") {
+      headers[key] = value;
+    } else if (Array.isArray(value)) {
+      headers[key] = value.join(", ");
+    }
+  }
+  return headers;
+}
+
+/**
+ * Make a buffered HTTP request over a Unix socket. Used for non-streaming
+ * responses (JSON, etc).
+ */
+function requestBuffered(
+  socketPath: string,
+  method: string,
+  path: string,
+  headers: Record<string, string>,
+  body: ReadableStream<Uint8Array> | null,
+): Promise<{ status: number; headers: Record<string, string>; body: ArrayBuffer }> {
+  return new Promise((resolve, reject) => {
+    const req = http.request({ socketPath, method, path, headers }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (chunk: Buffer) => chunks.push(chunk));
+      res.on("end", () => {
+        const buf = Buffer.concat(chunks);
+        resolve({
+          status: res.statusCode ?? 500,
+          headers: collectHeaders(res),
+          body: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
+        });
+      });
+      res.on("error", reject);
+    });
+
+    req.on("error", reject);
+
+    if (body) {
+      pipeBodyToRequest(body, req);
+    } else {
+      req.end();
+    }
+  });
+}
+
+/**
+ * Make a streaming HTTP request over a Unix socket. Returns the raw Node
+ * response so the caller can pipe it into a web ReadableStream for SSE.
+ */
+function requestStreaming(
+  socketPath: string,
+  method: string,
+  path: string,
+  headers: Record<string, string>,
+  body: ReadableStream<Uint8Array> | null,
+): Promise<{ status: number; headers: Record<string, string>; nodeStream: Readable }> {
+  return new Promise((resolve, reject) => {
+    const req = http.request({ socketPath, method, path, headers }, (res) => {
+      resolve({
+        status: res.statusCode ?? 500,
+        headers: collectHeaders(res),
+        nodeStream: res,
+      });
+    });
+
+    req.on("error", reject);
+
+    if (body) {
+      pipeBodyToRequest(body, req);
+    } else {
+      req.end();
+    }
+  });
+}
+
+/**
  * Forward a request to the daemon's Unix socket and return the response.
- * For SSE streams, pipes chunks without buffering.
+ * SSE responses are streamed through without buffering.
  */
 async function proxyToDaemon(request: NextRequest, path: string[]): Promise<Response> {
-  const daemonPath = `/${path.join("/")}`;
-  const url = `http://localhost${daemonPath}${request.nextUrl.search}`;
+  const daemonPath = `/${path.join("/")}${request.nextUrl.search}`;
+
+  console.log(`[proxy] ${request.method} ${daemonPath} -> unix:${SOCKET_PATH}`);
 
   const headers: Record<string, string> = {};
   request.headers.forEach((value, key) => {
-    // Skip hop-by-hop headers and host
     if (key === "host" || key === "connection" || key === "transfer-encoding") return;
     headers[key] = value;
   });
 
-  const fetchOptions: RequestInit & { unix: string } = {
-    method: request.method,
-    headers,
-    unix: SOCKET_PATH,
-  };
+  const body = request.method !== "GET" && request.method !== "HEAD"
+    ? request.body
+    : null;
 
-  // Forward body for methods that have one
-  if (request.method !== "GET" && request.method !== "HEAD") {
-    fetchOptions.body = request.body;
-    // Duplex is required for streaming request bodies in Bun/Node
-    (fetchOptions as unknown as Record<string, unknown>).duplex = "half";
-  }
+  // Check if the client expects SSE (the message endpoint uses Accept: text/event-stream)
+  const acceptsSSE = request.headers.get("accept")?.includes("text/event-stream");
 
-  let daemonResponse: Response;
   try {
-    daemonResponse = await fetch(url, fetchOptions);
-  } catch {
-    return new Response(
-      JSON.stringify({ error: "Daemon unreachable" }),
-      { status: 502, headers: { "Content-Type": "application/json" } }
-    );
-  }
-
-  const contentType = daemonResponse.headers.get("content-type") || "";
-
-  // SSE: pipe the stream through without buffering
-  if (contentType.includes("text/event-stream")) {
-    if (!daemonResponse.body) {
-      return new Response(
-        JSON.stringify({ error: "Empty stream from daemon" }),
-        { status: 502, headers: { "Content-Type": "application/json" } }
+    if (acceptsSSE) {
+      const daemonResponse = await requestStreaming(
+        SOCKET_PATH, request.method, daemonPath, headers, body,
       );
+
+      console.log(`[proxy] ${request.method} ${daemonPath} <- ${daemonResponse.status} (streaming)`);
+
+      const webStream = Readable.toWeb(daemonResponse.nodeStream) as ReadableStream;
+
+      return new Response(webStream, {
+        status: daemonResponse.status,
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          "Connection": "keep-alive",
+        },
+      });
     }
+
+    // Buffered path for regular requests
+    const daemonResponse = await requestBuffered(
+      SOCKET_PATH, request.method, daemonPath, headers, body,
+    );
+
+    console.log(`[proxy] ${request.method} ${daemonPath} <- ${daemonResponse.status}`);
 
     return new Response(daemonResponse.body, {
       status: daemonResponse.status,
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-      },
+      headers: daemonResponse.headers,
     });
+  } catch (err) {
+    console.error(`[proxy] ${request.method} ${daemonPath} FAILED:`, err);
+    return new Response(
+      JSON.stringify({
+        error: "Daemon unreachable",
+        detail: err instanceof Error ? err.message : String(err),
+        socketPath: SOCKET_PATH,
+      }),
+      { status: 502, headers: { "Content-Type": "application/json" } },
+    );
   }
-
-  // Non-streaming: forward JSON body and status
-  const responseHeaders = new Headers();
-  daemonResponse.headers.forEach((value, key) => {
-    // Skip hop-by-hop headers
-    if (key === "connection" || key === "transfer-encoding") return;
-    responseHeaders.set(key, value);
-  });
-
-  return new Response(daemonResponse.body, {
-    status: daemonResponse.status,
-    headers: responseHeaders,
-  });
 }
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> }
+  { params }: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await params;
   return proxyToDaemon(request, path);
@@ -85,7 +185,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> }
+  { params }: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await params;
   return proxyToDaemon(request, path);
@@ -93,7 +193,7 @@ export async function POST(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> }
+  { params }: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await params;
   return proxyToDaemon(request, path);
@@ -101,7 +201,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> }
+  { params }: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await params;
   return proxyToDaemon(request, path);
