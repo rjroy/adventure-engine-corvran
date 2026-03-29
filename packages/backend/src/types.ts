@@ -5,6 +5,8 @@ import type { ZodType } from "zod";
 export interface FileOps {
   readDir(path: string): Promise<string[]>;
   readFile(path: string): Promise<string>;
+  writeFile(path: string, content: string): Promise<void>;
+  appendFile(path: string, content: string): Promise<void>;
   fileExists(path: string): Promise<boolean>;
   resolvePath(...segments: string[]): string;
 }

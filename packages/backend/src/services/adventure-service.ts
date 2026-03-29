@@ -5,6 +5,7 @@ export interface AdventureService {
   listAdventures(): Promise<AdventureListItem[]>;
   getAdventure(id: string): Promise<AdventureDetail | null>;
   getHistory(id: string): Promise<HistoryResponse>;
+  getAdventurePath(id: string): string;
   adventureExists(id: string): boolean;
 }
 
@@ -82,5 +83,9 @@ export function createAdventureService(deps: {
     return { exists: false, history: null };
   }
 
-  return { listAdventures, getAdventure, getHistory, adventureExists };
+  function getAdventurePath(id: string): string {
+    return fileOps.resolvePath(adventuresPath, id);
+  }
+
+  return { listAdventures, getAdventure, getHistory, getAdventurePath, adventureExists };
 }

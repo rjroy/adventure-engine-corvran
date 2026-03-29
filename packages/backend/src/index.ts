@@ -1,7 +1,8 @@
+import { query } from "@anthropic-ai/claude-agent-sdk";
 import { createApp, resolveConfig } from "./app.js";
 
 const config = resolveConfig();
-const app = createApp();
+const app = createApp({ queryFn: query });
 
 const socketPath = process.env.DAEMON_SOCKET || "./corvran.sock";
 

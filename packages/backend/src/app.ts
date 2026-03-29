@@ -1,11 +1,14 @@
 import { Hono } from "hono";
 import { resolve } from "node:path";
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir, readFile, writeFile, appendFile, stat, mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
 import type { FileOps, RouteModule } from "./types.js";
 import { createAdventureService } from "./services/adventure-service.js";
 import { createAdventureRoutes } from "./routes/adventure-routes.js";
 import { createHealthRoutes } from "./routes/health-routes.js";
 import { createHelpRoutes } from "./registry.js";
+import { createHistoryService } from "./services/history-service.js";
+import { createSessionRunner, type QueryFn, type SessionRunner } from "./services/session-runner.js";
 
 /** Production FileOps backed by node:fs/promises */
 function createRealFileOps(): FileOps {
@@ -16,6 +19,14 @@ function createRealFileOps(): FileOps {
     },
     async readFile(path: string): Promise<string> {
       return readFile(path, "utf-8");
+    },
+    async writeFile(path: string, content: string): Promise<void> {
+      await mkdir(dirname(path), { recursive: true });
+      await writeFile(path, content, "utf-8");
+    },
+    async appendFile(path: string, content: string): Promise<void> {
+      await mkdir(dirname(path), { recursive: true });
+      await appendFile(path, content, "utf-8");
     },
     async fileExists(path: string): Promise<boolean> {
       try {
@@ -47,14 +58,40 @@ export function resolveConfig(): AppConfig {
   return { adventuresPath, pluginPaths };
 }
 
-export function createApp(deps?: { fileOps?: FileOps; adventuresPath?: string }): Hono {
+export interface AppDeps {
+  fileOps?: FileOps;
+  adventuresPath?: string;
+  queryFn?: QueryFn;
+  model?: string;
+}
+
+export function createApp(deps?: AppDeps): Hono {
   const config = resolveConfig();
   const fileOps = deps?.fileOps ?? createRealFileOps();
   const adventuresPath = deps?.adventuresPath ?? config.adventuresPath;
 
   const adventureService = createAdventureService({ fileOps, adventuresPath });
+  const historyService = createHistoryService({ fileOps });
 
-  const adventureModule = createAdventureRoutes({ adventureService });
+  // Session runner is only created when a queryFn is provided.
+  // Tests that don't need SDK integration pass their own queryFn.
+  // Production passes the real SDK query function.
+  let sessionRunner: SessionRunner | undefined;
+  if (deps?.queryFn) {
+    sessionRunner = createSessionRunner({
+      queryFn: deps.queryFn,
+      config: {
+        pluginPaths: config.pluginPaths,
+        model: deps.model ?? process.env.MODEL ?? "claude-sonnet-4-5-20250929",
+      },
+    });
+  }
+
+  const adventureModule = createAdventureRoutes({
+    adventureService,
+    historyService,
+    sessionRunner,
+  });
   const healthModule = createHealthRoutes();
 
   const contentModules: RouteModule[] = [adventureModule, healthModule];

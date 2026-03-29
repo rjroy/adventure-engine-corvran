@@ -1,15 +1,28 @@
 import { Hono } from "hono";
+import { streamSSE } from "hono/streaming";
+import { MessageRequestSchema } from "@corvran/shared";
 import type { AdventureService } from "../services/adventure-service.js";
+import type { HistoryService } from "../services/history-service.js";
+import type { SessionRunner } from "../services/session-runner.js";
+import { assembleSystemPrompt } from "../services/prompt-service.js";
 import type { OperationDefinition, RouteModule } from "../types.js";
 
 function isValidId(id: string): boolean {
   return !id.includes("/") && !id.includes("..");
 }
 
+/** Check if an SDK error string indicates context/token overflow */
+function isContextOverflowError(error: string): boolean {
+  const lower = error.toLowerCase();
+  return lower.includes("context") || lower.includes("token") || lower.includes("too long");
+}
+
 export function createAdventureRoutes(deps: {
   adventureService: AdventureService;
+  historyService?: HistoryService;
+  sessionRunner?: SessionRunner;
 }): RouteModule {
-  const { adventureService } = deps;
+  const { adventureService, historyService, sessionRunner } = deps;
   const routes = new Hono();
 
   routes.get("/adventures", async (c) => {
@@ -40,13 +53,145 @@ export function createAdventureRoutes(deps: {
     return c.json(history);
   });
 
-  // Stub for Phase 3: message endpoint
   routes.post("/adventures/:id/message", async (c) => {
     const id = c.req.param("id");
     if (!isValidId(id)) {
       return c.json({ error: "Invalid adventure ID" }, 400);
     }
-    return c.json({ error: "Not implemented" }, 501);
+
+    if (!historyService || !sessionRunner) {
+      return c.json({ error: "AI integration not configured" }, 503);
+    }
+
+    // Validate request body
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "Invalid JSON body" }, 400);
+    }
+
+    const parsed = MessageRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: "Message is required and must be non-empty" }, 400);
+    }
+    const { message } = parsed.data;
+
+    // Verify adventure exists
+    const adventure = await adventureService.getAdventure(id);
+    if (!adventure) {
+      return c.json({ error: "Adventure not found" }, 404);
+    }
+
+    // Read adventure state (fresh each turn per REQ-MVP-17)
+    const adventurePath = adventureService.getAdventurePath(id);
+    const history = await historyService.readHistory(adventurePath);
+
+    // Append player message (REQ-MVP-16 step 1)
+    await historyService.appendPlayerMessage(adventurePath, message);
+
+    // Assemble system prompt (REQ-MVP-12)
+    const systemPrompt = assembleSystemPrompt({
+      character: adventure.character,
+      world: adventure.world,
+      history,
+    });
+
+    // Set up abort for client disconnect
+    const abortController = new AbortController();
+
+    // Run the SDK query
+    const queryResult = sessionRunner.runQuery({
+      systemPrompt,
+      playerMessage: message,
+      adventurePath,
+      abortController,
+    });
+
+    // Stream SSE events
+    return streamSSE(c, async (stream) => {
+      let accumulatedText = "";
+
+      stream.onAbort(() => {
+        abortController.abort();
+      });
+
+      try {
+        for await (const msg of queryResult) {
+          if (msg.type === "stream_event") {
+            // Text deltas from streaming
+            const event = msg.event;
+            if (
+              event.type === "content_block_delta" &&
+              "delta" in event &&
+              event.delta.type === "text_delta"
+            ) {
+              const text = event.delta.text;
+              accumulatedText += text;
+              await stream.writeSSE({ event: "text", data: JSON.stringify({ text }) });
+            }
+          } else if (msg.type === "assistant") {
+            // Check for tool_use content blocks
+            for (const block of msg.message.content) {
+              if (block.type === "tool_use") {
+                await stream.writeSSE({
+                  event: "tool_use",
+                  data: JSON.stringify({ name: block.name, result: JSON.stringify(block.input) }),
+                });
+              }
+            }
+          } else if (msg.type === "user" && msg.tool_use_result !== undefined) {
+            // Tool result, emit enriched tool_use event
+            await stream.writeSSE({
+              event: "tool_use",
+              data: JSON.stringify({
+                name: "tool_result",
+                result: typeof msg.tool_use_result === "string"
+                  ? msg.tool_use_result
+                  : JSON.stringify(msg.tool_use_result),
+              }),
+            });
+          } else if (msg.type === "result") {
+            if (msg.subtype === "success") {
+              // Use the result field for the full response (more reliable than accumulated text)
+              const fullResponse = msg.result;
+              await historyService.appendGMResponse(adventurePath, fullResponse);
+              await stream.writeSSE({
+                event: "done",
+                data: JSON.stringify({ fullResponse }),
+              });
+            } else {
+              // Error result
+              const errors = msg.errors;
+              const overflowError = errors.find(isContextOverflowError);
+              const errorMessage = overflowError
+                ? "Adventure history is too long. Edit history.md to shorten it."
+                : errors.join("; ");
+              await stream.writeSSE({
+                event: "error",
+                data: JSON.stringify({ error: errorMessage }),
+              });
+            }
+          }
+        }
+      } catch (err: unknown) {
+        // Handle AbortError (client disconnect)
+        if (err instanceof Error && err.name === "AbortError") {
+          // Append partial response to history
+          if (accumulatedText) {
+            await historyService.appendGMResponse(adventurePath, accumulatedText);
+          }
+          return;
+        }
+
+        // Handle other errors
+        const errorMessage = err instanceof Error ? err.message : "Unknown error";
+        await stream.writeSSE({
+          event: "error",
+          data: JSON.stringify({ error: errorMessage }),
+        });
+      }
+    });
   });
 
   const operations: OperationDefinition[] = [

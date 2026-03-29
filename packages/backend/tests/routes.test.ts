@@ -128,13 +128,17 @@ describe("GET /adventures/:id/history", () => {
 });
 
 describe("POST /adventures/:id/message", () => {
-  test("returns 501 (stub)", async () => {
+  test("returns 503 when AI integration not configured", async () => {
     const app = buildTestApp({
       [`${ADVENTURES_ROOT}/quest/character.md`]: "Hero",
     });
 
-    const res = await app.request("/adventures/quest/message", { method: "POST" });
-    expect(res.status).toBe(501);
+    const res = await app.request("/adventures/quest/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Hello" }),
+    });
+    expect(res.status).toBe(503);
   });
 });
 
