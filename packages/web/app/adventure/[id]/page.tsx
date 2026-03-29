@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -8,6 +8,7 @@ import ReactMarkdown from "react-markdown";
 import type { AdventureDetail, HistoryResponse, ToolUseEvent } from "@corvran/shared";
 import { useAdventureStream } from "@/lib/use-adventure-stream";
 import { parseHistory, type HistoryMessage } from "@/lib/parse-history";
+import { isTouchDevice, shouldSendOnEnter } from "@/lib/keyboard-handler";
 import styles from "./page.module.css";
 
 export default function AdventurePlayPage() {
@@ -67,8 +68,10 @@ export default function AdventurePlayPage() {
   }, [inputValue, isStreaming, sendMessage]);
 
 
+  const isMobile = useMemo(() => isTouchDevice(), []);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (shouldSendOnEnter({ key: e.key, shiftKey: e.shiftKey }, isMobile)) {
       e.preventDefault();
       handleSend();
     }
@@ -193,7 +196,9 @@ export default function AdventurePlayPage() {
         <div className={styles.inputHint}>
           {isStreaming
             ? "Game Master is responding\u2026"
-            : "Enter to send \u00b7 Shift+Enter for new line"}
+            : isMobile
+              ? "Tap Send to submit"
+              : "Enter to send \u00b7 Shift+Enter for new line"}
         </div>
       </div>
     </div>
