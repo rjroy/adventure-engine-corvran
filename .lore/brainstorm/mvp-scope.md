@@ -3,7 +3,7 @@ title: MVP Scope for Greenfield Rewrite
 date: 2026-03-28
 status: open
 tags: [mvp, scope, greenfield, architecture]
-related: [.lore/vision.md, .lore/reference/architecture-pattern.md]
+related: [.lore/vision.md, .lore/reference/architecture-pattern.md, .lore/brainstorm/conversation-history.md]
 ---
 
 # Brainstorm: MVP Scope for Greenfield Rewrite
@@ -65,16 +65,17 @@ Who creates the adventure directory? For the MVP: the player. You make a folder,
 
 1. **Daemon** (Hono on Unix socket): loads adventures from directories, serves conversation API, manages markdown state, runs Agent SDK sessions
 2. **AI Game Master** (Agent SDK): taught by plugin docs. Hardcoded plugin paths: corvran (gm-craft + dice roller), d20-system, daggerheart-system
-3. **Markdown state**: character sheets, world state, conversation history. All human-readable and hand-editable
-4. **Web client** (Next.js): adventure list (trivial), conversation view, input box. Nothing else.
-5. **Adventures**: created manually. A directory with files. The engine finds and lists them.
+3. **Markdown state**: `character.md`, `world.md`, `history.md`. All human-readable and hand-editable. The player owns these files.
+4. **Conversation history** (file-based): `history.md` in the adventure directory. Append on each exchange, read into a fresh SDK `query()` each turn. No compaction for the MVP. The history file IS the adventure record. (Decision from `conversation-history.md` brainstorm: Approach 2, compaction deferred.)
+5. **Web client** (Next.js): adventure list (trivial), conversation view, input box. Nothing else.
+6. **Adventures**: created manually. A directory with files. The engine finds and lists them.
 
 ## What This Proves
 
 | Principle | How |
 |-----------|-----|
 | 0. Story is the product | Nothing in the UI competes with the conversation |
-| 1. Markdown is memory | All state is files you can read and edit by hand |
+| 1. Markdown is memory | All state is files you can read and edit by hand, including conversation history |
 | 2. Teach, don't code | RPG systems loaded from plugin docs, not application logic |
 | 3. Player agency | Enforced by GM prompt (gm-craft), observable in play |
 | 4. Progressive simplification | The MVP *is* the simplified version |
@@ -85,7 +86,11 @@ Who creates the adventure directory? For the MVP: the player. You make a folder,
 - Adventure creation UI (manual for now)
 - RPG system selection per adventure (hardcoded plugin paths)
 - Panels, theming, background images
-- History compaction and summarization
+- Conversation history compaction and summarization (the wall is real but distant for one-evening play)
+- Scene-based history (Approach 3 from `conversation-history.md`). Natural evolution of the file-based model, but requires answering "what is a scene?" first
+- SDK session resume for conversation continuity (Approach 1). Trades Principle 1 compliance for implementation simplicity. Revisit if the cost model changes.
+- Custom SDK compaction instructions for narrative context (the `PreCompactHookInput` has a `custom_instructions` field worth investigating later)
+- History format standardization (the format of `history.md` is hard to change once adventures exist, but premature to lock down before play testing)
 - Session recovery and reconnection
 - Any UI beyond conversation and adventure list
 
@@ -94,11 +99,12 @@ Who creates the adventure directory? For the MVP: the player. You make a folder,
 - What markdown structure does an adventure directory need at minimum? (Character sheet, world state, what else?)
 USER RESPONSE: Let's not over engineer it yet. Allowing the Claude Agent SDK to run from a particular directory may be the bare minimum. Then simply two files "character.md" and "world.md" at least for the MVP
 
-- How does conversation history persist between sessions? (Append to a file? Rotating files with compaction?)
-USER RESPONSE: We'll have a separate brainstorm.
-
 - What's the prompt assembly look like? (System prompt + gm-craft + game system docs + adventure state + conversation history)
-USER RESPONSE: The way the craft and system docs are to be integrated are by referencing the skill not by full integration. Can we use this same philosophy for the adventure state? As for the conversation history. That will warrant its own brainstorm.
+USER RESPONSE: Skills and RPG system docs are referenced by skill path, not inlined. Adventure state (`character.md`, `world.md`) loads as context. Conversation history is now file-based (`history.md`), assembled into each fresh `query()` call. The remaining design question is how the history file content gets into the prompt: inlined as a user message, as a system prompt section, or as a file the SDK reads via tools. Each has different context budget implications. See `conversation-history.md` open question #3 for the full shape of this.
+
+- What format should `history.md` use? Raw transcript with player/GM labels? Structured markdown with headers per exchange? The format needs to be human-readable AND parseable by prompt assembly. Simpler is better for the MVP, but the format is hard to change once adventures exist. (From `conversation-history.md` open question #1.)
+
+- Should `history.md` include AI tool use (dice rolls, character sheet reads)? Including it gives a complete record. Excluding it keeps the file focused on narrative. A middle ground: include the result ("Rolled 14 + 3 = 17, success") but not the tool invocation mechanics. (From `conversation-history.md` open question #5.)
 
 ## Next Steps
 
