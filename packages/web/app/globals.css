@@ -1,0 +1,91 @@
+/* ============================================================
+   Adventure Engine of Corvran — Global Styles
+   CSS Custom Properties + Resets only.
+   Component styles use .module.css files.
+   ============================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* ── Backgrounds ────────────────────────────────────────── */
+  --bg-base:        lch( 7%  7 285);
+  --bg-surface:     lch(12% 12 285);
+  --bg-elevated:    lch(17% 17 285);
+
+  /* ── Text ───────────────────────────────────────────────── */
+  --text-primary:   lch(89%  9  90);
+  --text-secondary: lch(59%  9  90);
+  --text-tertiary:  lch(39%  9  90);
+
+  /* ── Amber (primary accent) ─────────────────────────────── */
+  --accent:         lch(64% 60  79);
+  --accent-hover:   lch(78% 60  79);
+  --accent-dim:     color-mix(in lch, var(--accent) 15%, transparent);
+  --accent-border:  color-mix(in lch, var(--accent) 30%, transparent);
+
+  /* ── Badges (adventure list) ────────────────────────────── */
+  --badge-new:       lch(42% 24 142);
+  --badge-new-text:  lch(74% 35 142);
+  --badge-cont:      lch(28% 20 268);
+  --badge-cont-text: lch(68% 24 249);
+
+  /* ── GM accent ──────────────────────────────────────────── */
+  --gm-accent:      lch(68% 24 249);
+  --gm-accent-dim:  color-mix(in lch, var(--gm-accent) 15%, transparent);
+  --gm-border:      color-mix(in lch, var(--gm-accent) 30%, transparent);
+
+  /* ── Player ─────────────────────────────────────────────── */
+  --player-accent:  var(--accent);
+  --player-input:   var(--text-primary);
+
+  /* ── Tool events ────────────────────────────────────────── */
+  --tool-accent:        lch(60% 30 133);
+  --tool-accent-dim:    color-mix(in lch, var(--tool-accent) 15%, transparent);
+  --tool-accent-border: color-mix(in lch, var(--tool-accent) 30%, transparent);
+
+  /* ── Stop / Error ───────────────────────────────────────── */
+  --stop-red:              lch(45% 55  29);
+  --stop-red-text:         lch(65% 55  29);
+  --stop-red-dim:          color-mix(in lch, var(--stop-red) 15%, transparent);
+  --stop-red-border:       color-mix(in lch, var(--stop-red) 30%, transparent);
+  --stop-red-highlight-bg: color-mix(in lch, var(--stop-red) 25%, transparent);
+  --stop-red-hover:        color-mix(in lch, var(--stop-red) 25%, transparent);
+  --stop-red-hover-border: color-mix(in lch, var(--stop-red) 75%, transparent);
+  --error-bg:              var(--stop-red-dim);
+  --error-border:          var(--stop-red-border);
+  --error-text:            var(--stop-red-text);
+  --error-code-bg:         var(--stop-red-highlight-bg);
+
+  /* ── Typography ─────────────────────────────────────────── */
+  --font-serif: Georgia, "Times New Roman", "Palatino Linotype", serif;
+  --font-sans:  -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono:  "SFMono-Regular", "Cascadia Code", "Consolas", monospace;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+body {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ── Streaming cursor animation ───────────────────────────── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
