@@ -1,9 +1,11 @@
 import { NextRequest } from "next/server";
 import * as http from "node:http";
 import { resolve } from "node:path";
+import { homedir } from "node:os";
 import { Readable } from "node:stream";
 
-const SOCKET_PATH = resolve(process.env.DAEMON_SOCKET_PATH || "./corvran.sock");
+const CORVRAN_HOME = resolve(process.env.CORVRAN_HOME || `${homedir()}/.corvran`);
+const SOCKET_PATH = process.env.DAEMON_SOCKET_PATH || `${CORVRAN_HOME}/corvran.sock`;
 
 /**
  * Pipe a web ReadableStream body into a Node http.ClientRequest.

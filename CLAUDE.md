@@ -16,21 +16,24 @@ Monorepo with three packages: `packages/shared`, `packages/backend`, `packages/w
 - Use dependency injection: pass dependencies as parameters, not imports
 - Tests live alongside source in `tests/` directories within each package
 
+## Runtime Data
+
+The daemon stores runtime data in `~/.corvran/` (override with `CORVRAN_HOME`):
+- `~/.corvran/corvran.sock` — Unix socket for daemon communication
+- `~/.corvran/adventures/` — adventure definitions
+
+Both backend and web proxy derive paths from `CORVRAN_HOME`. Individual paths can be overridden:
+- `DAEMON_SOCKET` — backend socket path (default: `$CORVRAN_HOME/corvran.sock`)
+- `DAEMON_SOCKET_PATH` — web proxy socket path (default: `$CORVRAN_HOME/corvran.sock`)
+- `ADVENTURES_PATH` — adventure directory (default: `$CORVRAN_HOME/adventures`)
+
+Plugins remain in the repo (`plugins/`) since they're application code, not user data.
+
 ## Development
 
-Two processes run separately:
-
-- `bun run dev:daemon` — starts the backend on `./corvran.sock`
-- `bun run dev:web` — starts Next.js dev server (proxies to daemon via socket)
-- `bun run dev` — starts both
-
-Environment defaults (set automatically by dev scripts):
-- `DAEMON_SOCKET=./corvran.sock` — backend listens here
-- `DAEMON_SOCKET_PATH=./corvran.sock` — web proxy connects here
-- `ADVENTURES_PATH=./adventures/` — where the daemon looks for adventures
-- `TAILSCALE_HOSTNAME=gsai.raptor-piranha.ts.net` — allowed remote origin for Tailscale access (used by both backend CORS and Next.js dev origins)
-
-A sample adventure is provided at `adventures/lost-mines/`.
+- `bun run dev` — starts daemon + Next.js dev server
+- `bun run build` — typechecks, then builds web for production
+- `bun run start` — starts daemon + built web app
 
 ## Building
 

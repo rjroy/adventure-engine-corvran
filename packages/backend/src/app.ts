@@ -44,19 +44,22 @@ function createRealFileOps(): FileOps {
 }
 
 export interface AppConfig {
+  corvranHome: string;
   adventuresPath: string;
   pluginPaths: string[];
 }
 
 export function resolveConfig(): AppConfig {
-  const adventuresPath = resolve(process.env.ADVENTURES_PATH || "./adventures");
+  const home = process.env.HOME || process.env.USERPROFILE || "/tmp";
+  const corvranHome = resolve(process.env.CORVRAN_HOME || `${home}/.corvran`);
+  const adventuresPath = resolve(process.env.ADVENTURES_PATH || `${corvranHome}/adventures`);
   const repoRoot = process.cwd();
   const pluginPaths = [
     resolve(repoRoot, "plugins/corvran"),
     resolve(repoRoot, "plugins/d20-system"),
     resolve(repoRoot, "plugins/daggerheart-system"),
   ];
-  return { adventuresPath, pluginPaths };
+  return { corvranHome, adventuresPath, pluginPaths };
 }
 
 export interface AppDeps {

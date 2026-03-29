@@ -1,12 +1,15 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import { existsSync, unlinkSync } from "node:fs";
+import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { resolve } from "node:path";
 import { createApp, resolveConfig } from "./app.js";
 
 const config = resolveConfig();
 const app = createApp({ queryFn: query });
 
-const socketPath = resolve(process.env.DAEMON_SOCKET || "./corvran.sock");
+// Ensure ~/.corvran/ exists before writing the socket or adventures into it
+mkdirSync(config.corvranHome, { recursive: true });
+
+const socketPath = resolve(process.env.DAEMON_SOCKET || `${config.corvranHome}/corvran.sock`);
 
 // Clean up stale socket file from a previous run
 if (existsSync(socketPath)) {
