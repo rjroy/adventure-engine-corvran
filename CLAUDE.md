@@ -16,6 +16,21 @@ Monorepo with three packages: `packages/shared`, `packages/backend`, `packages/w
 - Use dependency injection: pass dependencies as parameters, not imports
 - Tests live alongside source in `tests/` directories within each package
 
+## Development
+
+Two processes run separately:
+
+- `bun run dev:daemon` — starts the backend on `./corvran.sock`
+- `bun run dev:web` — starts Next.js dev server (proxies to daemon via socket)
+- `bun run dev` — starts both
+
+Environment defaults (set automatically by dev scripts):
+- `DAEMON_SOCKET=./corvran.sock` — backend listens here
+- `DAEMON_SOCKET_PATH=./corvran.sock` — web proxy connects here
+- `ADVENTURES_PATH=./adventures/` — where the daemon looks for adventures
+
+A sample adventure is provided at `adventures/lost-mines/`.
+
 ## Building
 
 - `tsc --build` from root compiles all packages via project references

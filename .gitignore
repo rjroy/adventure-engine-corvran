@@ -30,6 +30,10 @@ test-*/
 # Runtime
 *.sock
 
+# Adventures (user content, except sample)
+adventures/
+!adventures/lost-mines/
+
 # Plugin local files
 *.local.json
 *.local.md

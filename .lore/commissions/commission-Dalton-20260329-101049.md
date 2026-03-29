@@ -1,7 +1,7 @@
 ---
 title: "Commission: MVP Phase 5: Integration"
 date: 2026-03-29
-status: dispatched
+status: completed
 type: one-shot
 tags: [commission]
 worker: Dalton
@@ -10,8 +10,23 @@ prompt: "Implement Phase 5 from `.lore/plans/mvp-implementation.md`: Integration
 dependencies:
   - commission-Thorne-20260329-101000
   - commission-Thorne-20260329-101034
-linked_artifacts: []
+linked_artifacts:
+  - packages/web/app/api/daemon/[...path]/route.ts
 
+  - package.json
+  - adventures/lost-mines/character.md
+  - adventures/lost-mines/world.md
+  - .gitignore
+  - CLAUDE.md
+  - packages/web/tests/proxy-route.test.ts
+  - tests/integration.test.ts
+  - package.json
+  - adventures/lost-mines/character.md
+  - adventures/lost-mines/world.md
+  - .gitignore
+  - CLAUDE.md
+  - packages/web/tests/proxy-route.test.ts
+  - tests/integration.test.ts
 activity_timeline:
   - timestamp: 2026-03-29T17:10:49.297Z
     event: created
@@ -31,6 +46,40 @@ activity_timeline:
     reason: "Dispatched to worker"
     from: "pending"
     to: "dispatched"
-current_progress: ""
+  - timestamp: 2026-03-29T18:08:58.733Z
+    event: status_in_progress
+    reason: "Execution started"
+    from: "dispatched"
+    to: "in_progress"
+  - timestamp: 2026-03-29T18:09:05.480Z
+    event: progress_report
+    reason: "Starting Phase 5: Integration. Reading plan and existing code."
+  - timestamp: 2026-03-29T18:09:31.327Z
+    event: progress_report
+    reason: "Read plan and existing code. Starting implementation: proxy route, dev scripts, sample adventure, tests."
+  - timestamp: 2026-03-29T18:13:05.240Z
+    event: result_submitted
+    reason: "Phase 5 (Integration) complete. All deliverables built and verified:\n\n1. **Unix socket proxy** (`packages/web/app/api/daemon/[...path]/route.ts`) — Replaced Phase 4 mock with real catch-all proxy. Reads DAEMON_SOCKET_PATH from env. Forwards method/headers/body to daemon via `fetch()` with `unix` option. SSE responses piped as ReadableStream without buffering. JSON responses forwarded with headers preserved. Returns 502 if daemon unreachable. Supports GET/POST/PUT/DELETE.\n\n2. **Development scripts** (root `package.json`) — `dev:daemon`, `dev:web`, `dev` scripts with environment defaults for DAEMON_SOCKET, DAEMON_SOCKET_PATH, ADVENTURES_PATH.\n\n3. **Sample adventure** (`adventures/lost-mines/`) — Full D&D 5e character (Thorin Ironforge, Dwarf Fighter 5) and world (Lost Mines of Phandelver with locations, NPCs, current situation). Added `adventures/` to `.gitignore` with exception for `adventures/lost-mines/`.\n\n4. **CLAUDE.md updated** — Documented two-process development setup with env var conventions.\n\n5. **Tests:**\n   - Proxy route test (5 tests): mock daemon on temp socket, validates JSON forwarding, SSE streaming, 404 handling, error on unreachable socket, header preservation\n   - Integration test (8 tests): starts real daemon, validates health, adventure listing, adventure detail, empty adventure, history, help endpoint, path traversal rejection\n\n**Verification:** 107 tests pass across 11 files. `tsc --build` clean. No regressions."
+  - timestamp: 2026-03-29T18:13:09.073Z
+    event: status_completed
+    reason: "Execution completed"
+    from: "in_progress"
+    to: "completed"
+current_progress: "Read plan and existing code. Starting implementation: proxy route, dev scripts, sample adventure, tests."
 projectName: corvran
 ---
+Phase 5 (Integration) complete. All deliverables built and verified:
+
+1. **Unix socket proxy** (`packages/web/app/api/daemon/[...path]/route.ts`) — Replaced Phase 4 mock with real catch-all proxy. Reads DAEMON_SOCKET_PATH from env. Forwards method/headers/body to daemon via `fetch()` with `unix` option. SSE responses piped as ReadableStream without buffering. JSON responses forwarded with headers preserved. Returns 502 if daemon unreachable. Supports GET/POST/PUT/DELETE.
+
+2. **Development scripts** (root `package.json`) — `dev:daemon`, `dev:web`, `dev` scripts with environment defaults for DAEMON_SOCKET, DAEMON_SOCKET_PATH, ADVENTURES_PATH.
+
+3. **Sample adventure** (`adventures/lost-mines/`) — Full D&D 5e character (Thorin Ironforge, Dwarf Fighter 5) and world (Lost Mines of Phandelver with locations, NPCs, current situation). Added `adventures/` to `.gitignore` with exception for `adventures/lost-mines/`.
+
+4. **CLAUDE.md updated** — Documented two-process development setup with env var conventions.
+
+5. **Tests:**
+   - Proxy route test (5 tests): mock daemon on temp socket, validates JSON forwarding, SSE streaming, 404 handling, error on unreachable socket, header preservation
+   - Integration test (8 tests): starts real daemon, validates health, adventure listing, adventure detail, empty adventure, history, help endpoint, path traversal rejection
+
+**Verification:** 107 tests pass across 11 files. `tsc --build` clean. No regressions.
