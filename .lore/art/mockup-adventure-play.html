@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adventure Engine — Adventure Play Mockup</title>
+  <style>
+    /* ============================================================
+       PALETTE (same as adventure-list mockup)
+       --bg-base:       #13151e
+       --bg-surface:    #1c2030
+       --bg-elevated:   #242840
+       --text-primary:  #e8e0d0  (aged parchment)
+       --text-secondary:#8a8a9a
+       --text-tertiary: #5a5a6a
+       --amber:         #c8922a  (portal glow, primary accent)
+       --amber-bright:  #f0b84a
+       --gm-accent:     #7aadce  (muted blue for GM label)
+       --player-accent: #c8922a  (amber for player label)
+       --tool-accent:   #7a9a6a  (sage, dice/mechanics)
+       --stop-red:      #b84040
+       ============================================================ */
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-base:         #13151e;
+      --bg-surface:      #1c2030;
+      --bg-elevated:     #242840;
+      --text-primary:    #e8e0d0;
+      --text-secondary:  #8a8a9a;
+      --text-tertiary:   #5a5a6a;
+      --amber:           #c8922a;
+      --amber-bright:    #f0b84a;
+      --amber-dim:       rgba(200, 146, 42, 0.12);
+      --amber-border:    rgba(200, 146, 42, 0.28);
+      --gm-accent:       #7aadce;
+      --gm-accent-dim:   rgba(122, 173, 206, 0.12);
+      --gm-border:       rgba(122, 173, 206, 0.3);
+      --player-accent:   #c8922a;
+      --tool-accent:     #7a9a6a;
+      --tool-dim:        rgba(122, 154, 106, 0.15);
+      --stop-red:        #b84040;
+      --stop-red-dim:    rgba(184, 64, 64, 0.15);
+      --font-serif:      Georgia, "Times New Roman", "Palatino Linotype", serif;
+      --font-sans:       -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono:       "SFMono-Regular", "Cascadia Code", "Consolas", monospace;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── Mockup banner ──────────────────────────────────────── */
+    .mockup-banner {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: #1a2a1a;
+      border-bottom: 1px solid #2a4a2a;
+      color: #6aaa6a;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 4px;
+      z-index: 200;
+    }
+
+    /* ── App header ─────────────────────────────────────────── */
+    .app-header {
+      position: fixed;
+      top: 24px; left: 0; right: 0;
+      height: 52px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--amber-border);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .logo {
+      width: 28px;
+      height: 28px;
+      background: var(--amber);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .logo svg {
+      width: 20px;
+      height: 20px;
+      fill: var(--bg-base);
+    }
+
+    .header-back {
+      font-size: 18px;
+      color: var(--amber);
+      text-decoration: none;
+      margin-right: 4px;
+      opacity: 0.7;
+      flex-shrink: 0;
+    }
+
+    .header-adventure-name {
+      font-family: var(--font-serif);
+      font-size: 16px;
+      font-weight: normal;
+      color: var(--text-primary);
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .header-app-label {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+
+    /* ── Page shell ─────────────────────────────────────────── */
+    .page {
+      padding-top: calc(24px + 52px);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Conversation area ──────────────────────────────────── */
+    .conversation {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 0 24px;
+      /* Fade out near the bottom to encourage scrolling */
+    }
+
+    .conversation-inner {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ── Message: GM ────────────────────────────────────────── */
+    .message-gm {
+      margin-bottom: 28px;
+    }
+
+    .message-label {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .message-label.gm-label {
+      color: var(--gm-accent);
+    }
+
+    .message-label.player-label {
+      color: var(--player-accent);
+    }
+
+    .message-body {
+      font-family: var(--font-serif);
+      font-size: 16px;
+      line-height: 1.8;
+      color: var(--text-primary);
+    }
+
+    /* GM messages: subtle left border */
+    .message-gm .message-body {
+      padding-left: 16px;
+      border-left: 2px solid var(--gm-border);
+    }
+
+    /* Player messages: slightly muted, no border */
+    .message-player .message-body {
+      color: #ccc8bc;
+      font-style: italic;
+      padding-left: 16px;
+      border-left: 2px solid var(--amber-border);
+    }
+
+    .message-player {
+      margin-bottom: 28px;
+    }
+
+    /* ── Tool use events (inline) ───────────────────────────── */
+    .tool-event {
+      margin: 12px 0 12px 16px;
+      padding: 8px 14px;
+      background: var(--tool-dim);
+      border-left: 2px solid rgba(122, 154, 106, 0.4);
+      border-radius: 0 3px 3px 0;
+      font-size: 13px;
+      color: var(--tool-accent);
+      font-style: italic;
+      font-family: var(--font-serif);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tool-event-icon {
+      font-size: 14px;
+      font-style: normal;
+      flex-shrink: 0;
+    }
+
+    /* ── Streaming cursor ───────────────────────────────────── */
+    .streaming-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 18px;
+      background: var(--gm-accent);
+      vertical-align: text-bottom;
+      margin-left: 2px;
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+
+    /* ── Input area ─────────────────────────────────────────── */
+    .input-area {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--amber-border);
+      padding: 16px;
+      flex-shrink: 0;
+    }
+
+    .input-area-inner {
+      max-width: 720px;
+      margin: 0 auto;
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    .input-wrapper {
+      flex: 1;
+      background: var(--bg-base);
+      border: 1px solid rgba(200, 146, 42, 0.35);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      padding: 10px 14px;
+      transition: border-color 0.15s;
+    }
+
+    .input-wrapper:focus-within {
+      border-color: var(--amber);
+    }
+
+    .input-wrapper textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-family: var(--font-serif);
+      font-size: 15px;
+      line-height: 1.5;
+      resize: none;
+      min-height: 24px;
+      max-height: 120px;
+    }
+
+    .input-wrapper textarea::placeholder {
+      color: var(--text-tertiary);
+      font-style: italic;
+    }
+
+    /* ── Send button ────────────────────────────────────────── */
+    .btn-send {
+      background: var(--amber);
+      color: var(--bg-base);
+      border: none;
+      border-radius: 6px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s;
+      letter-spacing: 0.02em;
+    }
+
+    .btn-send:hover {
+      background: var(--amber-bright);
+    }
+
+    .btn-send:disabled {
+      background: var(--bg-elevated);
+      color: var(--text-tertiary);
+      cursor: not-allowed;
+    }
+
+    /* ── Stop button (replaces send during streaming) ──────── */
+    .btn-stop {
+      background: var(--stop-red-dim);
+      color: #e87070;
+      border: 1px solid rgba(184, 64, 64, 0.4);
+      border-radius: 6px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+      letter-spacing: 0.02em;
+      transition: background 0.15s, border-color 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-stop:hover {
+      background: rgba(184, 64, 64, 0.25);
+      border-color: rgba(184, 64, 64, 0.7);
+    }
+
+    .btn-stop-icon {
+      width: 10px;
+      height: 10px;
+      background: #e87070;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ── Input hint ─────────────────────────────────────────── */
+    .input-hint {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 6px;
+      text-align: center;
+    }
+
+    /* ── Dividers for multiple mockup states ────────────────── */
+    .mockup-divider {
+      border: none;
+      border-top: 2px dashed #2a3050;
+      margin: 32px 0;
+    }
+
+    .state-label {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #5090c0;
+      text-align: center;
+      padding: 12px 0;
+    }
+
+    /* ── Error message ──────────────────────────────────────── */
+    .error-message {
+      background: rgba(184, 64, 64, 0.1);
+      border: 1px solid rgba(184, 64, 64, 0.35);
+      border-radius: 4px;
+      padding: 10px 16px;
+      font-size: 13px;
+      color: #e07070;
+      margin-bottom: 20px;
+      margin-left: 16px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="mockup-banner">Mockup — Adventure Play View &nbsp;/&nbsp; Adventure Engine of Corvran</div>
+
+  <!-- ════════════════════════════════════════════════════════
+       STATE 1: Mid-conversation, GM is NOT streaming
+       (Normal reading/input state)
+       ════════════════════════════════════════════════════════ -->
+
+  <div class="state-label" style="margin-top: 28px;">State 1: Mid-conversation (idle, player's turn)</div>
+
+  <header class="app-header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C10 2 7 4 6 7C5 8 4 8 3 7C3 10 5 12 7 12C6 14 5 16 3 17C6 17 8 16 10 15C10 17 9 19 8 21C10 19 12 17 13 15C14 17 14 19 13 21C15 19 17 17 17 14C19 15 21 16 22 17C21 15 20 13 18 12C20 12 22 10 22 7C21 8 19 8 18 7C17 4 14 2 12 2Z"/>
+      </svg>
+    </div>
+    <a class="header-back" href="#">‹</a>
+    <span class="header-adventure-name">Lost Mines of Phandelver</span>
+    <span class="header-app-label">Adventure Engine</span>
+  </header>
+
+  <main class="page">
+    <div class="conversation">
+      <div class="conversation-inner">
+
+        <!-- GM message -->
+        <div class="message-gm">
+          <div class="message-label gm-label">Game Master</div>
+          <div class="message-body">
+            You push open the heavy oak door and find yourselves in a torchlit chamber.
+            The air smells of damp stone and old leather. Along the far wall, three
+            iron-banded chests sit in a row, each sealed with a different lock —
+            one brass, one iron, one that seems to be fashioned from a black material
+            you don't recognize.
+            <br><br>
+            In the center of the room, a stone pedestal holds an open tome, its pages
+            yellowed with age. Faint runes glow along the margins.
+          </div>
+        </div>
+
+        <!-- Player message -->
+        <div class="message-player">
+          <div class="message-label player-label">You</div>
+          <div class="message-body">
+            I approach the pedestal carefully and try to read the runes. Does my character
+            have Arcana proficiency?
+          </div>
+        </div>
+
+        <!-- GM message with tool use inline -->
+        <div class="message-gm">
+          <div class="message-label gm-label">Game Master</div>
+          <div class="message-body">
+            Thorin Ironforge, you peer at the runes, drawing on your years in the
+            mountain libraries. Let's see how well your Arcana training serves you here.
+          </div>
+
+          <!-- Tool use event: dice roll -->
+          <div class="tool-event">
+            <span class="tool-event-icon">⚄</span>
+            Rolled 1d20 + 4 (Arcana) → 16. Success against DC 13.
+          </div>
+
+          <div class="message-body">
+            The runes resolve into meaning: a warning, in old Dwarvish. <em>"Speak the
+            keeper's name or face the warden's fire."</em> Below the warning, a name has
+            been deliberately scratched out — but you can make out the first three
+            letters: <strong>Mog</strong>.
+            <br><br>
+            The tome's pages begin to tremble, as if responding to your gaze.
+          </div>
+        </div>
+
+        <!-- Player message -->
+        <div class="message-player">
+          <div class="message-label player-label">You</div>
+          <div class="message-body">
+            I step back from the pedestal and look at the chest with the black lock more
+            closely. I want to examine it — any markings or mechanisms I can see?
+          </div>
+        </div>
+
+        <!-- GM message (most recent) -->
+        <div class="message-gm">
+          <div class="message-label gm-label">Game Master</div>
+          <div class="message-body">
+            You crouch beside the third chest. Up close, the "lock" reveals itself to be
+            no lock at all — it's a sealed mouth, carved in stone, lips pressed tight.
+            No keyhole. No visible mechanism. The black material is obsidian, warm to
+            the touch despite the room's chill.
+            <br><br>
+            Something tells you this chest doesn't open with a key.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Input area (idle state) -->
+    <div class="input-area">
+      <div class="input-area-inner">
+        <div class="input-wrapper">
+          <textarea placeholder="What do you do?" rows="1"></textarea>
+        </div>
+        <button class="btn-send">Send</button>
+      </div>
+      <div class="input-hint">Enter to send &nbsp;·&nbsp; Shift+Enter for new line</div>
+    </div>
+  </main>
+
+  <!-- ════════════════════════════════════════════════════════
+       STATE 2: GM is streaming a response
+       (Input disabled, Stop button visible)
+       ════════════════════════════════════════════════════════ -->
+
+  <hr class="mockup-divider" />
+  <div class="state-label">State 2: GM streaming response (Stop button active)</div>
+
+  <div style="background: var(--bg-base); border: 1px dashed #2a3050; border-radius: 8px; overflow: hidden; margin: 8px 24px 0; max-width: 900px; margin-left: auto; margin-right: auto;">
+    <!-- Simulated header -->
+    <div style="background: var(--bg-surface); border-bottom: 1px solid var(--amber-border); height: 52px; display: flex; align-items: center; padding: 0 20px; gap: 12px;">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C10 2 7 4 6 7C5 8 4 8 3 7C3 10 5 12 7 12C6 14 5 16 3 17C6 17 8 16 10 15C10 17 9 19 8 21C10 19 12 17 13 15C14 17 14 19 13 21C15 19 17 17 17 14C19 15 21 16 22 17C21 15 20 13 18 12C20 12 22 10 22 7C21 8 19 8 18 7C17 4 14 2 12 2Z" fill="#13151e"/>
+        </svg>
+      </div>
+      <span style="color: #8a8a9a; font-size: 14px;">‹</span>
+      <span style="font-family: Georgia, serif; font-size: 16px; color: var(--text-primary); flex:1;">Lost Mines of Phandelver</span>
+      <span style="font-size: 12px; color: var(--text-tertiary);">Adventure Engine</span>
+    </div>
+
+    <!-- Conversation (scroll snapshot) -->
+    <div style="padding: 24px 24px 16px; max-width: 720px; margin: 0 auto;">
+
+      <!-- Previous player message -->
+      <div class="message-player" style="margin-bottom: 24px;">
+        <div class="message-label player-label">You</div>
+        <div class="message-body">I whisper "Mograth" to the stone mouth and take a step back.</div>
+      </div>
+
+      <!-- GM streaming message -->
+      <div class="message-gm">
+        <div class="message-label gm-label">Game Master</div>
+
+        <!-- Tool use already streamed -->
+        <div class="tool-event">
+          <span class="tool-event-icon">⚄</span>
+          Rolled 1d20 → 14. Consulting rule reference for trap detection…
+        </div>
+
+        <div class="message-body">
+          The stone lips part with a grinding sound that fills the chamber. A rush of
+          cold air escapes, carrying the scent of deep earth and something older —
+          metal, maybe, or old blood. The chest lid rises on its own, revealing a
+          black velvet interior.
+          <br><br>
+          Inside rests a single item: a small iron box, no bigger than your fist,
+          sealed with a wax sigil you recognize as the mark of the Arcane Brotherhood.
+          The wax is cracked but intact. Whatever is inside, no one has opened it
+          since the Brotherhood sealed it<span class="streaming-cursor"></span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Input area (streaming state: textarea disabled, Stop button) -->
+    <div class="input-area" style="border-top: 1px solid var(--amber-border);">
+      <div class="input-area-inner">
+        <div class="input-wrapper" style="opacity: 0.5;">
+          <textarea placeholder="Waiting for the Game Master…" rows="1" disabled></textarea>
+        </div>
+        <button class="btn-stop">
+          <div class="btn-stop-icon"></div>
+          Stop
+        </button>
+      </div>
+      <div class="input-hint" style="color: var(--text-tertiary);">Game Master is responding…</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       STATE 3: Empty adventure (new session, no history)
+       ════════════════════════════════════════════════════════ -->
+
+  <hr class="mockup-divider" />
+  <div class="state-label">State 3: New adventure (no history yet)</div>
+
+  <div style="background: var(--bg-base); border: 1px dashed #2a3050; border-radius: 8px; overflow: hidden; margin: 8px 24px 0; max-width: 900px; margin-left: auto; margin-right: auto;">
+    <!-- Header -->
+    <div style="background: var(--bg-surface); border-bottom: 1px solid var(--amber-border); height: 52px; display: flex; align-items: center; padding: 0 20px; gap: 12px;">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C10 2 7 4 6 7C5 8 4 8 3 7C3 10 5 12 7 12C6 14 5 16 3 17C6 17 8 16 10 15C10 17 9 19 8 21C10 19 12 17 13 15C14 17 14 19 13 21C15 19 17 17 17 14C19 15 21 16 22 17C21 15 20 13 18 12C20 12 22 10 22 7C21 8 19 8 18 7C17 4 14 2 12 2Z" fill="#13151e"/>
+        </svg>
+      </div>
+      <span style="color: #8a8a9a; font-size: 14px;">‹</span>
+      <span style="font-family: Georgia, serif; font-size: 16px; color: var(--text-primary); flex:1;">freeform-narrative</span>
+      <span style="font-size: 12px; color: var(--text-tertiary);">Adventure Engine</span>
+    </div>
+
+    <!-- Empty conversation -->
+    <div style="padding: 60px 24px; text-align: center; max-width: 480px; margin: 0 auto;">
+      <div style="font-size: 48px; color: var(--amber); opacity: 0.2; margin-bottom: 20px;">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C10 2 7 4 6 7C5 8 4 8 3 7C3 10 5 12 7 12C6 14 5 16 3 17C6 17 8 16 10 15C10 17 9 19 8 21C10 19 12 17 13 15C14 17 14 19 13 21C15 19 17 17 17 14C19 15 21 16 22 17C21 15 20 13 18 12C20 12 22 10 22 7C21 8 19 8 18 7C17 4 14 2 12 2Z"/>
+        </svg>
+      </div>
+      <p style="font-family: Georgia, serif; font-size: 17px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 8px;">
+        A new adventure awaits.
+      </p>
+      <p style="font-size: 13px; color: var(--text-tertiary); line-height: 1.6;">
+        Introduce yourself to the Game Master and describe the kind of story you want to tell.
+        They'll help you build your character and world through conversation.
+      </p>
+    </div>
+
+    <!-- Input area (new adventure, ready to begin) -->
+    <div class="input-area" style="border-top: 1px solid var(--amber-border);">
+      <div class="input-area-inner">
+        <div class="input-wrapper">
+          <textarea placeholder="Introduce yourself or describe what you'd like to play…" rows="1"></textarea>
+        </div>
+        <button class="btn-send">Send</button>
+      </div>
+      <div class="input-hint">Enter to send &nbsp;·&nbsp; Shift+Enter for new line</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       STATE 4: Error state
+       ════════════════════════════════════════════════════════ -->
+
+  <hr class="mockup-divider" />
+  <div class="state-label">State 4: Error (context overflow example)</div>
+
+  <div style="background: var(--bg-base); border: 1px dashed #2a3050; border-radius: 8px; overflow: hidden; margin: 8px 24px 32px; max-width: 900px; margin-left: auto; margin-right: auto;">
+    <!-- Header -->
+    <div style="background: var(--bg-surface); border-bottom: 1px solid var(--amber-border); height: 52px; display: flex; align-items: center; padding: 0 20px; gap: 12px;">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C10 2 7 4 6 7C5 8 4 8 3 7C3 10 5 12 7 12C6 14 5 16 3 17C6 17 8 16 10 15C10 17 9 19 8 21C10 19 12 17 13 15C14 17 14 19 13 21C15 19 17 17 17 14C19 15 21 16 22 17C21 15 20 13 18 12C20 12 22 10 22 7C21 8 19 8 18 7C17 4 14 2 12 2Z" fill="#13151e"/>
+        </svg>
+      </div>
+      <span style="color: #8a8a9a; font-size: 14px;">‹</span>
+      <span style="font-family: Georgia, serif; font-size: 16px; color: var(--text-primary); flex:1;">Thornwood Descent</span>
+      <span style="font-size: 12px; color: var(--text-tertiary);">Adventure Engine</span>
+    </div>
+
+    <div style="padding: 24px; max-width: 720px; margin: 0 auto;">
+      <!-- Error message inline -->
+      <div class="error-message">
+        Adventure history is too long. Edit <code style="font-family: var(--font-mono); font-size: 12px; background: rgba(184,64,64,0.2); padding: 1px 4px; border-radius: 2px;">history.md</code> to shorten it.
+      </div>
+
+      <!-- Last exchange still visible above the error -->
+      <div class="message-player" style="opacity: 0.6;">
+        <div class="message-label player-label">You</div>
+        <div class="message-body">I ask the innkeeper if he's seen anyone matching the description.</div>
+      </div>
+    </div>
+
+    <div class="input-area" style="border-top: 1px solid var(--amber-border);">
+      <div class="input-area-inner">
+        <div class="input-wrapper">
+          <textarea placeholder="What do you do?" rows="1"></textarea>
+        </div>
+        <button class="btn-send">Send</button>
+      </div>
+      <div class="input-hint">Enter to send &nbsp;·&nbsp; Shift+Enter for new line</div>
+    </div>
+  </div>
+
+</body>
+</html>

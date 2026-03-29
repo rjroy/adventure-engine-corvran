@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adventure Engine — Adventure List Mockup</title>
+  <style>
+    /* ============================================================
+       PALETTE
+       --bg-base:       #13151e  (night sky, the deepest layer)
+       --bg-surface:    #1c2030  (cave stone, cards and panels)
+       --bg-elevated:   #242840  (lighter stone, hover states)
+       --text-primary:  #e8e0d0  (aged parchment, readable)
+       --text-secondary:#8a8a9a  (muted stone, secondary info)
+       --text-tertiary: #5a5a6a  (very muted, labels/hints)
+       --amber:         #c8922a  (portal glow, primary accent)
+       --amber-bright:  #f0b84a  (hover, highlight)
+       --amber-dim:     rgba(200,146,42,0.15) (subtle tint for borders)
+       --badge-new:     #4a6a4a  (sage green, "New adventure")
+       --badge-cont:    #2a4a6a  (muted blue, "Continue")
+       ============================================================ */
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-base:        #13151e;
+      --bg-surface:     #1c2030;
+      --bg-elevated:    #242840;
+      --text-primary:   #e8e0d0;
+      --text-secondary: #8a8a9a;
+      --text-tertiary:  #5a5a6a;
+      --amber:          #c8922a;
+      --amber-bright:   #f0b84a;
+      --amber-dim:      rgba(200, 146, 42, 0.15);
+      --amber-border:   rgba(200, 146, 42, 0.3);
+      --badge-new:      #4a6a4a;
+      --badge-new-text: #8fc48f;
+      --badge-cont:     #2a4460;
+      --badge-cont-text:#7aadce;
+      --font-serif:     Georgia, "Times New Roman", "Palatino Linotype", serif;
+      --font-sans:      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── Header ─────────────────────────────────────────────── */
+    .app-header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 52px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--amber-border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .app-header .logo {
+      width: 28px;
+      height: 28px;
+      /* Raven silhouette as inline SVG placeholder */
+      background: var(--amber);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .app-header .logo svg {
+      width: 20px;
+      height: 20px;
+      fill: var(--bg-base);
+    }
+
+    .app-header .app-name {
+      font-family: var(--font-serif);
+      font-size: 15px;
+      font-weight: normal;
+      color: var(--text-secondary);
+      letter-spacing: 0.04em;
+    }
+
+    /* ── Main layout ─────────────────────────────────────────── */
+    .page {
+      padding-top: 52px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .page-inner {
+      width: 100%;
+      max-width: 600px;
+      padding: 56px 24px 48px;
+    }
+
+    /* ── Page heading ────────────────────────────────────────── */
+    .page-heading {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .page-heading h1 {
+      font-family: var(--font-serif);
+      font-size: 28px;
+      font-weight: normal;
+      color: var(--text-primary);
+      letter-spacing: 0.02em;
+      margin-bottom: 8px;
+    }
+
+    .page-heading p {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* ── Adventure list ─────────────────────────────────────── */
+    .adventure-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .adventure-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--amber-border);
+      border-radius: 6px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .adventure-card:hover {
+      background: var(--bg-elevated);
+      border-color: var(--amber);
+    }
+
+    .adventure-card-left {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .adventure-name {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: normal;
+      color: var(--text-primary);
+      letter-spacing: 0.01em;
+    }
+
+    .adventure-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 3px;
+    }
+
+    .badge-new {
+      background: var(--badge-new);
+      color: var(--badge-new-text);
+    }
+
+    .badge-continue {
+      background: var(--badge-cont);
+      color: var(--badge-cont-text);
+    }
+
+    .adventure-hint {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .adventure-card-right {
+      color: var(--amber);
+      font-size: 18px;
+      opacity: 0.7;
+      flex-shrink: 0;
+    }
+
+    /* ── Section label ──────────────────────────────────────── */
+    .section-label {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 16px;
+      padding-left: 2px;
+    }
+
+    /* ── Divider ────────────────────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: var(--amber-border);
+      margin: 40px 0;
+    }
+
+    /* ============================================================
+       SECOND MOCKUP: Empty state (below divider)
+       ============================================================ */
+
+    .empty-state {
+      text-align: center;
+      padding: 48px 0;
+    }
+
+    .empty-state .raven-icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+      opacity: 0.25;
+      /* Use a text raven glyph as placeholder */
+      color: var(--amber);
+    }
+
+    .empty-state h2 {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: normal;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .empty-state p {
+      font-size: 14px;
+      color: var(--text-tertiary);
+      line-height: 1.7;
+      max-width: 380px;
+      margin: 0 auto 24px;
+    }
+
+    .code-hint {
+      display: inline-block;
+      background: var(--bg-surface);
+      border: 1px solid var(--amber-border);
+      border-radius: 4px;
+      padding: 10px 18px;
+      font-family: "SFMono-Regular", "Cascadia Code", "Consolas", monospace;
+      font-size: 13px;
+      color: var(--amber);
+      letter-spacing: 0.02em;
+    }
+
+    /* ── Annotation labels (for design review) ──────────────── */
+    .annotation {
+      position: relative;
+    }
+
+    .annotation-label {
+      position: absolute;
+      right: -180px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      color: #5090c0;
+      white-space: nowrap;
+      font-family: var(--font-sans);
+    }
+
+    .annotation-label::before {
+      content: "← ";
+    }
+
+    /* ── Mock label banner ──────────────────────────────────── */
+    .mockup-banner {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: #1a2a1a;
+      border-bottom: 1px solid #2a4a2a;
+      color: #6aaa6a;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 4px;
+      z-index: 100;
+    }
+
+    .with-banner .app-header { top: 24px; }
+    .with-banner .page { padding-top: 76px; }
+
+    /* ── View label ─────────────────────────────────────────── */
+    .view-title {
+      text-align: center;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #5090c0;
+      padding: 16px 0 8px;
+      border-top: 1px dashed #2a3050;
+      margin-top: 60px;
+    }
+  </style>
+</head>
+<body class="with-banner">
+
+  <div class="mockup-banner">Mockup — Adventure List View &nbsp;/&nbsp; Adventure Engine of Corvran</div>
+
+  <header class="app-header">
+    <div class="logo">
+      <!-- Raven silhouette (simplified) -->
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C10 2 7 4 6 7C5 8 4 8 3 7C3 10 5 12 7 12C6 14 5 16 3 17C6 17 8 16 10 15C10 17 9 19 8 21C10 19 12 17 13 15C14 17 14 19 13 21C15 19 17 17 17 14C19 15 21 16 22 17C21 15 20 13 18 12C20 12 22 10 22 7C21 8 19 8 18 7C17 4 14 2 12 2Z"/>
+      </svg>
+    </div>
+    <span class="app-name">Adventure Engine of Corvran</span>
+  </header>
+
+  <main class="page">
+    <div class="page-inner">
+
+      <!-- ══════════════════════════════════════════
+           STATE 1: Adventures exist (multiple)
+           ══════════════════════════════════════════ -->
+
+      <div class="view-title">State: Adventures exist</div>
+
+      <div class="page-heading" style="margin-top: 32px;">
+        <h1>Choose Your Adventure</h1>
+        <p>Select an adventure to continue or begin a new session.</p>
+      </div>
+
+      <div class="section-label">Your Adventures</div>
+
+      <div class="adventure-list">
+
+        <a class="adventure-card" href="#">
+          <div class="adventure-card-left">
+            <span class="adventure-name">Lost Mines of Phandelver</span>
+            <div class="adventure-meta">
+              <span class="badge badge-continue">Continue</span>
+              <span class="adventure-hint">Character · World · History</span>
+            </div>
+          </div>
+          <div class="adventure-card-right">›</div>
+        </a>
+
+        <a class="adventure-card" href="#">
+          <div class="adventure-card-left">
+            <span class="adventure-name">Thornwood Descent</span>
+            <div class="adventure-meta">
+              <span class="badge badge-continue">Continue</span>
+              <span class="adventure-hint">Character · History</span>
+            </div>
+          </div>
+          <div class="adventure-card-right">›</div>
+        </a>
+
+        <a class="adventure-card" href="#">
+          <div class="adventure-card-left">
+            <span class="adventure-name">freeform-narrative</span>
+            <div class="adventure-meta">
+              <span class="badge badge-new">New adventure</span>
+              <span class="adventure-hint">No files yet — GM will help you begin</span>
+            </div>
+          </div>
+          <div class="adventure-card-right">›</div>
+        </a>
+
+      </div>
+
+      <!-- ══════════════════════════════════════════
+           STATE 2: No adventures (empty state)
+           ══════════════════════════════════════════ -->
+
+      <div class="view-title">State: No adventures yet (empty state)</div>
+
+      <div class="empty-state">
+        <div class="raven-icon">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C10 2 7 4 6 7C5 8 4 8 3 7C3 10 5 12 7 12C6 14 5 16 3 17C6 17 8 16 10 15C10 17 9 19 8 21C10 19 12 17 13 15C14 17 14 19 13 21C15 19 17 17 17 14C19 15 21 16 22 17C21 15 20 13 18 12C20 12 22 10 22 7C21 8 19 8 18 7C17 4 14 2 12 2Z"/>
+          </svg>
+        </div>
+        <h2>No adventures yet</h2>
+        <p>
+          Create an adventure directory to begin. The game master will help you
+          build your character and world through conversation.
+        </p>
+        <div class="code-hint">mkdir adventures/my-first-adventure</div>
+        <p style="margin-top: 16px; font-size: 12px; color: var(--text-tertiary);">
+          Then restart the engine and return here.
+        </p>
+      </div>
+
+    </div>
+  </main>
+
+</body>
+</html>
