@@ -1,7 +1,7 @@
 ---
 title: "Commission: MVP Phase 4: Web Client"
 date: 2026-03-29
-status: pending
+status: dispatched
 type: one-shot
 tags: [commission]
 worker: Dalton
@@ -25,6 +25,11 @@ activity_timeline:
     reason: "Dependencies satisfied"
     from: "blocked"
     to: "pending"
+  - timestamp: 2026-03-29T17:44:35.308Z
+    event: status_dispatched
+    reason: "Dispatched to worker"
+    from: "pending"
+    to: "dispatched"
 current_progress: ""
 projectName: corvran
 ---
