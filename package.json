@@ -1,0 +1,16 @@
+{
+  "name": "adventure-engine-corvran",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "daemon": "bun run packages/backend/src/index.ts",
+    "dev": "concurrently -n daemon,web -c blue,green \"bun run daemon\" \"bun run --filter '@corvran/web' dev\"",
+    "build": "bun run typecheck && bun run --filter '@corvran/web' build",
+    "start": "concurrently -n daemon,web -c blue,green \"bun run daemon\" \"bun run --filter '@corvran/web' start\"",
+    "typecheck": "bunx tsc --build",
+    "lint": "bun run --filter '@corvran/backend' lint && bun run --filter '@corvran/web' lint"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

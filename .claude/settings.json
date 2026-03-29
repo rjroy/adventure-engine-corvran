@@ -1,1 +1,21 @@
-{}
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun install",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "git submodule update --init --recursive",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

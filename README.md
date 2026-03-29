@@ -1,158 +1,102 @@
+<p align="center">
+  <img src=".lore/art/logo.png" alt="Adventure Engine of Corvran" width="100" />
+</p>
+
 # Adventure Engine of Corvran
 
-<img src="docs/logo/corvran-engine-logo.png" align="right" width="128" height="128" alt="Adventure Engine Corvran Logo">
+A space for collaborative storytelling. A human and an AI sit down together and make up a story, the way kids do.
 
-An AI-powered game master for immersive tabletop RPG adventures. Corvran guides you through rich, interactive stories with dynamic theming, procedural imagery, and persistent world state—all through a web interface.
+> TTRPGs are shared narrative. At their core, it's kids playing make-believe but with rules. The AI is one of the kids who also happens to maintain the rules. The rules create stakes, not authority. The story belongs to everyone at the table.
+>
+> The ambition is not an AI that runs a simulation. It's an AI that plays with you.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Development](https://img.shields.io/badge/development-active-orange.svg)
-![SDD](https://img.shields.io/badge/methodology-SDD-teal.svg)
-<br>
-![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)
-![Bun](https://img.shields.io/badge/Bun-1.x-fbf0df?logo=bun&logoColor=black)
-![Claude](https://img.shields.io/badge/Powered_by-Claude-cc785c?logo=anthropic&logoColor=white)
-
-## The Experience
-
-When you start an adventure, Corvran becomes your game master. You describe your actions, and Corvran responds with narrative, NPC dialogue, dice rolls, and consequences. The interface adapts to the story's mood—colors shift, fonts change, and background images transform as the narrative evolves.
-
-**Features:**
-- **Streaming Narrative** — Responses appear in real-time as Corvran composes them
-- **Dynamic Theming** — The UI reflects the story's mood: calm, tense, ominous, triumphant, or mysterious
-- **AI Backgrounds** — Procedurally generated images match the current scene (requires Replicate API)
-- **Session Persistence** — Pick up where you left off across browser sessions
-- **Character & World Management** — Persistent character sheets, world state, NPCs, and quests
-
-## Running the Server
+## Getting Started
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) (v1.0+)
-- Authentication for Claude Agent SDK (one of):
-  - OAuth via `claude` CLI (run `claude` to set up)
-  - `ANTHROPIC_API_KEY` environment variable
-- Optional: [Replicate API Token](https://replicate.com/) (for AI-generated backgrounds)
+- [Bun](https://bun.sh/) (runtime and package manager)
+- An Anthropic API key (`ANTHROPIC_API_KEY` environment variable)
 
-### Quick Start
+### Install
 
 ```bash
-# Clone and install dependencies
-git clone https://github.com/rjroy/adventure-engine-corvran.git
+git clone --recurse-submodules https://github.com/rjroy/adventure-engine-corvran.git
 cd adventure-engine-corvran
-cd backend && bun install
-cd ../frontend && bun install
-
-# Build frontend and start server
-cd frontend && bun run build
-cd ../backend && bun run start
-
-# Open http://localhost:3000 in your browser
+bun install
 ```
 
-If you haven't configured OAuth via `claude` CLI, set `ANTHROPIC_API_KEY` before starting.
-
-### Environment Variables
-
-Optional variables (create `backend/.env` or export):
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `REPLICATE_API_TOKEN` | — | Enables AI-generated background images |
-| `PORT` | `3000` | Server port |
-| `HOST` | `localhost` | Server hostname |
-| `ADVENTURES_DIR` | `backend/adventures` | Adventure save location |
-| `STATIC_ROOT` | `frontend/dist` | Built frontend files |
-| `LOG_LEVEL` | `info` | Logging verbosity (`debug`, `info`, `warn`, `error`) |
-
-Paths are computed as absolute paths at startup relative to the project structure.
-
-Without `REPLICATE_API_TOKEN`, the server uses static fallback images instead of AI-generated ones.
-
-### Using Claude Code Plugin
-
-If you use [Claude Code](https://claude.ai/code), the `corvran` plugin provides a convenient way to launch adventures:
+If you already cloned without `--recurse-submodules`:
 
 ```bash
-# From any adventure project directory
-/corvran:enter-world
+git submodule update --init --recursive
 ```
 
-This builds the frontend and starts the server in the background.
+### Development
 
-## Development
-
-### Project Structure
-
-```
-adventure-engine-corvran/
-├── backend/           # Bun server with Claude Agent SDK
-│   ├── assets/        # Static assets (backgrounds)
-│   └── adventures/    # Saved adventure data
-├── frontend/          # React + Vite web interface
-├── shared/            # WebSocket protocol types
-├── corvran/           # Claude Code plugin
-└── d20-system/        # D20 RPG rules plugin
-```
-
-### Commands
-
-**Backend** (from `backend/`):
 ```bash
-bun run dev              # Watch mode with hot reload
-bun run test             # Run all tests
-bun run test:unit        # Unit tests only
-bun run test:integration # Integration tests
-bun run typecheck        # TypeScript validation
-bun run lint             # ESLint
+bun run dev        # starts daemon + Next.js dev server
 ```
 
-**Frontend** (from `frontend/`):
+### Production
+
 ```bash
-bun run dev          # Vite dev server (port 5173)
-bun run test         # Run tests once
-bun run test:watch   # Watch mode
-bun run typecheck
-bun run lint
+bun run build      # typecheck + build web
+bun run start      # starts daemon + built web app
 ```
-
-**Development Workflow**: Run backend and frontend dev servers in separate terminals. The frontend proxies API requests to the backend.
-
-### Code Style
-
-- TypeScript strict mode
-- ESLint with type-checked rules
-- Prettier: double quotes, semicolons, trailing commas (es5)
-- Unused variables must start with `_`
-
-### Testing
-
-Run tests from the respective directories using the commands above. Set `MOCK_SDK=true` to run backend tests without the Agent SDK.
-
-### Critical Dependencies
-
-**Zod must stay at version 3.x** — The Claude Agent SDK requires Zod 3.24.x. Do not upgrade to Zod 4.x without verifying SDK compatibility.
 
 ## Architecture
 
-The server uses the [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk) to run Corvran as an AI game master. State persists in markdown files that Corvran reads and writes during gameplay.
+The application is a monorepo with three packages:
 
-- **Frontend ↔ Backend**: WebSocket for real-time streaming, HTTP for adventure management
-- **Backend ↔ Claude**: Agent SDK `query()` calls with MCP tools for game mechanics
-- **State**: Markdown files for character sheets, world state, NPCs, quests
+| Package | Path | Purpose |
+|---------|------|---------|
+| `@corvran/shared` | `packages/shared/` | Zod schemas and types for API contracts |
+| `@corvran/backend` | `packages/backend/` | Hono daemon on Unix socket |
+| `@corvran/web` | `packages/web/` | Next.js App Router client |
 
-## Status
+The backend is the application. The web client is just that, a client. All AI interaction uses the Claude Agent SDK. Game state lives in markdown files, readable by humans and AI alike.
 
-**Active Development** — Core gameplay functional, expanding features.
+### Plugins
+
+RPG systems are content, not architecture. Each plugin teaches the AI how to run a game system through reference material and instructions, not application code.
+
+| Plugin | Description |
+|--------|-------------|
+| `plugins/corvran` | The world of Corvran (setting) |
+| `plugins/d20-system` | d20/5e system rules |
+| `plugins/daggerheart-system` | Daggerheart system rules |
+
+### Runtime Data
+
+The daemon stores runtime data in `~/.corvran/` (override with `CORVRAN_HOME`). Adventures, socket files, and session state live here, not in the repo.
+
+## Design Principles
+
+0. **The Story is the Product** — everything serves the narrative
+1. **Markdown is Memory** — all game state lives in markdown, readable by AI, developer, and player
+2. **Teach, Don't Code** — RPG mechanics are documents the AI reads, not logic the system executes
+3. **Player Agency is Sacred** — the AI never decides what the player does
+4. **Progressive Simplification** — if the AI can do it with standard tools, remove the custom tool
+5. **System-Agnostic Core** — the engine knows stories and participants, not d20s and spell slots
+
+## Reference Material
+
+This project includes third-party SRD (System Reference Document) content as git submodules for AI reference during gameplay:
+
+| Submodule | Source | Content |
+|-----------|--------|---------|
+| `docs/research/daggerheart-srd` | [seansbox/daggerheart-srd](https://github.com/seansbox/daggerheart-srd) | Daggerheart SRD |
+| `docs/research/dndsrd5.2_markdown` | [springbov/dndsrd5.2_markdown](https://github.com/springbov/dndsrd5.2_markdown) | D&D 5.2e SRD in Markdown |
+
+These submodules contain reference material used by the AI during gameplay. They are not included in the application build.
 
 ## License
 
-This project's code is licensed under the [MIT License](LICENSE).
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
-**Third-party content with separate licenses:**
+---
 
-- **D&D SRD 5.2** — [Creative Commons Attribution 4.0 International](docs/research/dndsrd5.2_markdown/License.md). © Wizards of the Coast. [Source](https://www.dndbeyond.com/resources/1781-systems-reference-document-srd)
-
-<img src="docs/logo/darrington-press/compatible_with_DH_logos-10.png" align="right" width="64" height="64" alt="Adventure Engine Corvran Logo">
-
-- **Daggerheart SRD** — [Darrington Press Community Gaming License](docs/research/daggerheart-srd/LICENSE). © Critical Role, LLC. Daggerheart and related marks are trademarks of Critical Role, LLC. [Source](https://www.daggerheart.com/srd/)
+<p align="center">
+  Uses Daggerheart compatible rules
+  <img src="docs/logo/darrington-press/compatible_with_DH_logos-10.png" alt="Compatible with Daggerheart" width="20" />
+</p>
