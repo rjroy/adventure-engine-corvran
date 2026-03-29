@@ -44,6 +44,15 @@ export function textDelta(text: string): SDKPartialAssistantMessage {
   } as SDKPartialAssistantMessage;
 }
 
+// SDK usage types are deeply nested and version-sensitive. Tests only care about
+// the message shape, not usage accounting, so we stub through unknown.
+const stubUsage = {
+  input_tokens: 0,
+  output_tokens: 0,
+  cache_read_input_tokens: 0,
+  cache_creation_input_tokens: 0,
+} as unknown as SDKResultMessage extends { usage: infer U } ? U : never;
+
 /** Creates a success result message */
 export function successResult(resultText: string): SDKResultMessage {
   return {
@@ -55,13 +64,7 @@ export function successResult(resultText: string): SDKResultMessage {
     num_turns: 1,
     result: resultText,
     total_cost_usd: 0.01,
-    usage: {
-      input_tokens: 100,
-      output_tokens: 50,
-      cache_read_input_tokens: 0,
-      cache_creation_input_tokens: 0,
-      server_tool_use: null,
-    },
+    usage: stubUsage,
     modelUsage: {},
     permission_denials: [],
     uuid: crypto.randomUUID(),
@@ -79,13 +82,7 @@ export function errorResult(errors: string[]): SDKResultMessage {
     is_error: true,
     num_turns: 1,
     total_cost_usd: 0.01,
-    usage: {
-      input_tokens: 100,
-      output_tokens: 0,
-      cache_read_input_tokens: 0,
-      cache_creation_input_tokens: 0,
-      server_tool_use: null,
-    },
+    usage: stubUsage,
     modelUsage: {},
     permission_denials: [],
     errors,

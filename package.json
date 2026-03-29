@@ -6,7 +6,10 @@
     "dev:daemon": "DAEMON_SOCKET=./corvran.sock ADVENTURES_PATH=./adventures/ bun run packages/backend/src/index.ts",
     "dev:web": "DAEMON_SOCKET_PATH=./corvran.sock bun run --filter '@corvran/web' dev",
     "dev": "concurrently -n daemon,web -c blue,green \"bun run dev:daemon\" \"bun run dev:web\"",
-    "start": "concurrently -n daemon,web -c blue,green \"bun run dev:daemon\" \"bun run dev:web\""
+    "start": "concurrently -n daemon,web -c blue,green \"bun run dev:daemon\" \"bun run dev:web\"",
+    "lint": "bun run --filter '@corvran/backend' lint && bun run --filter '@corvran/web' lint",
+    "typecheck": "bunx tsc --build",
+    "build": "bun run --filter '@corvran/web' build"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

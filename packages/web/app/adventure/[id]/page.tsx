@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import type { AdventureDetail, HistoryResponse, ToolUseEvent } from "@corvran/shared";
 import { useAdventureStream } from "@/lib/use-adventure-stream";
@@ -20,8 +21,12 @@ export default function AdventurePlayPage() {
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const handleStreamComplete = useCallback((text: string) => {
+    setMessages((prev) => [...prev, { role: "gm", body: text }]);
+  }, []);
+
   const { isStreaming, streamingMessage, error, sendMessage, stop } =
-    useAdventureStream(id);
+    useAdventureStream(id, handleStreamComplete);
 
   // Load adventure detail and history
   useEffect(() => {
@@ -61,24 +66,6 @@ export default function AdventurePlayPage() {
     sendMessage(text);
   }, [inputValue, isStreaming, sendMessage]);
 
-  // When streaming finishes, add GM message to history and clear streaming state.
-  // useRef tracks whether we've already committed, preventing duplication
-  // if React Strict Mode re-runs this effect.
-  const lastCommittedText = useRef<string | null>(null);
-  useEffect(() => {
-    if (!isStreaming && streamingMessage && streamingMessage.text) {
-      if (lastCommittedText.current !== streamingMessage.text) {
-        lastCommittedText.current = streamingMessage.text;
-        setMessages((prev) => [
-          ...prev,
-          { role: "gm", body: streamingMessage.text },
-        ]);
-      }
-    }
-    if (!isStreaming && !streamingMessage) {
-      lastCommittedText.current = null;
-    }
-  }, [isStreaming, streamingMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -225,9 +212,9 @@ function PlayHeader({ name }: { name: string }) {
           className={styles.logoImg}
         />
       </div>
-      <a className={styles.headerBack} href="/">
+      <Link className={styles.headerBack} href="/">
         {"\u2039"}
-      </a>
+      </Link>
       <span className={styles.headerAdventureName}>{name}</span>
       <span className={styles.headerAppLabel}>Adventure Engine</span>
     </header>

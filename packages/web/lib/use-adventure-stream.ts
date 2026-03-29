@@ -18,7 +18,8 @@ interface UseAdventureStreamReturn {
 }
 
 export function useAdventureStream(
-  adventureId: string
+  adventureId: string,
+  onComplete?: (text: string) => void,
 ): UseAdventureStreamReturn {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingMessage, setStreamingMessage] =
@@ -105,13 +106,10 @@ export function useAdventureStream(
                       typeof parsed.fullResponse === "string"
                         ? parsed.fullResponse
                         : accumulatedText;
-                    setStreamingMessage({
-                      role: "gm",
-                      text: fullResponse,
-                      toolEvents: [...toolEvents],
-                    });
+                    setStreamingMessage(null);
                     setIsStreaming(false);
                     abortControllerRef.current = null;
+                    onComplete?.(fullResponse);
                   } else if (
                     currentEventType === "error" &&
                     typeof parsed.error === "string"
@@ -141,7 +139,7 @@ export function useAdventureStream(
           abortControllerRef.current = null;
         });
     },
-    [adventureId]
+    [adventureId, onComplete]
   );
 
   return { isStreaming, streamingMessage, error, sendMessage, stop };

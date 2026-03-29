@@ -1,11 +1,5 @@
 import { describe, test, expect } from "bun:test";
 
-// Test the mock API responses directly by importing the route handlers.
-// Since Next.js route handlers are standard Request/Response,
-// we can test them by constructing requests.
-
-const BASE_URL = "http://localhost:3000";
-
 // We can't easily import Next.js route handlers in bun test due to
 // the next/server dependency. Instead, test the data contracts and
 // shape expectations against the shared types.

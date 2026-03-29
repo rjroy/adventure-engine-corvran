@@ -16,7 +16,7 @@ if (existsSync(socketPath)) {
 
 // idleTimeout: 0 is required for SSE connections (Phase 3). The bun-types
 // definition is overly strict here, so we use a type assertion.
-const server = Bun.serve({
+Bun.serve({
   fetch: app.fetch,
   unix: socketPath,
   idleTimeout: 0 as never,
