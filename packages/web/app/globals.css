@@ -61,7 +61,7 @@
   --error-code-bg:         var(--stop-red-highlight-bg);
 
   /* ── Typography ─────────────────────────────────────────── */
-  --font-serif: Georgia, "Times New Roman", "Palatino Linotype", serif;
+  --font-serif: Georgia, "Times New Roman", serif;
   --font-sans:  -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono:  "SFMono-Regular", "Cascadia Code", "Consolas", monospace;
 }

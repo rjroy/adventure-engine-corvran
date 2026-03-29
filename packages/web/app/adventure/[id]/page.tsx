@@ -138,7 +138,13 @@ export default function AdventurePlayPage() {
         <div className={styles.conversationInner}>
           {error && (
             <div className={styles.errorMessage}>
-              {error}
+              {error.split(/(\S+\.md)\b/).map((part, i) =>
+                /\S+\.md$/.test(part) ? (
+                  <span key={i} className={styles.errorCode}>{part}</span>
+                ) : (
+                  part
+                )
+              )}
             </div>
           )}
 
