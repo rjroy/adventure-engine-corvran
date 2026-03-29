@@ -2,7 +2,7 @@
 title: Adventure Engine of Corvran — Visual Design Brief
 date: 2026-03-28
 type: creative-brief
-status: complete
+status: approved
 commission: commission-Sienna-20260328-215304
 ---
 
