@@ -4,7 +4,7 @@
   "workspaces": ["packages/*"],
   "scripts": {
     "dev:daemon": "DAEMON_SOCKET=./corvran.sock ADVENTURES_PATH=./adventures/ bun run packages/backend/src/index.ts",
-    "dev:web": "DAEMON_SOCKET_PATH=./corvran.sock bun run --filter '@corvran/web' dev",
+    "dev:web": "DAEMON_SOCKET_PATH=$(pwd)/corvran.sock bun run --filter '@corvran/web' dev",
     "dev": "concurrently -n daemon,web -c blue,green \"bun run dev:daemon\" \"bun run dev:web\"",
     "start": "concurrently -n daemon,web -c blue,green \"bun run dev:daemon\" \"bun run dev:web\"",
     "lint": "bun run --filter '@corvran/backend' lint && bun run --filter '@corvran/web' lint",
