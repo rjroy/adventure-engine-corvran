@@ -1,4 +1,4 @@
-import type { SDKMessage, SDKResultMessage, SDKPartialAssistantMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKMessage, SDKResultMessage, SDKPartialAssistantMessage, SDKAssistantMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { QueryFn } from "../../src/services/session-runner.js";
 
 /**
@@ -92,6 +92,52 @@ export function errorResult(errors: string[]): SDKResultMessage {
     uuid: crypto.randomUUID(),
     session_id: "test-session",
   } as SDKResultMessage;
+}
+
+/** Creates an assistant message with tool_use blocks */
+export function assistantWithToolUse(
+  tools: Array<{ id: string; name: string; input: Record<string, unknown> }>,
+): SDKAssistantMessage {
+  return {
+    type: "assistant",
+    message: {
+      id: "msg_" + crypto.randomUUID(),
+      type: "message",
+      role: "assistant",
+      content: tools.map((t) => ({
+        type: "tool_use" as const,
+        id: t.id,
+        name: t.name,
+        input: t.input,
+      })),
+      model: "test-model",
+      stop_reason: "tool_use",
+      stop_sequence: null,
+      usage: { input_tokens: 100, output_tokens: 50, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 },
+    },
+    parent_tool_use_id: null,
+    uuid: crypto.randomUUID(),
+    session_id: "test-session",
+  } as SDKAssistantMessage;
+}
+
+/** Creates a user message with tool_result blocks */
+export function userWithToolResult(
+  results: Array<{ tool_use_id: string; content: string }>,
+): SDKUserMessage {
+  return {
+    type: "user",
+    message: {
+      role: "user",
+      content: results.map((r) => ({
+        type: "tool_result" as const,
+        tool_use_id: r.tool_use_id,
+        content: r.content,
+      })),
+    },
+    parent_tool_use_id: null,
+    session_id: "test-session",
+  } as SDKUserMessage;
 }
 
 /** Creates a mock queryFn that returns the given messages */

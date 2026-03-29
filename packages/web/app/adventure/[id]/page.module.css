@@ -166,7 +166,10 @@
 }
 
 /* ── Streaming cursor ───────────────────────────────────── */
-.streamingCursor {
+/* Cursor appears inline at the end of the last text element during streaming.
+   Using ::after on the last child avoids the sibling-of-ReactMarkdown problem. */
+.gmBodyStreaming > *:last-child::after {
+  content: "";
   display: inline-block;
   width: 2px;
   height: 18px;

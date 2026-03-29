@@ -61,13 +61,22 @@ export default function AdventurePlayPage() {
     sendMessage(text);
   }, [inputValue, isStreaming, sendMessage]);
 
-  // When streaming finishes, add GM message to history
+  // When streaming finishes, add GM message to history and clear streaming state.
+  // useRef tracks whether we've already committed, preventing duplication
+  // if React Strict Mode re-runs this effect.
+  const lastCommittedText = useRef<string | null>(null);
   useEffect(() => {
     if (!isStreaming && streamingMessage && streamingMessage.text) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "gm", body: streamingMessage.text },
-      ]);
+      if (lastCommittedText.current !== streamingMessage.text) {
+        lastCommittedText.current = streamingMessage.text;
+        setMessages((prev) => [
+          ...prev,
+          { role: "gm", body: streamingMessage.text },
+        ]);
+      }
+    }
+    if (!isStreaming && !streamingMessage) {
+      lastCommittedText.current = null;
     }
   }, [isStreaming, streamingMessage]);
 
@@ -129,9 +138,7 @@ export default function AdventurePlayPage() {
         <div className={styles.conversationInner}>
           {error && (
             <div className={styles.errorMessage}>
-              Adventure history is too long. Edit{" "}
-              <code className={styles.errorCode}>history.md</code> to shorten
-              it.
+              {error}
             </div>
           )}
 
@@ -260,9 +267,8 @@ function StreamingGmMessage({
         <ToolEvent key={i} result={event.result} />
       ))}
 
-      <div className={`${styles.messageBody} ${styles.gmBody}`}>
+      <div className={`${styles.messageBody} ${styles.gmBody} ${styles.gmBodyStreaming}`}>
         <ReactMarkdown>{text}</ReactMarkdown>
-        <span className={styles.streamingCursor} />
       </div>
     </div>
   );

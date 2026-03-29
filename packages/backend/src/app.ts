@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { resolve } from "node:path";
-import { readdir, readFile, writeFile, appendFile, stat, mkdir } from "node:fs/promises";
+import { readdir, readFile as fsReadFile, writeFile as fsWriteFile, appendFile as fsAppendFile, stat, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { FileOps, RouteModule } from "./types.js";
 import { createAdventureService } from "./services/adventure-service.js";
@@ -18,15 +18,15 @@ function createRealFileOps(): FileOps {
       return entries.filter((e) => e.isDirectory()).map((e) => e.name);
     },
     async readFile(path: string): Promise<string> {
-      return readFile(path, "utf-8");
+      return fsReadFile(path, "utf-8");
     },
     async writeFile(path: string, content: string): Promise<void> {
       await mkdir(dirname(path), { recursive: true });
-      await writeFile(path, content, "utf-8");
+      await fsWriteFile(path, content, "utf-8");
     },
     async appendFile(path: string, content: string): Promise<void> {
       await mkdir(dirname(path), { recursive: true });
-      await appendFile(path, content, "utf-8");
+      await fsAppendFile(path, content, "utf-8");
     },
     async fileExists(path: string): Promise<boolean> {
       try {
@@ -66,9 +66,10 @@ export interface AppDeps {
 }
 
 export function createApp(deps?: AppDeps): Hono {
-  const config = resolveConfig();
   const fileOps = deps?.fileOps ?? createRealFileOps();
-  const adventuresPath = deps?.adventuresPath ?? config.adventuresPath;
+  // Only resolve environment config when deps don't provide the values we need
+  const config = (!deps?.adventuresPath || !deps?.queryFn) ? resolveConfig() : undefined;
+  const adventuresPath = deps?.adventuresPath ?? config!.adventuresPath;
 
   const adventureService = createAdventureService({ fileOps, adventuresPath });
   const historyService = createHistoryService({ fileOps });
@@ -81,7 +82,7 @@ export function createApp(deps?: AppDeps): Hono {
     sessionRunner = createSessionRunner({
       queryFn: deps.queryFn,
       config: {
-        pluginPaths: config.pluginPaths,
+        pluginPaths: config?.pluginPaths ?? [],
         model: deps.model ?? process.env.MODEL ?? "claude-sonnet-4-5-20250929",
       },
     });

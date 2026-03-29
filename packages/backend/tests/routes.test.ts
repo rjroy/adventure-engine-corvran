@@ -120,6 +120,12 @@ describe("GET /adventures/:id/history", () => {
     expect(body).toEqual({ exists: false, history: null });
   });
 
+  test("returns 404 for nonexistent adventure", async () => {
+    const app = buildTestApp();
+    const res = await app.request("/adventures/nope/history");
+    expect(res.status).toBe(404);
+  });
+
   test("returns 400 for path traversal", async () => {
     const app = buildTestApp();
     const res = await app.request("/adventures/..%2Fetc%2Fpasswd/history");

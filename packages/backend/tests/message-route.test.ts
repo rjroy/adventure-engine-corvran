@@ -11,6 +11,8 @@ import {
   textDelta,
   successResult,
   errorResult,
+  assistantWithToolUse,
+  userWithToolResult,
 } from "./helpers/mock-query.js";
 import type { QueryFn } from "../src/services/session-runner.js";
 
@@ -289,6 +291,75 @@ describe("POST /adventures/:id/message", () => {
     // The second prompt should contain the edited history, not the original
     expect(capturedPrompts.length).toBe(2);
     expect(capturedPrompts[1]).toContain("Edited history");
+  });
+
+  test("emits tool_use event with result from user message, not invocation input", async () => {
+    const toolId = "toolu_test_123";
+    const queryFn = createMockQueryFn([
+      assistantWithToolUse([{ id: toolId, name: "Bash", input: { command: "roll 2d6" } }]),
+      userWithToolResult([{ tool_use_id: toolId, content: "Rolled 2d6: [4, 3] = 7" }]),
+      textDelta("You rolled a 7!"),
+      successResult("You rolled a 7!"),
+    ]);
+    const { app } = buildTestApp(
+      { [`${ADVENTURES_ROOT}/quest/character.md`]: "Hero" },
+      queryFn,
+    );
+
+    const res = await app.request("/adventures/quest/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "I roll the dice" }),
+    });
+
+    const text = await res.text();
+    const events = parseSSE(text);
+    const toolEvents = events.filter((e) => e.event === "tool_use");
+    expect(toolEvents.length).toBe(1);
+
+    const parsed = JSON.parse(toolEvents[0].data);
+    expect(parsed.name).toBe("Bash");
+    expect(parsed.result).toBe("Rolled 2d6: [4, 3] = 7");
+  });
+
+  test("pairs multiple tool invocations with their results", async () => {
+    const tool1Id = "toolu_1";
+    const tool2Id = "toolu_2";
+    const queryFn = createMockQueryFn([
+      assistantWithToolUse([
+        { id: tool1Id, name: "Read", input: { path: "/stats.md" } },
+        { id: tool2Id, name: "Bash", input: { command: "roll 1d20" } },
+      ]),
+      userWithToolResult([
+        { tool_use_id: tool1Id, content: "STR: 16, DEX: 14" },
+        { tool_use_id: tool2Id, content: "Rolled 1d20: 18" },
+      ]),
+      textDelta("Attack hits!"),
+      successResult("Attack hits!"),
+    ]);
+    const { app } = buildTestApp(
+      { [`${ADVENTURES_ROOT}/quest/character.md`]: "Hero" },
+      queryFn,
+    );
+
+    const res = await app.request("/adventures/quest/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "I attack" }),
+    });
+
+    const text = await res.text();
+    const events = parseSSE(text);
+    const toolEvents = events.filter((e) => e.event === "tool_use");
+    expect(toolEvents.length).toBe(2);
+
+    const first = JSON.parse(toolEvents[0].data);
+    expect(first.name).toBe("Read");
+    expect(first.result).toBe("STR: 16, DEX: 14");
+
+    const second = JSON.parse(toolEvents[1].data);
+    expect(second.name).toBe("Bash");
+    expect(second.result).toBe("Rolled 1d20: 18");
   });
 
   test("works with adventure that has no character or world", async () => {

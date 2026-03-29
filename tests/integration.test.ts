@@ -145,6 +145,15 @@ describe("Daemon integration", () => {
     expect(data.history).toBeNull();
   });
 
+  test("GET /adventures/:id/history returns 404 for nonexistent adventure", async () => {
+    const res = await fetch(
+      "http://localhost/adventures/nonexistent/history",
+      { unix: TEST_SOCKET } as RequestInit
+    );
+
+    expect(res.status).toBe(404);
+  });
+
   test("GET /help returns operations registry", async () => {
     const res = await fetch("http://localhost/help", {
       unix: TEST_SOCKET,

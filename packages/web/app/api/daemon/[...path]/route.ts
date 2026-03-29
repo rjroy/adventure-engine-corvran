@@ -8,7 +8,7 @@ const SOCKET_PATH = process.env.DAEMON_SOCKET_PATH || "./corvran.sock";
  */
 async function proxyToDaemon(request: NextRequest, path: string[]): Promise<Response> {
   const daemonPath = `/${path.join("/")}`;
-  const url = `http://localhost${daemonPath}`;
+  const url = `http://localhost${daemonPath}${request.nextUrl.search}`;
 
   const headers: Record<string, string> = {};
   request.headers.forEach((value, key) => {

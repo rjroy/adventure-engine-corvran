@@ -49,6 +49,11 @@ export function createAdventureRoutes(deps: {
       return c.json({ error: "Invalid adventure ID" }, 400);
     }
 
+    const adventure = await adventureService.getAdventure(id);
+    if (!adventure) {
+      return c.json({ error: "Adventure not found" }, 404);
+    }
+
     const history = await adventureService.getHistory(id);
     return c.json(history);
   });
@@ -111,6 +116,8 @@ export function createAdventureRoutes(deps: {
     // Stream SSE events
     return streamSSE(c, async (stream) => {
       let accumulatedText = "";
+      // Track pending tool invocations so we can pair them with results
+      const pendingTools = new Map<string, string>();
 
       stream.onAbort(() => {
         abortController.abort();
@@ -131,26 +138,29 @@ export function createAdventureRoutes(deps: {
               await stream.writeSSE({ event: "text", data: JSON.stringify({ text }) });
             }
           } else if (msg.type === "assistant") {
-            // Check for tool_use content blocks
+            // Collect tool invocations; defer emission until we have results
             for (const block of msg.message.content) {
               if (block.type === "tool_use") {
-                await stream.writeSSE({
-                  event: "tool_use",
-                  data: JSON.stringify({ name: block.name, result: JSON.stringify(block.input) }),
-                });
+                pendingTools.set(block.id, block.name);
               }
             }
-          } else if (msg.type === "user" && msg.tool_use_result !== undefined) {
-            // Tool result, emit enriched tool_use event
-            await stream.writeSSE({
-              event: "tool_use",
-              data: JSON.stringify({
-                name: "tool_result",
-                result: typeof msg.tool_use_result === "string"
-                  ? msg.tool_use_result
-                  : JSON.stringify(msg.tool_use_result),
-              }),
-            });
+          } else if (msg.type === "user") {
+            // Pair tool results with their invocations and emit
+            if (Array.isArray(msg.message.content)) {
+              for (const block of msg.message.content) {
+                if (block.type === "tool_result") {
+                  const toolName = pendingTools.get(block.tool_use_id) ?? "tool";
+                  pendingTools.delete(block.tool_use_id);
+                  const result = typeof block.content === "string"
+                    ? block.content
+                    : JSON.stringify(block.content);
+                  await stream.writeSSE({
+                    event: "tool_use",
+                    data: JSON.stringify({ name: toolName, result }),
+                  });
+                }
+              }
+            }
           } else if (msg.type === "result") {
             if (msg.subtype === "success") {
               // Use the result field for the full response (more reliable than accumulated text)
