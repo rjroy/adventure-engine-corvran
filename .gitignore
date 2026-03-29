@@ -17,3 +17,6 @@ test-*/
 # Logs
 *.log
 backend/logs/
+
+*.local.json
+*.local.md
