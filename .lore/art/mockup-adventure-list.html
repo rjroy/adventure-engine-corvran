@@ -5,40 +5,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Adventure Engine — Adventure List Mockup</title>
   <style>
-    /* ============================================================
-       PALETTE
-       --bg-base:       #13151e  (night sky, the deepest layer)
-       --bg-surface:    #1c2030  (cave stone, cards and panels)
-       --bg-elevated:   #242840  (lighter stone, hover states)
-       --text-primary:  #e8e0d0  (aged parchment, readable)
-       --text-secondary:#8a8a9a  (muted stone, secondary info)
-       --text-tertiary: #5a5a6a  (very muted, labels/hints)
-       --amber:         #c8922a  (portal glow, primary accent)
-       --amber-bright:  #f0b84a  (hover, highlight)
-       --amber-dim:     rgba(200,146,42,0.15) (subtle tint for borders)
-       --badge-new:     #4a6a4a  (sage green, "New adventure")
-       --badge-cont:    #2a4a6a  (muted blue, "Continue")
-       ============================================================ */
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg-base:        #13151e;
-      --bg-surface:     #1c2030;
-      --bg-elevated:    #242840;
-      --text-primary:   #e8e0d0;
-      --text-secondary: #8a8a9a;
-      --text-tertiary:  #5a5a6a;
-      --amber:          #c8922a;
-      --amber-bright:   #f0b84a;
-      --amber-dim:      rgba(200, 146, 42, 0.15);
-      --amber-border:   rgba(200, 146, 42, 0.3);
-      --badge-new:      #4a6a4a;
-      --badge-new-text: #8fc48f;
-      --badge-cont:     #2a4460;
-      --badge-cont-text:#7aadce;
+      --bg-base:        lch( 7%  7 285);
+      --bg-surface:     lch(12% 12 285);
+      --bg-elevated:    lch(17% 17 285);
+
+      --text-primary:   lch(89%  9  90);
+      --text-secondary: lch(59%  9  90);
+      --text-tertiary:  lch(39%  9  90);
+
+      --accent:          lch(64% 60  79);
+      --accent-hover:   lch(78% 60  79);
+
+      --badge-new:      lch(42% 24 142);
+      --badge-new-text: lch(74% 35 142);
+      --badge-cont:     lch(28% 20 268);
+      --badge-cont-text:lch(68% 24 249);
+      --gm-accent:      lch(68% 24 249);
+      --tool-accent:    lch(60% 30 133);
+      --stop-red:       lch(45% 55  29);
+
+      --accent-dim:      color-mix(in lch, var(--accent) 15%, transparent);
+      --accent-border:   color-mix(in lch, var(--accent) 30%, transparent);
+      --gm-accent-dim:  color-mix(in lch, var(--gm-accent) 15%, transparent);
+      --tool-accent-dim:color-mix(in lch, var(--tool-accent) 15%, transparent);
+      --stop-red-dim:   color-mix(in lch, var(--stop-red) 15%, transparent);
+
       --font-serif:     Georgia, "Times New Roman", "Palatino Linotype", serif;
       --font-sans:      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono:      "SFMono-Regular", "Cascadia Code", "Consolas", monospace;
+
+      /* Mockup chrome (design review only, not part of the UI) */
+      --mock-bg:        lch(15% 14 142);
+      --mock-border:    lch(28% 25 142);
+      --mock-text:      lch(64% 43 142);
+      --mock-label:     lch(58% 32 259);
+      --mock-divider:   lch(21% 22 289);
     }
 
     html, body {
@@ -56,7 +61,7 @@
       top: 0; left: 0; right: 0;
       height: 52px;
       background: var(--bg-surface);
-      border-bottom: 1px solid var(--amber-border);
+      border-bottom: 1px solid var(--accent-border);
       display: flex;
       align-items: center;
       padding: 0 24px;
@@ -65,21 +70,13 @@
     }
 
     .app-header .logo {
-      width: 28px;
-      height: 28px;
-      /* Raven silhouette as inline SVG placeholder */
-      background: var(--amber);
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       flex-shrink: 0;
     }
 
-    .app-header .logo svg {
-      width: 20px;
-      height: 20px;
-      fill: var(--bg-base);
+    .app-header .logo img {
+      width: 28px;
+      height: 28px;
+      display: block;
     }
 
     .app-header .app-name {
@@ -134,7 +131,7 @@
 
     .adventure-card {
       background: var(--bg-surface);
-      border: 1px solid var(--amber-border);
+      border: 1px solid var(--accent-border);
       border-radius: 6px;
       padding: 20px 24px;
       display: flex;
@@ -148,7 +145,7 @@
 
     .adventure-card:hover {
       background: var(--bg-elevated);
-      border-color: var(--amber);
+      border-color: var(--accent);
     }
 
     .adventure-card-left {
@@ -196,7 +193,7 @@
     }
 
     .adventure-card-right {
-      color: var(--amber);
+      color: var(--accent);
       font-size: 18px;
       opacity: 0.7;
       flex-shrink: 0;
@@ -215,7 +212,7 @@
     /* ── Divider ────────────────────────────────────────────── */
     .divider {
       height: 1px;
-      background: var(--amber-border);
+      background: var(--accent-border);
       margin: 40px 0;
     }
 
@@ -233,7 +230,7 @@
       margin-bottom: 20px;
       opacity: 0.25;
       /* Use a text raven glyph as placeholder */
-      color: var(--amber);
+      color: var(--accent);
     }
 
     .empty-state h2 {
@@ -255,12 +252,12 @@
     .code-hint {
       display: inline-block;
       background: var(--bg-surface);
-      border: 1px solid var(--amber-border);
+      border: 1px solid var(--accent-border);
       border-radius: 4px;
       padding: 10px 18px;
-      font-family: "SFMono-Regular", "Cascadia Code", "Consolas", monospace;
+      font-family: var(--font-mono);
       font-size: 13px;
-      color: var(--amber);
+      color: var(--accent);
       letter-spacing: 0.02em;
     }
 
@@ -275,7 +272,7 @@
       top: 50%;
       transform: translateY(-50%);
       font-size: 11px;
-      color: #5090c0;
+      color: var(--mock-label);
       white-space: nowrap;
       font-family: var(--font-sans);
     }
@@ -288,9 +285,9 @@
     .mockup-banner {
       position: fixed;
       top: 0; left: 0; right: 0;
-      background: #1a2a1a;
-      border-bottom: 1px solid #2a4a2a;
-      color: #6aaa6a;
+      background: var(--mock-bg);
+      border-bottom: 1px solid var(--mock-border);
+      color: var(--mock-text);
       font-size: 11px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -308,9 +305,9 @@
       font-size: 11px;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: #5090c0;
+      color: var(--mock-label);
       padding: 16px 0 8px;
-      border-top: 1px dashed #2a3050;
+      border-top: 1px dashed var(--mock-divider);
       margin-top: 60px;
     }
   </style>
@@ -321,10 +318,7 @@
 
   <header class="app-header">
     <div class="logo">
-      <!-- Raven silhouette (simplified) -->
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2C10 2 7 4 6 7C5 8 4 8 3 7C3 10 5 12 7 12C6 14 5 16 3 17C6 17 8 16 10 15C10 17 9 19 8 21C10 19 12 17 13 15C14 17 14 19 13 21C15 19 17 17 17 14C19 15 21 16 22 17C21 15 20 13 18 12C20 12 22 10 22 7C21 8 19 8 18 7C17 4 14 2 12 2Z"/>
-      </svg>
+      <img src="logo.png" width="28" height="28" alt="Corvran">
     </div>
     <span class="app-name">Adventure Engine of Corvran</span>
   </header>
@@ -390,9 +384,7 @@
 
       <div class="empty-state">
         <div class="raven-icon">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C10 2 7 4 6 7C5 8 4 8 3 7C3 10 5 12 7 12C6 14 5 16 3 17C6 17 8 16 10 15C10 17 9 19 8 21C10 19 12 17 13 15C14 17 14 19 13 21C15 19 17 17 17 14C19 15 21 16 22 17C21 15 20 13 18 12C20 12 22 10 22 7C21 8 19 8 18 7C17 4 14 2 12 2Z"/>
-          </svg>
+          <img src="logo.png" width="64" height="64" alt="">
         </div>
         <h2>No adventures yet</h2>
         <p>

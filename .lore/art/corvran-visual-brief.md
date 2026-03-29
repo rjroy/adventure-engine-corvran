@@ -22,15 +22,17 @@ Source materials: existing logo, background art, favicons, the MVP spec, and the
 
 Before any color was chosen, the existing assets were examined:
 
-**Logo / apple-touch-icon:** A raven with wings spread, silhouetted against a radiant ornate doorway. Black-on-white graphic illustration, bold and iconic. The raven is the identity symbol. The doorway signals threshold — entering a new story.
+**Logo / apple-touch-icon:** A crow in flight, wings spread wide, talons extended, alert beak-forward posture. Parchment-toned (lch(89% 9 90)) silhouette on transparent background. The crow carries the Corvran name (crow = trickster) directly. No frame, no doorway — the bird alone. Source: `.lore/generated/crow-final-draft` (FLUX 2 Pro).
+
+**Previous logo (replaced):** Raven + ornate doorway in a rounded-rect badge frame. Too busy for the header at 52px height. The trickster identity lives in the crow alone.
 
 **Background art (`corvran-engine-background.webp`):** A dramatic fantasy landscape: dark misty mountains, a raven in flight, northern lights overhead. Four magical portals glow in distinct colors — amber/gold, green, red, white/purple — each feeding a flowing luminous stream toward a central vortex. Runic text etched into stone. The dominant atmospheric feel is **deep cool darkness punctuated by warm magical light**.
 
 **Palette extracted from the background:**
-- Base atmosphere: near-black blue-gray (`#13151e`) — the night sky behind the mountains
-- Surface texture: dark stone (`#1c2030`) — cave walls, shadow areas
-- Primary accent: amber-gold (`#c8922a` / `#f0b84a`) — the warmest portal, fire and candlelight
-- Secondary accent: muted blue (`#7aadce`) — the cooler light of intelligence/reference
+- Base atmosphere: near-black blue-gray (`lch(7% 7 284)`) — the night sky behind the mountains
+- Surface texture: dark stone (`lch(13% 12 285)`) — cave walls, shadow areas
+- Primary accent: amber-gold (`lch(64% 60 79)` / `lch(78% 62 81)`) — the warmest portal, fire and candlelight
+- Secondary accent: muted blue (`lch(68% 24 249)`) — the cooler light of intelligence/reference
 
 These match the vision's atmosphere: "warm tavern, not sterile chat app."
 
@@ -56,22 +58,68 @@ The amber accent appears in borders, badges, and the send button: a consistent t
 
 ---
 
+## Palette Rules
+
+These conventions are mandatory when using the palette:
+
+1. **Always use `var()` references** for colors and fonts. Never hard-code a raw `lch()` value in a component; reference the token instead.
+2. **Always use `color-mix(in lch, ...)` to derive alpha variants** from base tokens. Never hand-calculate or hard-code a translucent color.
+3. **`dim` = 15% mix.** All `-dim` tokens use `color-mix(in lch, var(--base) 15%, transparent)`. This is the standard tint for subtle backgrounds.
+4. **`border` = 30% mix.** All `-border` tokens use `color-mix(in lch, var(--base) 30%, transparent)`. This is the standard weight for hairline borders.
+
+If a new color family is added, follow the same pattern: define the base token in `lch()`, then derive `-dim` at 15% and `-border` at 30% via `color-mix`.
+
 ## Palette
 
 | Token | Value | Use |
 |-------|-------|-----|
-| `--bg-base` | `#13151e` | Page background, the deepest layer |
-| `--bg-surface` | `#1c2030` | Cards, header, input area, conversation panels |
-| `--bg-elevated` | `#242840` | Hover states, active elements |
-| `--text-primary` | `#e8e0d0` | All body text — warm off-white, aged parchment |
-| `--text-secondary` | `#8a8a9a` | Labels, hints, meta information |
-| `--text-tertiary` | `#5a5a6a` | Very muted — keyboard shortcuts, timestamps |
-| `--amber` | `#c8922a` | Primary accent: send button, adventure name label, borders |
-| `--amber-bright` | `#f0b84a` | Hover on amber elements |
-| `--amber-border` | `rgba(200,146,42,0.28)` | Hairline borders throughout |
-| `--gm-accent` | `#7aadce` | GM message label and left border — the world's voice is cooler |
-| `--tool-accent` | `#7a9a6a` | Dice rolls, tool events — sage green, mechanical |
-| `--stop-red` | `#b84040` | Stop button only — danger-adjacent but not alarming |
+| **Backgrounds** | | |
+| `--bg-base`          | `lch( 7%  7 285)`          | Page background, the deepest layer |
+| `--bg-surface`       | `lch(12% 12 285)`          | Cards, header, input area, conversation panels |
+| `--bg-elevated`      | `lch(17% 17 285)`          | Hover states, active elements |
+| **Text** | | |
+| `--text-primary`     | `lch(89%  9  90)`          | All body text — warm off-white, aged parchment |
+| `--text-secondary`   | `lch(59%  9  90)`          | Labels, hints, meta information |
+| `--text-tertiary`    | `lch(39%  9  90)`          | Very muted — keyboard shortcuts, timestamps |
+| **Amber (primary accent)** | | |
+| `--accent`            | `lch(64% 60  79)`          | Primary accent: send button, adventure name label, borders |
+| `--accent-hover`     | `lch(78% 60  79)`          | Hover on amber elements |
+| `--accent-dim`        | `color-mix(in lch, var(--accent) 15%, transparent)` | Subtle amber tint backgrounds |
+| `--accent-border`     | `color-mix(in lch, var(--accent) 30%, transparent)` | Hairline borders throughout, input wrapper border |
+| **Badges (adventure list)** | | |
+| `--badge-new`        | `lch(42% 24 142)`          | "New adventure" badge background |
+| `--badge-new-text`   | `lch(74% 35 142)`          | "New adventure" badge text |
+| `--badge-cont`       | `lch(28% 20 268)`          | "Continue" badge background |
+| `--badge-cont-text`  | `lch(68% 24 249)`          | "Continue" badge text |
+| **GM accent** | | |
+| `--gm-accent`        | `lch(68% 24 249)`          | GM message label and left border — the world's voice is cooler |
+| `--gm-accent-dim`    | `color-mix(in lch, var(--gm-accent) 15%, transparent)` | Subtle GM tint backgrounds |
+| `--gm-border`        | `color-mix(in lch, var(--gm-accent) 30%, transparent)` | GM message left border |
+| **Player** | | |
+| `--player-accent`    | `var(--accent)`              | Player message label — same as amber |
+| `--player-input`     | `var(--text-primary)`       | Player message body text (italic distinguishes it) |
+| **Tool events** | | |
+| `--tool-accent`      | `lch(60% 30 133)`          | Dice rolls, tool events — sage green, mechanical |
+| `--tool-accent-dim`  | `color-mix(in lch, var(--tool-accent) 15%, transparent)` | Tool event background tint |
+| `--tool-accent-border` | `color-mix(in lch, var(--tool-accent) 30%, transparent)` | Tool event left border |
+| **Stop / Error** | | |
+| `--stop-red`         | `lch(45% 55  29)`          | Stop button base — danger-adjacent but not alarming |
+| `--stop-red-text`    | `lch(65% 55  29)`          | Stop button and error text (brighter for readability) |
+| `--stop-red-dim`     | `color-mix(in lch, var(--stop-red) 15%, transparent)` | Stop button background tint |
+| `--stop-red-border`  | `color-mix(in lch, var(--stop-red) 30%, transparent)` | Stop button border |
+| `--stop-red-highlight-bg` | `color-mix(in lch, var(--stop-red) 25%, transparent)` | Stop/error highlight background |
+| `--stop-red-hover`   | `color-mix(in lch, var(--stop-red) 25%, transparent)` | Stop button hover background |
+| `--stop-red-hover-border` | `color-mix(in lch, var(--stop-red) 75%, transparent)` | Stop button hover border |
+| `--error-bg`         | `var(--stop-red-dim)`       | Error message background (alias) |
+| `--error-border`     | `var(--stop-red-border)`    | Error message border (alias) |
+| `--error-text`       | `var(--stop-red-text)`      | Error message text (alias) |
+| `--error-code-bg`    | `var(--stop-red-highlight-bg)` | Error inline code background (alias) |
+| **Mockup chrome** | | |
+| `--mock-bg`          | `lch(15% 14 142)`          | Mockup banner background (design review only) |
+| `--mock-border`      | `lch(28% 25 142)`          | Mockup banner border |
+| `--mock-text`        | `lch(64% 43 142)`          | Mockup banner text |
+| `--mock-label`       | `lch(58% 32 259)`          | State labels, annotation labels |
+| `--mock-divider`     | `lch(21% 22 289)`          | Dashed dividers between mockup states |
 
 **Why GM text gets a different accent than player text:**
 The GM represents the world — external, vast, slightly cool. The player is the warm point of agency (amber). Keeping these distinct helps the reader instantly orient when scanning the conversation.
@@ -86,7 +134,7 @@ The GM represents the world — external, vast, slightly cool. The player is the
 | Adventure name (display) | Same serif | 18–28px |
 | UI chrome (labels, hints) | System sans | 11–14px |
 | Tool events | Italic serif | 13px |
-| Monospace (code hints) | `"SFMono-Regular", Consolas, monospace` | 13px |
+| Monospace (code hints) | `var(--font-mono)` · `"SFMono-Regular", "Cascadia Code", "Consolas", monospace` | 13px |
 
 The serif choice is deliberate: this is a reading experience. The player spends most of their time reading GM responses. Georgia at 16px with 1.8 line-height gives it the texture of a novel, not a dashboard.
 
@@ -133,7 +181,7 @@ Four states mocked:
 - Conversation max-width: 720px, centered
 - Header: logo → back arrow → adventure name → "Adventure Engine" app label
 - **GM messages**: muted blue left border (2px), "Game Master" label in `--gm-accent`, body in serif
-- **Player messages**: amber left border (2px), "You" label in `--amber`, body in serif italic (slightly muted)
+- **Player messages**: amber left border (2px), "You" label in `--accent`, body in serif italic (slightly muted)
 - Italic distinguishes player input as *action spoken* vs GM response as *world described*
 - Input: dark background, amber border on focus, textarea grows up to 120px, "Send" button in amber
 
@@ -206,6 +254,11 @@ These are observations that matter for the Next.js implementation:
 | `.lore/art/mockup-adventure-list.html` | Adventure List view — two states (adventures exist, empty state) |
 | `.lore/art/mockup-adventure-play.html` | Adventure Play view — four states (idle, streaming, new adventure, error) |
 | `.lore/art/corvran-visual-brief.md` | This document |
+| `.lore/art/logo.png` | Crow in flight, parchment on transparent, 512x512. Replace old raven+doorway. |
+| `.lore/art/favicon-16x16.png` | 16px favicon, transparent bg |
+| `.lore/art/favicon-32x32.png` | 32px favicon, transparent bg |
+| `.lore/art/favicon.ico` | Multi-size ICO (16/32/48) on dark surface bg |
+| `.lore/art/apple-touch-icon.png` | 180x180 on lch(13% 12 285) bg (Apple renders with its own treatment) |
 
 ---
 

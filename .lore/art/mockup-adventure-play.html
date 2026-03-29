@@ -7,44 +7,55 @@
   <style>
     /* ============================================================
        PALETTE (same as adventure-list mockup)
-       --bg-base:       #13151e
-       --bg-surface:    #1c2030
-       --bg-elevated:   #242840
-       --text-primary:  #e8e0d0  (aged parchment)
-       --text-secondary:#8a8a9a
-       --text-tertiary: #5a5a6a
-       --amber:         #c8922a  (portal glow, primary accent)
-       --amber-bright:  #f0b84a
-       --gm-accent:     #7aadce  (muted blue for GM label)
-       --player-accent: #c8922a  (amber for player label)
-       --tool-accent:   #7a9a6a  (sage, dice/mechanics)
-       --stop-red:      #b84040
        ============================================================ */
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg-base:         #13151e;
-      --bg-surface:      #1c2030;
-      --bg-elevated:     #242840;
-      --text-primary:    #e8e0d0;
-      --text-secondary:  #8a8a9a;
-      --text-tertiary:   #5a5a6a;
-      --amber:           #c8922a;
-      --amber-bright:    #f0b84a;
-      --amber-dim:       rgba(200, 146, 42, 0.12);
-      --amber-border:    rgba(200, 146, 42, 0.28);
-      --gm-accent:       #7aadce;
-      --gm-accent-dim:   rgba(122, 173, 206, 0.12);
-      --gm-border:       rgba(122, 173, 206, 0.3);
-      --player-accent:   #c8922a;
-      --tool-accent:     #7a9a6a;
-      --tool-dim:        rgba(122, 154, 106, 0.15);
-      --stop-red:        #b84040;
-      --stop-red-dim:    rgba(184, 64, 64, 0.15);
+      --bg-base:        lch( 7%  7 285);
+      --bg-surface:     lch(12% 12 285);
+      --bg-elevated:    lch(17% 17 285);
+
+      --text-primary:   lch(89%  9  90);
+      --text-secondary: lch(59%  9  90);
+      --text-tertiary:  lch(39%  9  90);
+
+      --accent:         lch(64% 60  79);
+      --accent-hover:   lch(78% 60  79);
+
+      --gm-accent:      lch(68% 24 249);
+      --player-input:     var(--text-primary);
+      --player-accent:    var(--accent);
+      --tool-accent:    lch(60% 30 133);
+      --stop-red:       lch(45% 55  29);
+      --stop-red-text:  lch(65% 55  29);
+      --error-bg:         var(--stop-red-dim);
+
+      --accent-dim:           color-mix(in lch, var(--accent) 15%, transparent);
+      --accent-border:        color-mix(in lch, var(--accent) 30%, transparent);
+      --gm-accent-dim:        color-mix(in lch, var(--gm-accent) 15%, transparent);
+      --gm-border:            color-mix(in lch, var(--gm-accent) 30%, transparent);
+      --tool-accent-dim:      color-mix(in lch, var(--tool-accent) 15%, transparent);
+      --tool-accent-border:   color-mix(in lch, var(--tool-accent) 30%, transparent);
+      --stop-red-dim:         color-mix(in lch, var(--stop-red) 15%, transparent);
+      --stop-red-border:      color-mix(in lch, var(--stop-red) 30%, transparent);
+      --stop-red-highlight-bg:color-mix(in lch, var(--stop-red) 25%, transparent);
+      --stop-red-hover:       color-mix(in lch, var(--stop-red) 25%, transparent);
+      --stop-red-hover-border:color-mix(in lch, var(--stop-red) 75%, transparent);
+      --error-border:           var(--stop-red-border);
+      --error-text:             var(--stop-red-text);
+      --error-code-bg:          var(--stop-red-highlight-bg);
+
       --font-serif:      Georgia, "Times New Roman", "Palatino Linotype", serif;
       --font-sans:       -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       --font-mono:       "SFMono-Regular", "Cascadia Code", "Consolas", monospace;
+
+      /* Mockup chrome (design review only, not part of the UI) */
+      --mock-bg:         lch(15% 14 142);
+      --mock-border:     lch(28% 25 142);
+      --mock-text:       lch(64% 43 142);
+      --mock-label:      lch(58% 32 259);
+      --mock-divider:    lch(21% 22 289);
     }
 
     html, body {
@@ -60,9 +71,9 @@
     .mockup-banner {
       position: fixed;
       top: 0; left: 0; right: 0;
-      background: #1a2a1a;
-      border-bottom: 1px solid #2a4a2a;
-      color: #6aaa6a;
+      background: var(--mock-bg);
+      border-bottom: 1px solid var(--mock-border);
+      color: var(--mock-text);
       font-size: 11px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -77,7 +88,7 @@
       top: 24px; left: 0; right: 0;
       height: 52px;
       background: var(--bg-surface);
-      border-bottom: 1px solid var(--amber-border);
+      border-bottom: 1px solid var(--accent-border);
       display: flex;
       align-items: center;
       padding: 0 20px;
@@ -86,25 +97,18 @@
     }
 
     .logo {
-      width: 28px;
-      height: 28px;
-      background: var(--amber);
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       flex-shrink: 0;
     }
 
-    .logo svg {
-      width: 20px;
-      height: 20px;
-      fill: var(--bg-base);
+    .logo img {
+      width: 28px;
+      height: 28px;
+      display: block;
     }
 
     .header-back {
       font-size: 18px;
-      color: var(--amber);
+      color: var(--accent);
       text-decoration: none;
       margin-right: 4px;
       opacity: 0.7;
@@ -189,10 +193,10 @@
 
     /* Player messages: slightly muted, no border */
     .message-player .message-body {
-      color: #ccc8bc;
+      color: var(--player-input);
       font-style: italic;
       padding-left: 16px;
-      border-left: 2px solid var(--amber-border);
+      border-left: 2px solid var(--accent-border);
     }
 
     .message-player {
@@ -203,8 +207,8 @@
     .tool-event {
       margin: 12px 0 12px 16px;
       padding: 8px 14px;
-      background: var(--tool-dim);
-      border-left: 2px solid rgba(122, 154, 106, 0.4);
+      background: var(--tool-accent-dim);
+      border-left: 2px solid var(--tool-accent-border);
       border-radius: 0 3px 3px 0;
       font-size: 13px;
       color: var(--tool-accent);
@@ -240,7 +244,7 @@
     /* ── Input area ─────────────────────────────────────────── */
     .input-area {
       background: var(--bg-surface);
-      border-top: 1px solid var(--amber-border);
+      border-top: 1px solid var(--accent-border);
       padding: 16px;
       flex-shrink: 0;
     }
@@ -256,7 +260,7 @@
     .input-wrapper {
       flex: 1;
       background: var(--bg-base);
-      border: 1px solid rgba(200, 146, 42, 0.35);
+      border: 1px solid var(--accent-border);
       border-radius: 6px;
       display: flex;
       align-items: center;
@@ -265,7 +269,7 @@
     }
 
     .input-wrapper:focus-within {
-      border-color: var(--amber);
+      border-color: var(--accent);
     }
 
     .input-wrapper textarea {
@@ -289,7 +293,7 @@
 
     /* ── Send button ────────────────────────────────────────── */
     .btn-send {
-      background: var(--amber);
+      background: var(--accent);
       color: var(--bg-base);
       border: none;
       border-radius: 6px;
@@ -303,7 +307,7 @@
     }
 
     .btn-send:hover {
-      background: var(--amber-bright);
+      background: var(--accent-hover);
     }
 
     .btn-send:disabled {
@@ -315,8 +319,8 @@
     /* ── Stop button (replaces send during streaming) ──────── */
     .btn-stop {
       background: var(--stop-red-dim);
-      color: #e87070;
-      border: 1px solid rgba(184, 64, 64, 0.4);
+      color: var(--stop-red-text);
+      border: 1px solid var(--stop-red-border);
       border-radius: 6px;
       padding: 10px 20px;
       font-size: 14px;
@@ -331,14 +335,14 @@
     }
 
     .btn-stop:hover {
-      background: rgba(184, 64, 64, 0.25);
-      border-color: rgba(184, 64, 64, 0.7);
+      background: var(--stop-red-hover);
+      border-color: var(--stop-red-hover-border);
     }
 
     .btn-stop-icon {
       width: 10px;
       height: 10px;
-      background: #e87070;
+      background: var(--stop-red-text);
       border-radius: 2px;
       flex-shrink: 0;
     }
@@ -354,7 +358,7 @@
     /* ── Dividers for multiple mockup states ────────────────── */
     .mockup-divider {
       border: none;
-      border-top: 2px dashed #2a3050;
+      border-top: 2px dashed var(--mock-divider);
       margin: 32px 0;
     }
 
@@ -362,19 +366,19 @@
       font-size: 11px;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: #5090c0;
+      color: var(--mock-label);
       text-align: center;
       padding: 12px 0;
     }
 
     /* ── Error message ──────────────────────────────────────── */
     .error-message {
-      background: rgba(184, 64, 64, 0.1);
-      border: 1px solid rgba(184, 64, 64, 0.35);
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
       border-radius: 4px;
       padding: 10px 16px;
       font-size: 13px;
-      color: #e07070;
+      color: var(--error-text);
       margin-bottom: 20px;
       margin-left: 16px;
     }
@@ -394,9 +398,7 @@
 
   <header class="app-header">
     <div class="logo">
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2C10 2 7 4 6 7C5 8 4 8 3 7C3 10 5 12 7 12C6 14 5 16 3 17C6 17 8 16 10 15C10 17 9 19 8 21C10 19 12 17 13 15C14 17 14 19 13 21C15 19 17 17 17 14C19 15 21 16 22 17C21 15 20 13 18 12C20 12 22 10 22 7C21 8 19 8 18 7C17 4 14 2 12 2Z"/>
-      </svg>
+      <img src="logo.png" width="28" height="28" alt="Corvran">
     </div>
     <a class="header-back" href="#">‹</a>
     <span class="header-adventure-name">Lost Mines of Phandelver</span>
@@ -500,16 +502,14 @@
   <hr class="mockup-divider" />
   <div class="state-label">State 2: GM streaming response (Stop button active)</div>
 
-  <div style="background: var(--bg-base); border: 1px dashed #2a3050; border-radius: 8px; overflow: hidden; margin: 8px 24px 0; max-width: 900px; margin-left: auto; margin-right: auto;">
+  <div style="background: var(--bg-base); border: 1px dashed var(--mock-divider); border-radius: 8px; overflow: hidden; margin: 8px 24px 0; max-width: 900px; margin-left: auto; margin-right: auto;">
     <!-- Simulated header -->
-    <div style="background: var(--bg-surface); border-bottom: 1px solid var(--amber-border); height: 52px; display: flex; align-items: center; padding: 0 20px; gap: 12px;">
+    <div style="background: var(--bg-surface); border-bottom: 1px solid var(--accent-border); height: 52px; display: flex; align-items: center; padding: 0 20px; gap: 12px;">
       <div class="logo">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 2C10 2 7 4 6 7C5 8 4 8 3 7C3 10 5 12 7 12C6 14 5 16 3 17C6 17 8 16 10 15C10 17 9 19 8 21C10 19 12 17 13 15C14 17 14 19 13 21C15 19 17 17 17 14C19 15 21 16 22 17C21 15 20 13 18 12C20 12 22 10 22 7C21 8 19 8 18 7C17 4 14 2 12 2Z" fill="#13151e"/>
-        </svg>
+        <img src="logo.png" width="28" height="28" alt="Corvran">
       </div>
-      <span style="color: #8a8a9a; font-size: 14px;">‹</span>
-      <span style="font-family: Georgia, serif; font-size: 16px; color: var(--text-primary); flex:1;">Lost Mines of Phandelver</span>
+      <span style="color: var(--accent); opacity: 0.7; font-size: 14px;">‹</span>
+      <span style="font-family: var(--font-serif); font-size: 16px; color: var(--text-primary); flex:1;">Lost Mines of Phandelver</span>
       <span style="font-size: 12px; color: var(--text-tertiary);">Adventure Engine</span>
     </div>
 
@@ -548,7 +548,7 @@
     </div>
 
     <!-- Input area (streaming state: textarea disabled, Stop button) -->
-    <div class="input-area" style="border-top: 1px solid var(--amber-border);">
+    <div class="input-area" style="border-top: 1px solid var(--accent-border);">
       <div class="input-area-inner">
         <div class="input-wrapper" style="opacity: 0.5;">
           <textarea placeholder="Waiting for the Game Master…" rows="1" disabled></textarea>
@@ -569,27 +569,23 @@
   <hr class="mockup-divider" />
   <div class="state-label">State 3: New adventure (no history yet)</div>
 
-  <div style="background: var(--bg-base); border: 1px dashed #2a3050; border-radius: 8px; overflow: hidden; margin: 8px 24px 0; max-width: 900px; margin-left: auto; margin-right: auto;">
+  <div style="background: var(--bg-base); border: 1px dashed var(--mock-divider); border-radius: 8px; overflow: hidden; margin: 8px 24px 0; max-width: 900px; margin-left: auto; margin-right: auto;">
     <!-- Header -->
-    <div style="background: var(--bg-surface); border-bottom: 1px solid var(--amber-border); height: 52px; display: flex; align-items: center; padding: 0 20px; gap: 12px;">
+    <div style="background: var(--bg-surface); border-bottom: 1px solid var(--accent-border); height: 52px; display: flex; align-items: center; padding: 0 20px; gap: 12px;">
       <div class="logo">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 2C10 2 7 4 6 7C5 8 4 8 3 7C3 10 5 12 7 12C6 14 5 16 3 17C6 17 8 16 10 15C10 17 9 19 8 21C10 19 12 17 13 15C14 17 14 19 13 21C15 19 17 17 17 14C19 15 21 16 22 17C21 15 20 13 18 12C20 12 22 10 22 7C21 8 19 8 18 7C17 4 14 2 12 2Z" fill="#13151e"/>
-        </svg>
+        <img src="logo.png" width="28" height="28" alt="Corvran">
       </div>
-      <span style="color: #8a8a9a; font-size: 14px;">‹</span>
-      <span style="font-family: Georgia, serif; font-size: 16px; color: var(--text-primary); flex:1;">freeform-narrative</span>
+      <span style="color: var(--accent); opacity: 0.7; font-size: 14px;">‹</span>
+      <span style="font-family: var(--font-serif); font-size: 16px; color: var(--text-primary); flex:1;">freeform-narrative</span>
       <span style="font-size: 12px; color: var(--text-tertiary);">Adventure Engine</span>
     </div>
 
     <!-- Empty conversation -->
     <div style="padding: 60px 24px; text-align: center; max-width: 480px; margin: 0 auto;">
-      <div style="font-size: 48px; color: var(--amber); opacity: 0.2; margin-bottom: 20px;">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C10 2 7 4 6 7C5 8 4 8 3 7C3 10 5 12 7 12C6 14 5 16 3 17C6 17 8 16 10 15C10 17 9 19 8 21C10 19 12 17 13 15C14 17 14 19 13 21C15 19 17 17 17 14C19 15 21 16 22 17C21 15 20 13 18 12C20 12 22 10 22 7C21 8 19 8 18 7C17 4 14 2 12 2Z"/>
-        </svg>
+      <div style="opacity: 0.2; margin-bottom: 20px;">
+        <img src="logo.png" width="64" height="64" alt="">
       </div>
-      <p style="font-family: Georgia, serif; font-size: 17px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 8px;">
+      <p style="font-family: var(--font-serif); font-size: 17px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 8px;">
         A new adventure awaits.
       </p>
       <p style="font-size: 13px; color: var(--text-tertiary); line-height: 1.6;">
@@ -599,7 +595,7 @@
     </div>
 
     <!-- Input area (new adventure, ready to begin) -->
-    <div class="input-area" style="border-top: 1px solid var(--amber-border);">
+    <div class="input-area" style="border-top: 1px solid var(--accent-border);">
       <div class="input-area-inner">
         <div class="input-wrapper">
           <textarea placeholder="Introduce yourself or describe what you'd like to play…" rows="1"></textarea>
@@ -617,23 +613,21 @@
   <hr class="mockup-divider" />
   <div class="state-label">State 4: Error (context overflow example)</div>
 
-  <div style="background: var(--bg-base); border: 1px dashed #2a3050; border-radius: 8px; overflow: hidden; margin: 8px 24px 32px; max-width: 900px; margin-left: auto; margin-right: auto;">
+  <div style="background: var(--bg-base); border: 1px dashed var(--mock-divider); border-radius: 8px; overflow: hidden; margin: 8px 24px 32px; max-width: 900px; margin-left: auto; margin-right: auto;">
     <!-- Header -->
-    <div style="background: var(--bg-surface); border-bottom: 1px solid var(--amber-border); height: 52px; display: flex; align-items: center; padding: 0 20px; gap: 12px;">
+    <div style="background: var(--bg-surface); border-bottom: 1px solid var(--accent-border); height: 52px; display: flex; align-items: center; padding: 0 20px; gap: 12px;">
       <div class="logo">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 2C10 2 7 4 6 7C5 8 4 8 3 7C3 10 5 12 7 12C6 14 5 16 3 17C6 17 8 16 10 15C10 17 9 19 8 21C10 19 12 17 13 15C14 17 14 19 13 21C15 19 17 17 17 14C19 15 21 16 22 17C21 15 20 13 18 12C20 12 22 10 22 7C21 8 19 8 18 7C17 4 14 2 12 2Z" fill="#13151e"/>
-        </svg>
+        <img src="logo.png" width="28" height="28" alt="Corvran">
       </div>
-      <span style="color: #8a8a9a; font-size: 14px;">‹</span>
-      <span style="font-family: Georgia, serif; font-size: 16px; color: var(--text-primary); flex:1;">Thornwood Descent</span>
+      <span style="color: var(--accent); opacity: 0.7; font-size: 14px;">‹</span>
+      <span style="font-family: var(--font-serif); font-size: 16px; color: var(--text-primary); flex:1;">Thornwood Descent</span>
       <span style="font-size: 12px; color: var(--text-tertiary);">Adventure Engine</span>
     </div>
 
     <div style="padding: 24px; max-width: 720px; margin: 0 auto;">
       <!-- Error message inline -->
       <div class="error-message">
-        Adventure history is too long. Edit <code style="font-family: var(--font-mono); font-size: 12px; background: rgba(184,64,64,0.2); padding: 1px 4px; border-radius: 2px;">history.md</code> to shorten it.
+        Adventure history is too long. Edit <code style="font-family: var(--font-mono); font-size: 12px; background: var(--error-code-bg); padding: 1px 4px; border-radius: 2px;">history.md</code> to shorten it.
       </div>
 
       <!-- Last exchange still visible above the error -->
@@ -643,7 +637,7 @@
       </div>
     </div>
 
-    <div class="input-area" style="border-top: 1px solid var(--amber-border);">
+    <div class="input-area" style="border-top: 1px solid var(--accent-border);">
       <div class="input-area-inner">
         <div class="input-wrapper">
           <textarea placeholder="What do you do?" rows="1"></textarea>

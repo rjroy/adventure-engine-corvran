@@ -304,10 +304,15 @@ Thorne verifies: prompt assembly matches REQ-MVP-12 exactly, SSE streaming works
 
 1. **Global styles** (`app/globals.css`)
    - CSS custom properties for the full palette from the visual brief:
-     - `--bg-base: #13151e`, `--bg-surface: #1c2030`, `--bg-elevated: #242840`
-     - `--text-primary: #e8e0d0`, `--text-secondary: #8a8a9a`, `--text-tertiary: #5a5a6a`
-     - `--amber: #c8922a`, `--amber-bright: #f0b84a`, `--amber-border: rgba(200,146,42,0.28)`
-     - `--gm-accent: #7aadce`, `--tool-accent: #7a9a6a`, `--stop-red: #b84040`
+     - `--bg-base: lch(7% 7 285)`, `--bg-surface: lch(12% 12 285)`, `--bg-elevated: lch(17% 17 285)`
+     - `--text-primary: lch(89% 9 90)`, `--text-secondary: lch(59% 9 90)`, `--text-tertiary: lch(39% 9 90)`
+     - `--accent: lch(64% 60 79)`, `--accent-hover: lch(78% 60 79)`
+     - `--gm-accent: lch(68% 24 249)`, `--tool-accent: lch(60% 30 133)`, `--stop-red: lch(45% 55 29)`
+   - Palette rules from the visual brief are mandatory:
+     - Always use `var()` references for colors and fonts, never hard-code raw `lch()` values in components
+     - Always use `color-mix(in lch, ...)` to derive alpha variants from base tokens, never hand-calculate translucent colors
+     - `-dim` tokens = 15% mix: `color-mix(in lch, var(--base) 15%, transparent)`
+     - `-border` tokens = 30% mix: `color-mix(in lch, var(--base) 30%, transparent)`
    - Typography: Georgia serif as body font, system sans for chrome, 16px/1.8 line-height for conversation
    - No web font imports (Georgia is system-wide, per Sienna's brief)
    - Streaming cursor: CSS animation for blinking 2px vertical line (`animation: blink 1s step-end infinite`)
@@ -363,7 +368,7 @@ Thorne verifies: prompt assembly matches REQ-MVP-12 exactly, SSE streaming works
 
 ### Developer notes
 
-- **No Tailwind.** The visual brief specifies a custom palette and typography stack. CSS custom properties with vanilla CSS modules or plain CSS is the right approach. The visual brief's mockups are in `.lore/art/mockup-adventure-list.html` and `.lore/art/mockup-adventure-play.html`. Reference them for pixel-level guidance.
+- **No Tailwind.** The visual brief specifies a custom palette and typography stack. CSS custom properties with CSS modules is the required approach. All component styles must use `.module.css` files, not plain CSS or global stylesheets (except `globals.css` for custom properties and resets). The visual brief's mockups are in `.lore/art/mockup-adventure-list.html` and `.lore/art/mockup-adventure-play.html`. Reference them for pixel-level guidance.
 - **Font loading:** Georgia is available system-wide. No web font import. Zero font flash. This is a deliberate choice from the brief.
 - **Scroll behavior:** `scrollIntoView` on each chunk during streaming. The brief warns smooth scrolling can feel laggy during fast streams. Use step scroll (no `behavior: 'smooth'`).
 - **Streaming state:** One boolean (`isStreaming`) drives: input disabled/enabled, Send/Stop swap, placeholder text change. Keep it simple.
