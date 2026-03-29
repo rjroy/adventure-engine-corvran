@@ -1,7 +1,7 @@
 ---
 title: "Commission: MVP Phase 1: Project Scaffolding"
 date: 2026-03-29
-status: dispatched
+status: pending
 type: one-shot
 tags: [commission]
 worker: Dalton
@@ -14,11 +14,6 @@ activity_timeline:
   - timestamp: 2026-03-29T17:08:50.957Z
     event: created
     reason: "Commission created"
-  - timestamp: 2026-03-29T17:08:50.961Z
-    event: status_dispatched
-    reason: "Dispatched to worker"
-    from: "pending"
-    to: "dispatched"
 current_progress: ""
 projectName: corvran
 ---
