@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { resolve } from "node:path";
 import { readdir, readFile as fsReadFile, writeFile as fsWriteFile, appendFile as fsAppendFile, stat, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
@@ -99,6 +100,19 @@ export function createApp(deps?: AppDeps): Hono {
   const helpModule = createHelpRoutes(contentModules);
 
   const app = new Hono();
+
+  const tailscaleHostname = process.env.TAILSCALE_HOSTNAME || "gsai.raptor-piranha.ts.net";
+  app.use(
+    "*",
+    cors({
+      origin: [
+        "http://localhost:3000",
+        `http://${tailscaleHostname}:3000`,
+        `https://${tailscaleHostname}`,
+      ],
+    }),
+  );
+
   for (const mod of [...contentModules, helpModule]) {
     app.route("/", mod.routes);
   }

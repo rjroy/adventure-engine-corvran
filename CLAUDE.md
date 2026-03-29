@@ -28,6 +28,7 @@ Environment defaults (set automatically by dev scripts):
 - `DAEMON_SOCKET=./corvran.sock` — backend listens here
 - `DAEMON_SOCKET_PATH=./corvran.sock` — web proxy connects here
 - `ADVENTURES_PATH=./adventures/` — where the daemon looks for adventures
+- `TAILSCALE_HOSTNAME=gsai.raptor-piranha.ts.net` — allowed remote origin for Tailscale access (used by both backend CORS and Next.js dev origins)
 
 A sample adventure is provided at `adventures/lost-mines/`.
 
