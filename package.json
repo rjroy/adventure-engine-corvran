@@ -1,0 +1,5 @@
+{
+  "name": "adventure-engine-corvran",
+  "private": true,
+  "workspaces": ["packages/*"]
+}

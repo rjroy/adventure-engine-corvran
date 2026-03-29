@@ -1,9 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+dist/
+*.tsbuildinfo
+
+# Next.js
+.next/
+
 # Environment files
 .env
 .env.*
 setup/adventure-engine.env
 
-# Test artifacts (created by integration tests)
+# Test artifacts
 test-*/
 
 # OS artifacts
@@ -16,7 +26,10 @@ test-*/
 
 # Logs
 *.log
-backend/logs/
 
+# Runtime
+*.sock
+
+# Plugin local files
 *.local.json
 *.local.md
