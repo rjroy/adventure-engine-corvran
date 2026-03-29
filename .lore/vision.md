@@ -1,7 +1,7 @@
 ---
 title: Adventure Engine Vision
 date: 2026-03-28
-status: draft
+status: approved
 tags: [vision, greenfield, collaborative-storytelling]
 last_reviewed: 2026-03-28
 review_trigger: "Review after first spec or 3 months, whichever comes first"
@@ -20,6 +20,10 @@ TTRPGs are shared narrative. At their core, it's kids playing make-believe but w
 The ambition is not an AI that runs a simulation. It's an AI that plays with you.
 
 ## Design Principles
+
+### 0. The Story is the Product
+
+Everything this application does is in service of collaborative storytelling. Background images, info panels, rule systems, character agents, atmospheric music: these serve the story. They are not the story. When a feature starts accumulating its own requirements, its own complexity, its own reason for existing, check it against this principle. If removing it would leave no story, it's core. If removing it would leave a less rich story, it's a tool on the table. Tools belong on the table. They don't become the table.
 
 ### 1. Markdown is Memory
 

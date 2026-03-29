@@ -1,3 +1,0 @@
-# Ignore generated background images (they have timestamps in filenames)
-# Keep fallback mood images (*.jpg)
-*.png
