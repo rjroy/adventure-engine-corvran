@@ -1,7 +1,7 @@
 ---
 title: "Commission: MVP Phase 1: Project Scaffolding"
 date: 2026-03-29
-status: pending
+status: dispatched
 type: one-shot
 tags: [commission]
 worker: Dalton
@@ -14,6 +14,24 @@ activity_timeline:
   - timestamp: 2026-03-29T17:08:50.957Z
     event: created
     reason: "Commission created"
+  - timestamp: 2026-03-29T17:34:46.236Z
+    event: status_failed
+    reason: "Recovery: process lost on restart"
+    from: "dispatched"
+    to: "failed"
+  - timestamp: 2026-03-29T17:34:46.237Z
+    event: status_failed
+    reason: "Recovery: process lost on restart"
+  - timestamp: 2026-03-29T17:35:07.687Z
+    event: status_pending
+    reason: "Redispatched for retry"
+    from: "failed"
+    to: "pending"
+  - timestamp: 2026-03-29T17:35:07.689Z
+    event: status_dispatched
+    reason: "Dispatched to worker"
+    from: "pending"
+    to: "dispatched"
 current_progress: ""
 projectName: corvran
 ---
