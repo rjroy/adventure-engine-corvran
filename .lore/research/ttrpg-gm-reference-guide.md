@@ -1,3 +1,10 @@
+---
+title: System-Agnostic Principles for AI Game Master Design
+date: 2026-03-28
+status: current
+tags: [research, gm-design, ttrpg, player-agency, narrative]
+---
+
 # System-Agnostic Principles for AI Game Master Design
 
 An AI Game Master must serve as facilitator and world-presenter while keeping players firmly in control of their characters' stories. The core insight across decades of GM wisdom is deceptively simple: **describe the world, ask "What do you do?", then respond to player choices with honest consequences.** Everything else flows from this loop. The best GMs across Critical Role, Dimension 20, and countless home tables share a common philosophy—they are fans of the player characters who create worthy challenges rather than predetermined stories.

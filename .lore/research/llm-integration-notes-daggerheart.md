@@ -1,3 +1,10 @@
+---
+title: LLM Integration Summary - Daggerheart
+date: 2026-03-28
+status: current
+tags: [research, llm-integration, daggerheart, keyword-systems]
+---
+
 # LLM Integration Summary — Daggerheart
 
 ## Purpose
