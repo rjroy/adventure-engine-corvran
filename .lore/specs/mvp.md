@@ -1,7 +1,7 @@
 ---
 title: Adventure Engine MVP
 date: 2026-03-28
-status: approved
+status: implemented 
 tags: [mvp, daemon, agent-sdk, web-client, adventure, greenfield]
 modules: [backend, web, shared]
 related: [.lore/vision.md, .lore/reference/architecture-pattern.md, .lore/brainstorm/mvp-scope.md, .lore/brainstorm/conversation-history.md]
