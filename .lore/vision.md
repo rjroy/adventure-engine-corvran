@@ -9,8 +9,6 @@ review_trigger: "Review after first spec or 3 months, whichever comes first"
 
 # Adventure Engine of Corvran: Vision
 
-## What This Project Is
-
 Adventure Engine is a space for collaborative storytelling.
 
 A human and an AI sit down together and make up a story, the way kids do. One of them, the AI, also keeps track of the rules, the continuity, and the world's state. Not because it's in charge, but because someone has to remember that the bridge collapsed in scene three.
