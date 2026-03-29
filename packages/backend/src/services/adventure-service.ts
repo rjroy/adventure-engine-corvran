@@ -6,7 +6,7 @@ export interface AdventureService {
   getAdventure(id: string): Promise<AdventureDetail | null>;
   getHistory(id: string): Promise<HistoryResponse>;
   getAdventurePath(id: string): string;
-  adventureExists(id: string): boolean;
+  isValidAdventureId(id: string): boolean;
 }
 
 export function createAdventureService(deps: {
@@ -15,7 +15,7 @@ export function createAdventureService(deps: {
 }): AdventureService {
   const { fileOps, adventuresPath } = deps;
 
-  function adventureExists(id: string): boolean {
+  function isValidAdventureId(id: string): boolean {
     if (id.includes("/") || id.includes("..")) return false;
     const resolved = fileOps.resolvePath(adventuresPath, id);
     const normalizedRoot = fileOps.resolvePath(adventuresPath);
@@ -48,7 +48,7 @@ export function createAdventureService(deps: {
   }
 
   async function getAdventure(id: string): Promise<AdventureDetail | null> {
-    if (!adventureExists(id)) return null;
+    if (!isValidAdventureId(id)) return null;
 
     const adventurePath = fileOps.resolvePath(adventuresPath, id);
     const dirExists = await fileOps.fileExists(adventurePath);
@@ -73,7 +73,7 @@ export function createAdventureService(deps: {
   }
 
   async function getHistory(id: string): Promise<HistoryResponse> {
-    if (!adventureExists(id)) return { exists: false, history: null };
+    if (!isValidAdventureId(id)) return { exists: false, history: null };
 
     const historyPath = fileOps.resolvePath(adventuresPath, id, "history.md");
     if (await fileOps.fileExists(historyPath)) {
@@ -87,5 +87,5 @@ export function createAdventureService(deps: {
     return fileOps.resolvePath(adventuresPath, id);
   }
 
-  return { listAdventures, getAdventure, getHistory, getAdventurePath, adventureExists };
+  return { listAdventures, getAdventure, getHistory, getAdventurePath, isValidAdventureId };
 }

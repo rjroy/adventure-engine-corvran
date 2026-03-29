@@ -5,13 +5,13 @@ import { createMockFileOps } from "./helpers/mock-file-ops.js";
 
 const ADVENTURES_ROOT = "/test/adventures";
 
-describe("adventureExists", () => {
+describe("isValidAdventureId", () => {
   test("rejects IDs with /", () => {
     const service = createAdventureService({
       fileOps: createMockFileOps(),
       adventuresPath: ADVENTURES_ROOT,
     });
-    expect(service.adventureExists("../etc/passwd")).toBe(false);
+    expect(service.isValidAdventureId("../etc/passwd")).toBe(false);
   });
 
   test("rejects IDs with ..", () => {
@@ -19,7 +19,7 @@ describe("adventureExists", () => {
       fileOps: createMockFileOps(),
       adventuresPath: ADVENTURES_ROOT,
     });
-    expect(service.adventureExists("foo/../../bar")).toBe(false);
+    expect(service.isValidAdventureId("foo/../../bar")).toBe(false);
   });
 
   test("accepts valid IDs", () => {
@@ -27,7 +27,7 @@ describe("adventureExists", () => {
       fileOps: createMockFileOps(),
       adventuresPath: ADVENTURES_ROOT,
     });
-    expect(service.adventureExists("lost-mines")).toBe(true);
+    expect(service.isValidAdventureId("lost-mines")).toBe(true);
   });
 });
 

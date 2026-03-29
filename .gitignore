@@ -31,7 +31,7 @@ test-*/
 *.sock
 
 # Adventures (user content, except sample)
-adventures/
+adventures/*
 !adventures/lost-mines/
 
 # Plugin local files
