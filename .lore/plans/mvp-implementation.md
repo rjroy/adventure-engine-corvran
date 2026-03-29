@@ -1,7 +1,7 @@
 ---
 title: MVP Implementation Plan
 date: 2026-03-28
-status: draft
+status: approved
 tags: [plan, mvp, implementation, phased]
 spec: .lore/specs/mvp.md
 references:
