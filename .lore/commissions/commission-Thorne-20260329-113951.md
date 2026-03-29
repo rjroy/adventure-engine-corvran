@@ -1,7 +1,7 @@
 ---
 title: "Commission: Visual Brief Compliance Review"
 date: 2026-03-29
-status: dispatched
+status: completed
 type: one-shot
 tags: [commission]
 worker: Thorne
@@ -19,6 +19,32 @@ activity_timeline:
     reason: "Dispatched to worker"
     from: "pending"
     to: "dispatched"
-current_progress: ""
+  - timestamp: 2026-03-29T18:39:51.657Z
+    event: status_in_progress
+    reason: "Execution started"
+    from: "dispatched"
+    to: "in_progress"
+  - timestamp: 2026-03-29T18:39:58.088Z
+    event: progress_report
+    reason: "Starting visual design review. Reading the visual brief and all web client source files."
+  - timestamp: 2026-03-29T18:40:32.967Z
+    event: progress_report
+    reason: "All source files read. Compiling section-by-section comparison against the visual brief."
+  - timestamp: 2026-03-29T18:42:01.861Z
+    event: result_submitted
+    reason: "Visual design review complete. Two findings against the brief:\n\n**F-TYPO-1 (Low):** `globals.css:64` adds `\"Palatino Linotype\"` to the serif font stack. Brief specifies `Georgia, \"Times New Roman\", serif` only.\n\n**F-COMP-1 (Medium):** Error messages render `history.md` as plain text instead of monospace. The `.errorCode` CSS class exists (`page.module.css:312-318`) but is never applied in the component (`page.tsx:139-143`). The brief requires monospace treatment for file references in error text.\n\nEverything else matches: all 30+ palette tokens are exact, color-mix() is used correctly for alpha variants, no hardcoded colors in components, typography stacks and sizes match, both view layouts match, all component styles match, all states are implemented, and there is zero Tailwind usage."
+  - timestamp: 2026-03-29T18:42:08.933Z
+    event: status_completed
+    reason: "Execution completed"
+    from: "in_progress"
+    to: "completed"
+current_progress: "All source files read. Compiling section-by-section comparison against the visual brief."
 projectName: corvran
 ---
+Visual design review complete. Two findings against the brief:
+
+**F-TYPO-1 (Low):** `globals.css:64` adds `"Palatino Linotype"` to the serif font stack. Brief specifies `Georgia, "Times New Roman", serif` only.
+
+**F-COMP-1 (Medium):** Error messages render `history.md` as plain text instead of monospace. The `.errorCode` CSS class exists (`page.module.css:312-318`) but is never applied in the component (`page.tsx:139-143`). The brief requires monospace treatment for file references in error text.
+
+Everything else matches: all 30+ palette tokens are exact, color-mix() is used correctly for alpha variants, no hardcoded colors in components, typography stacks and sizes match, both view layouts match, all component styles match, all states are implemented, and there is zero Tailwind usage.
