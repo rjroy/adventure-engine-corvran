@@ -1,4 +1,5 @@
 import type { Query, Options } from "@anthropic-ai/claude-agent-sdk";
+import { createDiceTool } from "./dice-tool.js";
 
 export type QueryFn = (params: { prompt: string; options?: Options }) => Query;
 
@@ -21,6 +22,7 @@ export function createSessionRunner(deps: {
   config: SessionRunnerConfig;
 }) {
   const { queryFn, config } = deps;
+  const diceMcpServer = createDiceTool();
 
   function runQuery(params: RunQueryParams): Query {
     const { systemPrompt, playerMessage, adventurePath, abortController } = params;
@@ -32,7 +34,10 @@ export function createSessionRunner(deps: {
         cwd: adventurePath,
         plugins: config.pluginPaths.map((p) => ({ type: "local" as const, path: p })),
         tools: TOOLS,
-        allowedTools: TOOLS,
+        allowedTools: [...TOOLS, "mcp__corvran__roll_dice"],
+        mcpServers: {
+          corvran: diceMcpServer,
+        },
         permissionMode: "dontAsk",
         persistSession: false,
         model: config.model,
