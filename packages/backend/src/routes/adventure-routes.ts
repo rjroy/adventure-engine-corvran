@@ -100,16 +100,19 @@ export function createAdventureRoutes(deps: {
       character: adventure.character,
       world: adventure.world,
       history,
+      systemBootstrap: null,
     });
 
     // Set up abort for client disconnect
     const abortController = new AbortController();
 
     // Run the SDK query
+    // pluginPaths: [] is a temporary shim. Phase 3 replaces this with per-adventure resolution.
     const queryResult = sessionRunner.runQuery({
       systemPrompt,
       playerMessage: message,
       adventurePath,
+      pluginPaths: [],
       abortController,
     });
 

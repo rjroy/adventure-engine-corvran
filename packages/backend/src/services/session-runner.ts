@@ -4,7 +4,6 @@ import { createDiceTool } from "./dice-tool.js";
 export type QueryFn = (params: { prompt: string; options?: Options }) => Query;
 
 export interface SessionRunnerConfig {
-  pluginPaths: string[];
   model: string;
 }
 
@@ -12,6 +11,7 @@ export interface RunQueryParams {
   systemPrompt: string;
   playerMessage: string;
   adventurePath: string;
+  pluginPaths: string[];
   abortController: AbortController;
 }
 
@@ -32,7 +32,7 @@ export function createSessionRunner(deps: {
       options: {
         systemPrompt,
         cwd: adventurePath,
-        plugins: config.pluginPaths.map((p) => ({ type: "local" as const, path: p })),
+        plugins: params.pluginPaths.map((p) => ({ type: "local" as const, path: p })),
         tools: TOOLS,
         allowedTools: [...TOOLS, "mcp__corvran__roll_dice"],
         mcpServers: {

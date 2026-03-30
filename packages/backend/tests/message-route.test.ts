@@ -28,7 +28,6 @@ function buildTestApp(
   const sessionRunner = createSessionRunner({
     queryFn,
     config: {
-      pluginPaths: ["/plugins/corvran", "/plugins/d20-system", "/plugins/daggerheart-system"],
       model: "test-model",
     },
   });

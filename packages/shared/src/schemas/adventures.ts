@@ -7,6 +7,7 @@ export const AdventureListItemSchema = z.object({
   hasCharacter: z.boolean(),
   hasWorld: z.boolean(),
   hasHistory: z.boolean(),
+  system: z.string().nullable(),
 });
 
 // Response from GET /adventures
@@ -21,6 +22,7 @@ export const AdventureDetailSchema = z.object({
   character: z.string().nullable(),
   world: z.string().nullable(),
   hasHistory: z.boolean(),
+  system: z.string().nullable(),
 });
 
 // Request body for POST /adventures/:id/message

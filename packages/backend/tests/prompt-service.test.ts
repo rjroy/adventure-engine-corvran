@@ -7,6 +7,7 @@ describe("assembleSystemPrompt", () => {
       character: "# Thorin\nA dwarf warrior",
       world: "# Lost Mines\nA dangerous dungeon",
       history: "**Player:** Hello\n\n**GM:** Welcome!",
+      systemBootstrap: null,
     });
 
     // Verify section order by checking relative positions
@@ -36,6 +37,7 @@ describe("assembleSystemPrompt", () => {
       character: null,
       world: "# Lost Mines\nA dungeon",
       history: null,
+      systemBootstrap: null,
     });
 
     expect(prompt).toContain("No character has been created yet.");
@@ -49,6 +51,7 @@ describe("assembleSystemPrompt", () => {
       character: "# Thorin\nA dwarf",
       world: null,
       history: null,
+      systemBootstrap: null,
     });
 
     expect(prompt).toContain("No world has been created yet.");
@@ -61,6 +64,7 @@ describe("assembleSystemPrompt", () => {
       character: null,
       world: null,
       history: null,
+      systemBootstrap: null,
     });
 
     expect(prompt).toContain("No character has been created yet.");
@@ -74,6 +78,7 @@ describe("assembleSystemPrompt", () => {
       character: "# Thorin",
       world: "# Mines",
       history: null,
+      systemBootstrap: null,
     });
 
     expect(prompt).not.toContain("# Conversation History");
@@ -86,6 +91,7 @@ describe("assembleSystemPrompt", () => {
       character: null,
       world: null,
       history: null,
+      systemBootstrap: null,
     });
 
     expect(prompt).toContain("You are the Game Master for a tabletop RPG adventure.");
@@ -96,20 +102,60 @@ describe("assembleSystemPrompt", () => {
       character: null,
       world: null,
       history: null,
+      systemBootstrap: null,
     });
 
     expect(prompt).toContain("Player agency is sacred");
     expect(prompt).toContain("Never narrate player actions or decisions");
   });
 
-  test("includes instructions about skills and dice rolls", () => {
+  test("instructions reference dice tool and skills separately", () => {
     const prompt = assembleSystemPrompt({
       character: null,
       world: null,
       history: null,
+      systemBootstrap: null,
     });
 
-    expect(prompt).toContain("dice rolls");
-    expect(prompt).toContain("rules lookup");
+    expect(prompt).toContain("Use the dice tool for rolls");
+    expect(prompt).toContain("available skills for rules lookup");
+  });
+
+  test("includes bootstrap content in Identity section when present", () => {
+    const bootstrap = "You are running a Daggerheart game.\n\nUse Hope and Fear dice.";
+    const prompt = assembleSystemPrompt({
+      character: "# Hero",
+      world: "# World",
+      history: null,
+      systemBootstrap: bootstrap,
+    });
+
+    // Bootstrap appears after the identity line, inside the Identity section
+    const identitySection = prompt.split("# Principles")[0];
+    expect(identitySection).toContain("You are the Game Master");
+    expect(identitySection).toContain("You are running a Daggerheart game.");
+    expect(identitySection).toContain("Use Hope and Fear dice.");
+  });
+
+  test("omits onboarding when bootstrap is present even if character/world missing", () => {
+    const prompt = assembleSystemPrompt({
+      character: null,
+      world: null,
+      history: null,
+      systemBootstrap: "You are running a Daggerheart game.",
+    });
+
+    expect(prompt).not.toContain("# Onboarding");
+  });
+
+  test("shows onboarding when no bootstrap and character/world missing", () => {
+    const prompt = assembleSystemPrompt({
+      character: null,
+      world: null,
+      history: null,
+      systemBootstrap: null,
+    });
+
+    expect(prompt).toContain("# Onboarding");
   });
 });

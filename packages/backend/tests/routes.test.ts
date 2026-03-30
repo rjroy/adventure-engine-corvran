@@ -72,6 +72,7 @@ describe("GET /adventures/:id", () => {
       character: "Hero",
       world: "Forest",
       hasHistory: false,
+      system: null,
     });
   });
 
