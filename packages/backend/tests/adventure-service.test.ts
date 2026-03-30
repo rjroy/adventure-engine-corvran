@@ -206,6 +206,32 @@ describe("system field from adventure.md", () => {
     expect(result?.system).toBeNull();
   });
 
+  test("logs warning for malformed adventure.md YAML (REQ-SYS-4a)", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/broken/adventure.md`]: "---\nsystem: daggerheart\n",
+      [`${ADVENTURES_ROOT}/broken/.keep`]: "",
+    };
+
+    const service = createAdventureService({
+      fileOps: createMockFileOps(files),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const warnings: string[] = [];
+    const origWarn = console.warn;
+    console.warn = (...args: unknown[]) => warnings.push(String(args[0]));
+    try {
+      const result = await service.listAdventures();
+      const broken = result.find((a) => a.id === "broken");
+      expect(broken?.system).toBeNull();
+      expect(warnings.length).toBeGreaterThan(0);
+      expect(warnings[0]).toContain("broken");
+      expect(warnings[0]).toContain("Malformed frontmatter");
+    } finally {
+      console.warn = origWarn;
+    }
+  });
+
   test("returns system: null when no adventure.md exists", async () => {
     const files: Record<string, string> = {
       [`${ADVENTURES_ROOT}/bare/.keep`]: "",

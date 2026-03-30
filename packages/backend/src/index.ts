@@ -1,10 +1,31 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { resolve } from "node:path";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { createApp, resolveConfig } from "./app.js";
+import { buildPluginRegistry } from "./services/plugin-registry.js";
+import type { FileOps } from "./types.js";
+
+/** Minimal FileOps for registry building at startup */
+const registryFileOps: FileOps = {
+  async readDir(path: string) {
+    const entries = await readdir(path, { withFileTypes: true });
+    return entries.filter((e) => e.isDirectory()).map((e) => e.name);
+  },
+  async readFile(path: string) {
+    return readFile(path, "utf-8");
+  },
+  async writeFile() { throw new Error("not implemented"); },
+  async appendFile() { throw new Error("not implemented"); },
+  async fileExists(path: string) {
+    try { await stat(path); return true; } catch { return false; }
+  },
+  resolvePath(...segments: string[]) { return resolve(...segments); },
+};
 
 const config = resolveConfig();
-const app = createApp({ queryFn: query });
+const pluginRegistry = await buildPluginRegistry(config.pluginsDir, registryFileOps);
+const app = createApp({ queryFn: query, pluginRegistry });
 
 // Ensure ~/.corvran/ exists before writing the socket or adventures into it
 mkdirSync(config.corvranHome, { recursive: true });
@@ -27,5 +48,5 @@ Bun.serve({
 
 console.log(`[daemon] Adventure Engine daemon listening on unix:${socketPath}`);
 console.log(`[daemon] Adventures path: ${config.adventuresPath}`);
-console.log(`[daemon] Plugin paths: ${config.pluginPaths.join(", ")}`);
+console.log(`[daemon] Plugins dir: ${config.pluginsDir}`);
 console.log(`[daemon] Ready.`);

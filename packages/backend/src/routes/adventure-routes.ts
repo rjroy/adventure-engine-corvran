@@ -4,8 +4,10 @@ import { MessageRequestSchema } from "@corvran/shared";
 import type { AdventureService } from "../services/adventure-service.js";
 import type { HistoryService } from "../services/history-service.js";
 import type { SessionRunner } from "../services/session-runner.js";
+import type { PluginRegistry } from "../services/plugin-registry.js";
 import { assembleSystemPrompt } from "../services/prompt-service.js";
-import type { OperationDefinition, RouteModule } from "../types.js";
+import { parseAdventureConfig } from "../services/adventure-config.js";
+import type { FileOps, OperationDefinition, RouteModule } from "../types.js";
 
 function isValidId(id: string): boolean {
   return !id.includes("/") && !id.includes("..");
@@ -21,8 +23,10 @@ export function createAdventureRoutes(deps: {
   adventureService: AdventureService;
   historyService?: HistoryService;
   sessionRunner?: SessionRunner;
+  pluginRegistry?: PluginRegistry;
+  fileOps?: FileOps;
 }): RouteModule {
-  const { adventureService, historyService, sessionRunner } = deps;
+  const { adventureService, historyService, sessionRunner, pluginRegistry, fileOps } = deps;
   const routes = new Hono();
 
   routes.get("/adventures", async (c) => {
@@ -95,24 +99,64 @@ export function createAdventureRoutes(deps: {
     // Append player message (REQ-MVP-16 step 1)
     await historyService.appendPlayerMessage(adventurePath, message);
 
-    // Assemble system prompt (REQ-MVP-12)
+    // Resolve plugins per-adventure (REQ-SYS-19)
+    const pluginPaths: string[] = pluginRegistry
+      ? pluginRegistry.corePlugins.map((p) => p.path)
+      : [];
+    let systemBootstrap: string | null = null;
+
+    if (pluginRegistry && fileOps) {
+      const adventureConfigPath = fileOps.resolvePath(adventurePath, "adventure.md");
+      let systemAlias: string | null = null;
+      if (await fileOps.fileExists(adventureConfigPath)) {
+        const content = await fileOps.readFile(adventureConfigPath);
+        const config = parseAdventureConfig(content);
+        systemAlias = config.system;
+        if (config.warning) {
+          console.warn(`[adventure-routes] ${id}: ${config.warning}`);
+        }
+      }
+
+      if (systemAlias) {
+        const systemPlugin = pluginRegistry.resolveSystem(systemAlias);
+        if (!systemPlugin) {
+          const available = pluginRegistry.availableAliases().join(", ");
+          return c.json({
+            error: `Adventure '${id}' declares system '${systemAlias}' but no matching plugin is installed. Available systems: ${available}.`,
+          }, 400);
+        }
+        pluginPaths.push(systemPlugin.path);
+
+        // Read bootstrap if declared (REQ-SYS-23)
+        if (systemPlugin.manifest.bootstrap) {
+          const bootstrapPath = fileOps.resolvePath(
+            systemPlugin.path,
+            systemPlugin.manifest.bootstrap,
+          );
+          if (await fileOps.fileExists(bootstrapPath)) {
+            systemBootstrap = await fileOps.readFile(bootstrapPath);
+          }
+        }
+      }
+    }
+
+    // Assemble system prompt (REQ-MVP-12, REQ-SYS-22)
     const systemPrompt = assembleSystemPrompt({
       character: adventure.character,
       world: adventure.world,
       history,
-      systemBootstrap: null,
+      systemBootstrap,
     });
 
     // Set up abort for client disconnect
     const abortController = new AbortController();
 
-    // Run the SDK query
-    // pluginPaths: [] is a temporary shim. Phase 3 replaces this with per-adventure resolution.
+    // Run the SDK query with per-adventure plugin paths (REQ-SYS-18)
     const queryResult = sessionRunner.runQuery({
       systemPrompt,
       playerMessage: message,
       adventurePath,
-      pluginPaths: [],
+      pluginPaths,
       abortController,
     });
 

@@ -10,6 +10,7 @@ import { createHealthRoutes } from "./routes/health-routes.js";
 import { createHelpRoutes } from "./registry.js";
 import { createHistoryService } from "./services/history-service.js";
 import { createSessionRunner, type QueryFn, type SessionRunner } from "./services/session-runner.js";
+import type { PluginRegistry } from "./services/plugin-registry.js";
 
 /** Production FileOps backed by node:fs/promises */
 function createRealFileOps(): FileOps {
@@ -46,7 +47,7 @@ function createRealFileOps(): FileOps {
 export interface AppConfig {
   corvranHome: string;
   adventuresPath: string;
-  pluginPaths: string[];
+  pluginsDir: string;
 }
 
 export function resolveConfig(): AppConfig {
@@ -54,12 +55,8 @@ export function resolveConfig(): AppConfig {
   const corvranHome = resolve(process.env.CORVRAN_HOME || `${home}/.corvran`);
   const adventuresPath = resolve(process.env.ADVENTURES_PATH || `${corvranHome}/adventures`);
   const repoRoot = process.cwd();
-  const pluginPaths = [
-    resolve(repoRoot, "plugins/corvran"),
-    resolve(repoRoot, "plugins/d20-system"),
-    resolve(repoRoot, "plugins/daggerheart-system"),
-  ];
-  return { corvranHome, adventuresPath, pluginPaths };
+  const pluginsDir = resolve(repoRoot, "plugins");
+  return { corvranHome, adventuresPath, pluginsDir };
 }
 
 export interface AppDeps {
@@ -67,6 +64,7 @@ export interface AppDeps {
   adventuresPath?: string;
   queryFn?: QueryFn;
   model?: string;
+  pluginRegistry?: PluginRegistry;
 }
 
 export function createApp(deps?: AppDeps): Hono {
@@ -95,6 +93,8 @@ export function createApp(deps?: AppDeps): Hono {
     adventureService,
     historyService,
     sessionRunner,
+    pluginRegistry: deps?.pluginRegistry,
+    fileOps,
   });
   const healthModule = createHealthRoutes();
 

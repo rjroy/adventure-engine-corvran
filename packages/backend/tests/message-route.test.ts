@@ -15,12 +15,46 @@ import {
   userWithToolResult,
 } from "./helpers/mock-query.js";
 import type { QueryFn } from "../src/services/session-runner.js";
+import type { PluginRegistry, PluginEntry } from "../src/services/plugin-registry.js";
 
 const ADVENTURES_ROOT = "/test/adventures";
+const PLUGINS_ROOT = "/test/plugins";
+
+/** Creates a mock plugin registry with corvran (core) + two system plugins */
+function createMockRegistry(): PluginRegistry {
+  const corvranEntry: PluginEntry = {
+    manifest: { name: "corvran", type: "core", aliases: ["corvran"] },
+    path: `${PLUGINS_ROOT}/corvran`,
+  };
+  const daggerheartEntry: PluginEntry = {
+    manifest: { name: "daggerheart-system", type: "system", aliases: ["daggerheart"], bootstrap: "bootstrap.md" },
+    path: `${PLUGINS_ROOT}/daggerheart-system`,
+  };
+  const d20Entry: PluginEntry = {
+    manifest: { name: "d20-system", type: "system", aliases: ["d20"], bootstrap: "bootstrap.md" },
+    path: `${PLUGINS_ROOT}/d20-system`,
+  };
+
+  const systemMap = new Map<string, PluginEntry>([
+    ["daggerheart", daggerheartEntry],
+    ["d20", d20Entry],
+  ]);
+
+  return {
+    corePlugins: [corvranEntry],
+    resolveSystem(alias: string): PluginEntry | null {
+      return systemMap.get(alias) ?? null;
+    },
+    availableAliases(): string[] {
+      return [...systemMap.keys()];
+    },
+  };
+}
 
 function buildTestApp(
   files: Record<string, string>,
   queryFn: QueryFn,
+  options?: { pluginRegistry?: PluginRegistry },
 ) {
   const fileOps = createMockFileOps(files);
   const adventureService = createAdventureService({ fileOps, adventuresPath: ADVENTURES_ROOT });
@@ -32,10 +66,14 @@ function buildTestApp(
     },
   });
 
+  const pluginRegistry = options?.pluginRegistry ?? createMockRegistry();
+
   const module = createAdventureRoutes({
     adventureService,
     historyService,
     sessionRunner,
+    pluginRegistry,
+    fileOps,
   });
 
   const app = new Hono();
@@ -384,5 +422,212 @@ describe("POST /adventures/:id/message", () => {
     // Should still work. The adventure exists even without character/world files.
     // getAdventure checks for directory existence. Our mock maps the directory by prefix.
     expect(res.status).toBe(200);
+  });
+});
+
+describe("POST /adventures/:id/message - plugin resolution (REQ-SYS-19)", () => {
+  test("adventure with system: daggerheart resolves corvran + daggerheart-system paths", async () => {
+    const capturedPlugins: Array<Array<{ type: string; path: string }>> = [];
+    const queryFn: QueryFn = (params) => {
+      if (params.options?.plugins) {
+        capturedPlugins.push(params.options.plugins as Array<{ type: string; path: string }>);
+      }
+      return createMockQueryFn([successResult("Response")])(params);
+    };
+
+    const { app } = buildTestApp(
+      {
+        [`${ADVENTURES_ROOT}/dh-quest/character.md`]: "Hero",
+        [`${ADVENTURES_ROOT}/dh-quest/adventure.md`]: "---\nsystem: daggerheart\n---\n",
+        [`${PLUGINS_ROOT}/daggerheart-system/bootstrap.md`]: "You are running Daggerheart.",
+      },
+      queryFn,
+    );
+
+    const res = await app.request("/adventures/dh-quest/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Hello" }),
+    });
+    await res.text();
+
+    expect(capturedPlugins.length).toBe(1);
+    const paths = capturedPlugins[0].map((p) => p.path);
+    expect(paths).toContain(`${PLUGINS_ROOT}/corvran`);
+    expect(paths).toContain(`${PLUGINS_ROOT}/daggerheart-system`);
+    expect(paths.length).toBe(2);
+  });
+
+  test("adventure with system: d20 resolves corvran + d20-system paths", async () => {
+    const capturedPlugins: Array<Array<{ type: string; path: string }>> = [];
+    const queryFn: QueryFn = (params) => {
+      if (params.options?.plugins) {
+        capturedPlugins.push(params.options.plugins as Array<{ type: string; path: string }>);
+      }
+      return createMockQueryFn([successResult("Response")])(params);
+    };
+
+    const { app } = buildTestApp(
+      {
+        [`${ADVENTURES_ROOT}/d20-quest/character.md`]: "Fighter",
+        [`${ADVENTURES_ROOT}/d20-quest/adventure.md`]: "---\nsystem: d20\n---\n",
+        [`${PLUGINS_ROOT}/d20-system/bootstrap.md`]: "You are running a d20 game.",
+      },
+      queryFn,
+    );
+
+    const res = await app.request("/adventures/d20-quest/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Hello" }),
+    });
+    await res.text();
+
+    expect(capturedPlugins.length).toBe(1);
+    const paths = capturedPlugins[0].map((p) => p.path);
+    expect(paths).toContain(`${PLUGINS_ROOT}/corvran`);
+    expect(paths).toContain(`${PLUGINS_ROOT}/d20-system`);
+    expect(paths.length).toBe(2);
+  });
+
+  test("adventure with no adventure.md resolves corvran only", async () => {
+    const capturedPlugins: Array<Array<{ type: string; path: string }>> = [];
+    const queryFn: QueryFn = (params) => {
+      if (params.options?.plugins) {
+        capturedPlugins.push(params.options.plugins as Array<{ type: string; path: string }>);
+      }
+      return createMockQueryFn([successResult("Response")])(params);
+    };
+
+    const { app } = buildTestApp(
+      { [`${ADVENTURES_ROOT}/freeform/character.md`]: "Wanderer" },
+      queryFn,
+    );
+
+    const res = await app.request("/adventures/freeform/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Hello" }),
+    });
+    await res.text();
+
+    expect(capturedPlugins.length).toBe(1);
+    const paths = capturedPlugins[0].map((p) => p.path);
+    expect(paths).toEqual([`${PLUGINS_ROOT}/corvran`]);
+  });
+
+  test("adventure with unknown system returns HTTP 400 (REQ-SYS-4)", async () => {
+    const queryFn = createMockQueryFn([successResult("ok")]);
+    const { app } = buildTestApp(
+      {
+        [`${ADVENTURES_ROOT}/bad-quest/character.md`]: "Hero",
+        [`${ADVENTURES_ROOT}/bad-quest/adventure.md`]: "---\nsystem: pathfinder\n---\n",
+      },
+      queryFn,
+    );
+
+    const res = await app.request("/adventures/bad-quest/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Hello" }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain("pathfinder");
+    expect(body.error).toContain("no matching plugin is installed");
+    expect(body.error).toContain("daggerheart");
+    expect(body.error).toContain("d20");
+  });
+});
+
+describe("POST /adventures/:id/message - bootstrap integration (REQ-SYS-23)", () => {
+  test("bootstrap content appears in system prompt when present", async () => {
+    const capturedPrompts: string[] = [];
+    const queryFn: QueryFn = (params) => {
+      if (params.options?.systemPrompt && typeof params.options.systemPrompt === "string") {
+        capturedPrompts.push(params.options.systemPrompt);
+      }
+      return createMockQueryFn([successResult("Response")])(params);
+    };
+
+    const { app } = buildTestApp(
+      {
+        [`${ADVENTURES_ROOT}/dh-quest/character.md`]: "Hero",
+        [`${ADVENTURES_ROOT}/dh-quest/adventure.md`]: "---\nsystem: daggerheart\n---\n",
+        [`${PLUGINS_ROOT}/daggerheart-system/bootstrap.md`]: "You are running a Daggerheart game. Duality Dice rule everything.",
+      },
+      queryFn,
+    );
+
+    const res = await app.request("/adventures/dh-quest/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Hello" }),
+    });
+    await res.text();
+
+    expect(capturedPrompts.length).toBe(1);
+    expect(capturedPrompts[0]).toContain("You are running a Daggerheart game");
+    expect(capturedPrompts[0]).toContain("Duality Dice rule everything");
+  });
+
+  test("bootstrap file missing from disk: graceful skip, no error", async () => {
+    const capturedPrompts: string[] = [];
+    const queryFn: QueryFn = (params) => {
+      if (params.options?.systemPrompt && typeof params.options.systemPrompt === "string") {
+        capturedPrompts.push(params.options.systemPrompt);
+      }
+      return createMockQueryFn([successResult("Response")])(params);
+    };
+
+    // adventure.md declares daggerheart, but bootstrap.md is missing from disk
+    const { app } = buildTestApp(
+      {
+        [`${ADVENTURES_ROOT}/dh-quest/character.md`]: "Hero",
+        [`${ADVENTURES_ROOT}/dh-quest/adventure.md`]: "---\nsystem: daggerheart\n---\n",
+      },
+      queryFn,
+    );
+
+    const res = await app.request("/adventures/dh-quest/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Hello" }),
+    });
+
+    expect(res.status).toBe(200);
+    await res.text();
+
+    // Should assemble prompt without bootstrap, no crash
+    expect(capturedPrompts.length).toBe(1);
+    expect(capturedPrompts[0]).toContain("Game Master");
+  });
+
+  test("no bootstrap for freeform adventures", async () => {
+    const capturedPrompts: string[] = [];
+    const queryFn: QueryFn = (params) => {
+      if (params.options?.systemPrompt && typeof params.options.systemPrompt === "string") {
+        capturedPrompts.push(params.options.systemPrompt);
+      }
+      return createMockQueryFn([successResult("Response")])(params);
+    };
+
+    const { app } = buildTestApp(
+      { [`${ADVENTURES_ROOT}/freeform/character.md`]: "Wanderer" },
+      queryFn,
+    );
+
+    const res = await app.request("/adventures/freeform/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Hello" }),
+    });
+    await res.text();
+
+    expect(capturedPrompts.length).toBe(1);
+    // Freeform: no bootstrap in prompt, should have generic onboarding since no world
+    expect(capturedPrompts[0]).not.toContain("Daggerheart");
+    expect(capturedPrompts[0]).not.toContain("d20 System");
   });
 });
