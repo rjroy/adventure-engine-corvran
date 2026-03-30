@@ -2,6 +2,7 @@ export interface AdventureState {
   character: string | null;
   world: string | null;
   history: string | null;
+  systemBootstrap: string | null;
 }
 
 /**
@@ -20,7 +21,11 @@ export function assembleSystemPrompt(state: AdventureState): string {
   const sections: string[] = [];
 
   // 1. Identity
-  sections.push("# Identity\n\nYou are the Game Master for a tabletop RPG adventure.");
+  let identity = "# Identity\n\nYou are the Game Master for a tabletop RPG adventure.";
+  if (state.systemBootstrap) {
+    identity += "\n\n" + state.systemBootstrap;
+  }
+  sections.push(identity);
 
   // 2. Principles
   sections.push(
@@ -44,7 +49,7 @@ export function assembleSystemPrompt(state: AdventureState): string {
   const missingCharacter = state.character === null;
   const missingWorld = state.world === null;
 
-  if (missingCharacter || missingWorld) {
+  if (!state.systemBootstrap && (missingCharacter || missingWorld)) {
     let missing: string;
     if (missingCharacter && missingWorld) {
       missing = "character or world";
@@ -71,9 +76,9 @@ export function assembleSystemPrompt(state: AdventureState): string {
   // 6. Instructions
   sections.push(
     "# Instructions\n\n" +
-    "Respond to the player's latest message. Use available skills for dice rolls, " +
-    "rules lookup, and GM techniques. When you roll dice or look up rules, include the " +
-    "meaningful result in your narrative (e.g., \"You rolled 14 + 3 = 17, a success!\") " +
+    "Respond to the player's latest message. Use the dice tool for rolls and " +
+    "available skills for rules lookup and GM techniques. When you roll dice or look up rules, " +
+    "include the meaningful result in your narrative (e.g., \"You rolled 14 + 3 = 17, a success!\") " +
     "but not the raw tool invocation."
   );
 

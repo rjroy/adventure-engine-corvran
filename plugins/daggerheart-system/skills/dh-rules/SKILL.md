@@ -208,7 +208,7 @@ Quick reference for which directory to search:
 ## Notes
 
 - The SRD contains only content released under the DPCGL; some published content may be excluded
-- Adversary files use individual markdown files per adversary (unlike d20's single large file)
+- Adversary files use individual markdown files, one per adversary
 - Domain cards are individual files in `abilities/` with domain indicated in content
 - File names may contain spaces; use quotes in paths when necessary
 - For quick lookups, `cat` the specific file; for broad searches, use `grep -ri`

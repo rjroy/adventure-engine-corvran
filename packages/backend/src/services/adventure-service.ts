@@ -1,5 +1,6 @@
 import type { AdventureListItem, AdventureDetail, HistoryResponse } from "@corvran/shared";
 import type { FileOps } from "../types.js";
+import { parseAdventureConfig } from "./adventure-config.js";
 
 export interface AdventureService {
   listAdventures(): Promise<AdventureListItem[]>;
@@ -35,12 +36,24 @@ export function createAdventureService(deps: {
       const hasWorld = await fileOps.fileExists(fileOps.resolvePath(adventurePath, "world.md"));
       const hasHistory = await fileOps.fileExists(fileOps.resolvePath(adventurePath, "history.md"));
 
+      let system: string | null = null;
+      const adventureConfigPath = fileOps.resolvePath(adventurePath, "adventure.md");
+      if (await fileOps.fileExists(adventureConfigPath)) {
+        const content = await fileOps.readFile(adventureConfigPath);
+        const config = parseAdventureConfig(content);
+        system = config.system;
+        if (config.warning) {
+          console.warn(`[adventure-service] ${entry}: ${config.warning}`);
+        }
+      }
+
       adventures.push({
         id: entry,
         name: entry,
         hasCharacter,
         hasWorld,
         hasHistory,
+        system,
       });
     }
 
@@ -69,7 +82,18 @@ export function createAdventureService(deps: {
     }
     const hasHistory = await fileOps.fileExists(historyPath);
 
-    return { id, name: id, character, world, hasHistory };
+    let system: string | null = null;
+    const adventureConfigPath = fileOps.resolvePath(adventurePath, "adventure.md");
+    if (await fileOps.fileExists(adventureConfigPath)) {
+      const content = await fileOps.readFile(adventureConfigPath);
+      const config = parseAdventureConfig(content);
+      system = config.system;
+      if (config.warning) {
+        console.warn(`[adventure-service] ${id}: ${config.warning}`);
+      }
+    }
+
+    return { id, name: id, character, world, hasHistory, system };
   }
 
   async function getHistory(id: string): Promise<HistoryResponse> {

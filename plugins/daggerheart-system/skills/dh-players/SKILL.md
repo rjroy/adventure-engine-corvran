@@ -169,7 +169,7 @@ Each Experience defines:
 
 Your character's starting **Evasion is determined by their class**. Copy this number into the Evasion field.
 
-Evasion can be modified by ancestry features, subclass features, armor, weapons, and magic items. **Evasion is NOT modified by traits** (unlike D&D AC).
+Evasion can be modified by ancestry features, subclass features, armor, weapons, and magic items. **Evasion is NOT modified by traits.**
 
 Attackers must meet or exceed your Evasion with their attack roll to hit you.
 
@@ -353,23 +353,19 @@ Daggerheart supports multiclassing, allowing characters to gain features from a 
 
 ## Rolling During Character Creation
 
-Use the dice-roller skill for any randomization:
+Use the mcp__corvran__roll_dice tool for any randomization:
 
 **Duality Dice for trait-related rolls**:
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "DdD+2"
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 12, "label": "hope" }, { "n": 1, "d": 12, "label": "fear" }], "modifier": 2 }
 ```
 
 **Standard dice for other purposes**:
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "1d6"
 ```
-
-## Fallback Without Dice Roller
-
-If the corvran dice-roller is unavailable, describe the required roll and ask the player for the result:
-
-> "Roll 2d12 for your Duality Dice and add your Agility modifier (+2). Tell me both die values and the total."
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 6 }] }
+```
 
 ## References
 

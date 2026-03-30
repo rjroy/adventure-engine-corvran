@@ -144,22 +144,27 @@ Load `references/npc-example.md` for a complete Goblin Warrior stat block with d
 
 ## Rolling Dice for HP and Damage
 
-Use the corvran dice-roller skill for randomized values:
+Use the mcp__corvran__roll_dice tool for randomized values:
 
-```bash
-# Roll HP for a creature with 3d8 + 6
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "3d8+6"
-
-# Roll damage for a longsword attack (1d8 + 3)
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "1d8+3"
-
-# Roll 2d6 for greatsword damage
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "2d6+4"
+**Roll HP for a creature with 3d8 + 6:**
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 3, "d": 8 }], "modifier": 6 }
 ```
 
-The dice roller outputs JSON with the total and individual rolls for narration.
+**Roll damage for a longsword attack (1d8 + 3):**
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 8 }], "modifier": 3 }
+```
 
-If the dice-roller skill is unavailable, describe the required roll and ask the player to provide the result.
+**Roll 2d6 for greatsword damage:**
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 2, "d": 6 }], "modifier": 4 }
+```
+
+The tool returns JSON with the total and individual rolls for narration.
 
 ## Common Stat Block Patterns
 

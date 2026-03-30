@@ -69,6 +69,7 @@ describe("listAdventures", () => {
       hasCharacter: true,
       hasWorld: true,
       hasHistory: true,
+      system: null,
     });
 
     const newAdv = result.find((a) => a.id === "new-adventure");
@@ -78,6 +79,7 @@ describe("listAdventures", () => {
       hasCharacter: true,
       hasWorld: true,
       hasHistory: false,
+      system: null,
     });
 
     const bare = result.find((a) => a.id === "bare-adventure");
@@ -87,6 +89,7 @@ describe("listAdventures", () => {
       hasCharacter: false,
       hasWorld: false,
       hasHistory: false,
+      system: null,
     });
   });
 });
@@ -110,6 +113,7 @@ describe("getAdventure", () => {
       character: "Brave hero",
       world: "Dark forest",
       hasHistory: false,
+      system: null,
     });
   });
 
@@ -130,6 +134,7 @@ describe("getAdventure", () => {
       character: null,
       world: null,
       hasHistory: false,
+      system: null,
     });
   });
 
@@ -151,6 +156,94 @@ describe("getAdventure", () => {
 
     const result = await service.getAdventure("../etc/passwd");
     expect(result).toBeNull();
+  });
+});
+
+describe("system field from adventure.md", () => {
+  test("listAdventures returns system from adventure.md", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/dh-quest/character.md`]: "Hero",
+      [`${ADVENTURES_ROOT}/dh-quest/adventure.md`]: "---\nsystem: daggerheart\n---\n\nA Daggerheart adventure.",
+    };
+
+    const service = createAdventureService({
+      fileOps: createMockFileOps(files),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const result = await service.listAdventures();
+    const quest = result.find((a) => a.id === "dh-quest");
+    expect(quest?.system).toBe("daggerheart");
+  });
+
+  test("getAdventure returns system from adventure.md", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/d20-quest/character.md`]: "Fighter",
+      [`${ADVENTURES_ROOT}/d20-quest/adventure.md`]: "---\nsystem: d20\n---\n",
+    };
+
+    const service = createAdventureService({
+      fileOps: createMockFileOps(files),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const result = await service.getAdventure("d20-quest");
+    expect(result?.system).toBe("d20");
+  });
+
+  test("returns system: null when adventure.md has no system field", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/nofield/adventure.md`]: "---\ntitle: My Quest\n---\n",
+      [`${ADVENTURES_ROOT}/nofield/.keep`]: "",
+    };
+
+    const service = createAdventureService({
+      fileOps: createMockFileOps(files),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const result = await service.getAdventure("nofield");
+    expect(result?.system).toBeNull();
+  });
+
+  test("logs warning for malformed adventure.md YAML (REQ-SYS-4a)", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/broken/adventure.md`]: "---\nsystem: daggerheart\n",
+      [`${ADVENTURES_ROOT}/broken/.keep`]: "",
+    };
+
+    const service = createAdventureService({
+      fileOps: createMockFileOps(files),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const warnings: string[] = [];
+    const origWarn = console.warn;
+    console.warn = (...args: unknown[]) => warnings.push(String(args[0]));
+    try {
+      const result = await service.listAdventures();
+      const broken = result.find((a) => a.id === "broken");
+      expect(broken?.system).toBeNull();
+      expect(warnings.length).toBeGreaterThan(0);
+      expect(warnings[0]).toContain("broken");
+      expect(warnings[0]).toContain("Malformed frontmatter");
+    } finally {
+      console.warn = origWarn;
+    }
+  });
+
+  test("returns system: null when no adventure.md exists", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/bare/.keep`]: "",
+    };
+
+    const service = createAdventureService({
+      fileOps: createMockFileOps(files),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const result = await service.getAdventure("bare");
+    expect(result?.system).toBeNull();
   });
 });
 

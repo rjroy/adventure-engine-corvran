@@ -63,8 +63,9 @@ Many domain cards require a Spellcast Roll. This is a standard Duality Dice acti
 
 ### Making a Spellcast Roll
 
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "DdD+[trait]"
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 12, "label": "hope" }, { "n": 1, "d": 12, "label": "fear" }], "modifier": [trait] }
 ```
 
 **Spellcast Trait**: Determined by your **subclass**, not class. Each subclass specifies which trait is used for all Spellcast Rolls. Guardian and Warrior subclasses have no Spellcast Trait (martial classes).

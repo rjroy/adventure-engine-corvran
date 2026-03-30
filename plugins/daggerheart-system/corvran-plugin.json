@@ -1,0 +1,6 @@
+{
+  "name": "daggerheart-system",
+  "type": "system",
+  "aliases": ["daggerheart"],
+  "bootstrap": "bootstrap.md"
+}
