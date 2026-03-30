@@ -7,8 +7,6 @@ export const AdventureListItemSchema = z.object({
   system: z.string().nullable(),
   concept: z.string().nullable(),
   characterName: z.string().nullable(),
-  hasCharacter: z.boolean(),    // kept until Phase 4 removes web references
-  hasWorld: z.boolean(),        // kept until Phase 4 removes web references
   hasHistory: z.boolean(),
   lastPlayed: z.string().nullable(),
 });

@@ -77,12 +77,15 @@ export function createAdventureRoutes(deps: {
 
     const { name, system, concept } = parsed.data;
 
-    if (system !== null && pluginRegistry) {
+    if (system !== null) {
+      if (!pluginRegistry) {
+        return c.json({ error: "System validation unavailable" }, 503);
+      }
       const resolved = pluginRegistry.resolveSystem(system);
       if (!resolved) {
         const available = pluginRegistry.availableSystems().map(s => s.alias).join(", ");
         return c.json({
-          error: `Unknown system "${system}". Available systems: ${available}`,
+          error: `System '${system}' is not installed. Available systems: ${available}.`,
         }, 400);
       }
     }

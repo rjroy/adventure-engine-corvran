@@ -5,7 +5,7 @@ import { slugify } from "./slugify.js";
 
 export class DuplicateAdventureError extends Error {
   constructor(slug: string) {
-    super(`Adventure directory "${slug}" already exists`);
+    super("An adventure with this name already exists.");
     this.name = "DuplicateAdventureError";
   }
 }
@@ -70,7 +70,6 @@ export function createAdventureService(deps: {
       const historyPath = fileOps.resolvePath(adventurePath, "history.md");
 
       const hasCharacter = await fileOps.fileExists(characterPath);
-      const hasWorld = await fileOps.fileExists(fileOps.resolvePath(adventurePath, "world.md"));
       const hasHistory = await fileOps.fileExists(historyPath);
 
       let system: string | null = null;
@@ -95,8 +94,6 @@ export function createAdventureService(deps: {
       adventures.push({
         id: entry,
         name: configName || entry,
-        hasCharacter,
-        hasWorld,
         hasHistory,
         system,
         concept,
@@ -177,7 +174,7 @@ export function createAdventureService(deps: {
 
     // Build adventure.md content
     let content = "---\n";
-    content += `name: "${params.name}"\n`;
+    content += `name: ${params.name}\n`;
     if (params.system !== null) {
       content += `system: ${params.system}\n`;
     }
@@ -192,8 +189,6 @@ export function createAdventureService(deps: {
     return {
       id: slug,
       name: params.name,
-      hasCharacter: false,
-      hasWorld: false,
       hasHistory: false,
       system: params.system,
       concept: params.concept,

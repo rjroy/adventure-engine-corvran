@@ -33,7 +33,7 @@ describe("GET /systems", () => {
     expect(body.systems[1]).toEqual({ alias: "daggerheart", description: "Hope and fear drive the story" });
   });
 
-  test("excludes core plugins (only systems returned)", async () => {
+  test("returns systems from registry regardless of core plugins", async () => {
     const registry: PluginRegistry = {
       corePlugins: [{ manifest: { name: "corvran", type: "core", alias: "corvran" }, path: "/plugins/corvran" }],
       resolveSystem: () => null,

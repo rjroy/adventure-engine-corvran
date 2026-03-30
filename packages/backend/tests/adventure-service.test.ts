@@ -62,8 +62,6 @@ describe("listAdventures", () => {
     expect(full).toEqual({
       id: "full-adventure",
       name: "full-adventure",
-      hasCharacter: true,
-      hasWorld: true,
       hasHistory: true,
       system: null,
       concept: null,
@@ -75,8 +73,6 @@ describe("listAdventures", () => {
     expect(newAdv).toEqual({
       id: "new-adventure",
       name: "new-adventure",
-      hasCharacter: true,
-      hasWorld: true,
       hasHistory: false,
       system: null,
       concept: null,
@@ -88,8 +84,6 @@ describe("listAdventures", () => {
     expect(bare).toEqual({
       id: "bare-adventure",
       name: "bare-adventure",
-      hasCharacter: false,
-      hasWorld: false,
       hasHistory: false,
       system: null,
       concept: null,

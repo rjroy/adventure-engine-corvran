@@ -45,13 +45,9 @@ describe("GET /adventures", () => {
     expect(body.adventures).toHaveLength(2);
 
     const full = body.adventures.find((a: { id: string }) => a.id === "full");
-    expect(full.hasCharacter).toBe(true);
-    expect(full.hasWorld).toBe(true);
     expect(full.hasHistory).toBe(true);
 
     const partial = body.adventures.find((a: { id: string }) => a.id === "partial");
-    expect(partial.hasCharacter).toBe(false);
-    expect(partial.hasWorld).toBe(true);
     expect(partial.hasHistory).toBe(false);
   });
 

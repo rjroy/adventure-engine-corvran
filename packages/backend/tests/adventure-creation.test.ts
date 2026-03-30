@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { createApp } from "../src/app.js";
-import { createMockFileOps } from "./helpers/mock-file-ops.js";
+import { createMockFileOps, type MockFileOps } from "./helpers/mock-file-ops.js";
 import type { PluginRegistry } from "../src/services/plugin-registry.js";
 
 const ADVENTURES_ROOT = "/test/adventures";
@@ -34,16 +34,17 @@ function createMockPluginRegistry(): PluginRegistry {
 
 function buildApp(files: Record<string, string> = {}) {
   const fileOps = createMockFileOps(files);
-  return createApp({
+  const app = createApp({
     fileOps,
     adventuresPath: ADVENTURES_ROOT,
     pluginRegistry: createMockPluginRegistry(),
   });
+  return { app, fileOps };
 }
 
 describe("POST /adventures", () => {
   test("creates adventure with system and concept (201)", async () => {
-    const app = buildApp();
+    const { app, fileOps } = buildApp();
 
     const res = await app.request("/adventures", {
       method: "POST",
@@ -61,15 +62,64 @@ describe("POST /adventures", () => {
     expect(body.adventure.name).toBe("The Healer's Burden");
     expect(body.adventure.system).toBe("d20");
     expect(body.adventure.concept).toBe("A story about a reluctant healer.");
-    expect(body.adventure.hasCharacter).toBe(false);
-    expect(body.adventure.hasWorld).toBe(false);
     expect(body.adventure.hasHistory).toBe(false);
     expect(body.adventure.characterName).toBeNull();
     expect(body.adventure.lastPlayed).toBeNull();
   });
 
+  test("writes correct adventure.md for system + concept", async () => {
+    const { app, fileOps } = buildApp();
+
+    await app.request("/adventures", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "The Healer's Burden",
+        system: "d20",
+        concept: "A story about a reluctant healer.",
+      }),
+    });
+
+    const content = fileOps.getStore().get(`${ADVENTURES_ROOT}/the-healers-burden/adventure.md`);
+    expect(content).toBe("---\nname: The Healer's Burden\nsystem: d20\n---\n\nA story about a reluctant healer.\n");
+  });
+
+  test("writes correct adventure.md for freeform with concept", async () => {
+    const { app, fileOps } = buildApp();
+
+    await app.request("/adventures", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Free Roam",
+        system: null,
+        concept: "Explore the wilds.",
+      }),
+    });
+
+    const content = fileOps.getStore().get(`${ADVENTURES_ROOT}/free-roam/adventure.md`);
+    expect(content).toBe("---\nname: Free Roam\n---\n\nExplore the wilds.\n");
+  });
+
+  test("writes correct adventure.md for freeform without concept", async () => {
+    const { app, fileOps } = buildApp();
+
+    await app.request("/adventures", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Free Roam",
+        system: null,
+        concept: null,
+      }),
+    });
+
+    const content = fileOps.getStore().get(`${ADVENTURES_ROOT}/free-roam/adventure.md`);
+    expect(content).toBe("---\nname: Free Roam\n---\n");
+  });
+
   test("creates freeform adventure with null system (201)", async () => {
-    const app = buildApp();
+    const { app } = buildApp();
 
     const res = await app.request("/adventures", {
       method: "POST",
@@ -89,7 +139,7 @@ describe("POST /adventures", () => {
   });
 
   test("creates adventure with null concept (201)", async () => {
-    const app = buildApp();
+    const { app } = buildApp();
 
     const res = await app.request("/adventures", {
       method: "POST",
@@ -108,7 +158,7 @@ describe("POST /adventures", () => {
   });
 
   test("returns 400 for invalid system alias", async () => {
-    const app = buildApp();
+    const { app } = buildApp();
 
     const res = await app.request("/adventures", {
       method: "POST",
@@ -128,7 +178,7 @@ describe("POST /adventures", () => {
   });
 
   test("returns 409 for duplicate slug", async () => {
-    const app = buildApp({
+    const { app } = buildApp({
       [`${ADVENTURES_ROOT}/my-quest/adventure.md`]: "---\nname: My Quest\n---\n",
     });
 
@@ -144,11 +194,11 @@ describe("POST /adventures", () => {
 
     expect(res.status).toBe(409);
     const body = await res.json();
-    expect(body.error).toContain("already exists");
+    expect(body.error).toBe("An adventure with this name already exists.");
   });
 
   test("returns 400 for missing name", async () => {
-    const app = buildApp();
+    const { app } = buildApp();
 
     const res = await app.request("/adventures", {
       method: "POST",
@@ -163,7 +213,7 @@ describe("POST /adventures", () => {
   });
 
   test("returns 400 for empty name", async () => {
-    const app = buildApp();
+    const { app } = buildApp();
 
     const res = await app.request("/adventures", {
       method: "POST",
