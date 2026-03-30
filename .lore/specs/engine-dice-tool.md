@@ -1,7 +1,7 @@
 ---
 title: Engine Dice Tool
 date: 2026-03-29
-status: draft
+status: approved
 tags: [dice, mcp, engine-tool, session-runner, agent-sdk]
 modules: [backend]
 related: [.lore/brainstorm/rpg-system-loading.md, .lore/specs/mvp.md]
