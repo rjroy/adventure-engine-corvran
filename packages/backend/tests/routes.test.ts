@@ -54,6 +54,38 @@ describe("GET /adventures", () => {
     expect(partial.hasWorld).toBe(true);
     expect(partial.hasHistory).toBe(false);
   });
+
+  test("returns new fields (concept, characterName, lastPlayed) through HTTP", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/rich/adventure.md`]:
+        '---\nname: "The Rich Quest"\nsystem: d20\n---\n\nA quest of riches.',
+      [`${ADVENTURES_ROOT}/rich/character.md`]: "# Goldheart\nA wealthy adventurer",
+      [`${ADVENTURES_ROOT}/rich/history.md`]: "Some history",
+    };
+
+    const fileOps = createMockFileOps(files);
+    fileOps.setMtime(`${ADVENTURES_ROOT}/rich/history.md`, new Date("2026-03-20T14:00:00.000Z"));
+
+    const adventureService = createAdventureService({ fileOps, adventuresPath: ADVENTURES_ROOT });
+    const adventureModule = createAdventureRoutes({ adventureService });
+    const healthModule = createHealthRoutes();
+    const helpModule = createHelpRoutes([adventureModule, healthModule]);
+
+    const app = new Hono();
+    app.route("/", adventureModule.routes);
+    app.route("/", healthModule.routes);
+    app.route("/", helpModule.routes);
+
+    const res = await app.request("/adventures");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    const rich = body.adventures.find((a: { id: string }) => a.id === "rich");
+    expect(rich.name).toBe("The Rich Quest");
+    expect(rich.concept).toBe("A quest of riches.");
+    expect(rich.characterName).toBe("Goldheart");
+    expect(rich.lastPlayed).toBe("2026-03-20T14:00:00.000Z");
+    expect(rich.system).toBe("d20");
+  });
 });
 
 describe("GET /adventures/:id", () => {

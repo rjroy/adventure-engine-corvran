@@ -296,6 +296,39 @@ describe("getAdventure", () => {
     expect(result).toBeNull();
   });
 
+  test("returns frontmatter name over directory name", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/the-healers-burden/adventure.md`]:
+        '---\nname: "The Healer\'s Burden"\nsystem: d20\n---\n\nA story of sacrifice.',
+      [`${ADVENTURES_ROOT}/the-healers-burden/.keep`]: "",
+    };
+
+    const service = createAdventureService({
+      fileOps: createMockFileOps(files),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const result = await service.getAdventure("the-healers-burden");
+    expect(result?.name).toBe("The Healer's Burden");
+    expect(result?.concept).toBe("A story of sacrifice.");
+    expect(result?.system).toBe("d20");
+  });
+
+  test("returns directory name when no frontmatter name", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/old-quest/adventure.md`]: "---\nsystem: d20\n---\n",
+      [`${ADVENTURES_ROOT}/old-quest/.keep`]: "",
+    };
+
+    const service = createAdventureService({
+      fileOps: createMockFileOps(files),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const result = await service.getAdventure("old-quest");
+    expect(result?.name).toBe("old-quest");
+  });
+
   test("returns concept from adventure.md", async () => {
     const files: Record<string, string> = {
       [`${ADVENTURES_ROOT}/concept-quest/adventure.md`]:

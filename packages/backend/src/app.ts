@@ -11,6 +11,7 @@ import { createHelpRoutes } from "./registry.js";
 import { createHistoryService } from "./services/history-service.js";
 import { createSessionRunner, type QueryFn, type SessionRunner } from "./services/session-runner.js";
 import type { PluginRegistry } from "./services/plugin-registry.js";
+import { createSystemRoutes } from "./routes/system-routes.js";
 
 /** Production FileOps backed by node:fs/promises */
 function createRealFileOps(): FileOps {
@@ -107,6 +108,12 @@ export function createApp(deps?: AppDeps): Hono {
   const healthModule = createHealthRoutes();
 
   const contentModules: RouteModule[] = [adventureModule, healthModule];
+
+  if (deps?.pluginRegistry) {
+    const systemModule = createSystemRoutes({ pluginRegistry: deps.pluginRegistry });
+    contentModules.push(systemModule);
+  }
+
   const helpModule = createHelpRoutes(contentModules);
 
   const app = new Hono();

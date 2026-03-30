@@ -1,6 +1,14 @@
 import type { AdventureListItem, AdventureDetail, HistoryResponse } from "@corvran/shared";
 import type { FileOps } from "../types.js";
 import { parseAdventureConfig } from "./adventure-config.js";
+import { slugify } from "./slugify.js";
+
+export class DuplicateAdventureError extends Error {
+  constructor(slug: string) {
+    super(`Adventure directory "${slug}" already exists`);
+    this.name = "DuplicateAdventureError";
+  }
+}
 
 export interface AdventureService {
   listAdventures(): Promise<AdventureListItem[]>;
@@ -8,6 +16,11 @@ export interface AdventureService {
   getHistory(id: string): Promise<HistoryResponse>;
   getAdventurePath(id: string): string;
   isValidAdventureId(id: string): boolean;
+  createAdventure(params: {
+    name: string;
+    system: string | null;
+    concept: string | null;
+  }): Promise<AdventureListItem>;
 }
 
 export function createAdventureService(deps: {
@@ -119,18 +132,20 @@ export function createAdventureService(deps: {
 
     let system: string | null = null;
     let concept: string | null = null;
+    let configName: string | null = null;
     const adventureConfigPath = fileOps.resolvePath(adventurePath, "adventure.md");
     if (await fileOps.fileExists(adventureConfigPath)) {
       const content = await fileOps.readFile(adventureConfigPath);
       const config = parseAdventureConfig(content);
       system = config.system;
       concept = config.concept;
+      configName = config.name;
       if (config.warning) {
         console.warn(`[adventure-service] ${id}: ${config.warning}`);
       }
     }
 
-    return { id, name: id, character, world, hasHistory, system, concept };
+    return { id, name: configName || id, character, world, hasHistory, system, concept };
   }
 
   async function getHistory(id: string): Promise<HistoryResponse> {
@@ -148,5 +163,47 @@ export function createAdventureService(deps: {
     return fileOps.resolvePath(adventuresPath, id);
   }
 
-  return { listAdventures, getAdventure, getHistory, getAdventurePath, isValidAdventureId };
+  async function createAdventure(params: {
+    name: string;
+    system: string | null;
+    concept: string | null;
+  }): Promise<AdventureListItem> {
+    const slug = slugify(params.name);
+    const adventurePath = fileOps.resolvePath(adventuresPath, slug);
+
+    if (await fileOps.fileExists(adventurePath)) {
+      throw new DuplicateAdventureError(slug);
+    }
+
+    // Build adventure.md content
+    let content = "---\n";
+    content += `name: "${params.name}"\n`;
+    if (params.system !== null) {
+      content += `system: ${params.system}\n`;
+    }
+    content += "---\n";
+    if (params.concept !== null) {
+      content += `\n${params.concept}\n`;
+    }
+
+    const configPath = fileOps.resolvePath(adventurePath, "adventure.md");
+    await fileOps.writeFile(configPath, content);
+
+    return {
+      id: slug,
+      name: params.name,
+      hasCharacter: false,
+      hasWorld: false,
+      hasHistory: false,
+      system: params.system,
+      concept: params.concept,
+      characterName: null,
+      lastPlayed: null,
+    };
+  }
+
+  return {
+    listAdventures, getAdventure, getHistory, getAdventurePath,
+    isValidAdventureId, createAdventure,
+  };
 }

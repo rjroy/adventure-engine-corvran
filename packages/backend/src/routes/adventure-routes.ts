@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
-import { MessageRequestSchema } from "@corvran/shared";
-import type { AdventureService } from "../services/adventure-service.js";
+import { MessageRequestSchema, CreateAdventureRequestSchema } from "@corvran/shared";
+import { type AdventureService, DuplicateAdventureError } from "../services/adventure-service.js";
 import type { HistoryService } from "../services/history-service.js";
 import type { SessionRunner } from "../services/session-runner.js";
 import type { PluginRegistry } from "../services/plugin-registry.js";
@@ -60,6 +60,42 @@ export function createAdventureRoutes(deps: {
 
     const history = await adventureService.getHistory(id);
     return c.json(history);
+  });
+
+  routes.post("/adventures", async (c) => {
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "Invalid JSON body" }, 400);
+    }
+
+    const parsed = CreateAdventureRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: "Name is required (1-100 chars). Concept max 1000 chars." }, 400);
+    }
+
+    const { name, system, concept } = parsed.data;
+
+    if (system !== null && pluginRegistry) {
+      const resolved = pluginRegistry.resolveSystem(system);
+      if (!resolved) {
+        const available = pluginRegistry.availableSystems().map(s => s.alias).join(", ");
+        return c.json({
+          error: `Unknown system "${system}". Available systems: ${available}`,
+        }, 400);
+      }
+    }
+
+    try {
+      const adventure = await adventureService.createAdventure({ name, system, concept });
+      return c.json({ adventure }, 201);
+    } catch (err) {
+      if (err instanceof DuplicateAdventureError) {
+        return c.json({ error: err.message }, 409);
+      }
+      throw err;
+    }
   });
 
   routes.post("/adventures/:id/message", async (c) => {
@@ -281,6 +317,15 @@ export function createAdventureRoutes(deps: {
         { name: "id", in: "path", required: true, description: "Adventure directory name" },
       ],
       idempotent: true,
+    },
+    {
+      operationId: "adventures.create",
+      name: "create",
+      description: "Create a new adventure",
+      invocation: { method: "POST", path: "/adventures" },
+      hierarchy: { root: "adventures", feature: "creation" },
+      requestSchema: CreateAdventureRequestSchema,
+      idempotent: false,
     },
     {
       operationId: "adventures.message.send",
