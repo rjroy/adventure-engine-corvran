@@ -194,7 +194,7 @@ To take a level in a new class:
 
 ## Rolling During Character Creation
 
-Use the dice-roller skill for all randomization:
+Use the mcp__corvran__roll_dice tool for all randomization:
 
 **Ability Score (4d6 drop lowest)**:
 ```

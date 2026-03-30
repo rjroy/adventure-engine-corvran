@@ -184,7 +184,7 @@ The Leader stays protected, Rally buffs the group, Bandits deal damage, Minions 
 
 ## Rolling Damage
 
-Use the corvran dice-roller skill for attack resolution:
+Use the mcp__corvran__roll_dice tool for attack resolution:
 
 **Rolling Corrupted Blade damage:**
 ```

@@ -353,7 +353,7 @@ Daggerheart supports multiclassing, allowing characters to gain features from a 
 
 ## Rolling During Character Creation
 
-Use the dice-roller skill for any randomization:
+Use the mcp__corvran__roll_dice tool for any randomization:
 
 **Duality Dice for trait-related rolls**:
 ```

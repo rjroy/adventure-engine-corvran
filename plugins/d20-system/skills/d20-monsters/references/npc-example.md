@@ -127,7 +127,7 @@ A goblin leader with better equipment and more Hit Dice:
 
 ## Rolling HP and Damage
 
-Use the corvran dice-roller skill for randomized rolls:
+Use the mcp__corvran__roll_dice tool for randomized rolls:
 
 **Rolling Goblin HP:**
 ```

@@ -34,10 +34,11 @@ Spell Attack Modifier = Proficiency Bonus + Spellcasting Ability Modifier
 **Example**: Same level 5 Wizard with Intelligence 18.
 - Spell Attack Modifier = 3 + 4 = **+7**
 
-To make a spell attack, use the dice-roller skill:
+To make a spell attack, Use the mcp__corvran__roll_dice tool:
 
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/dice-roller/scripts/roll.sh" "1d20+7"
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 20 }], "modifier": 7 }
 ```
 
 Compare the result against the target's Armor Class (AC).
@@ -113,8 +114,9 @@ Maximum DC is 30 (from 60+ damage).
 
 Roll the concentration save:
 
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/dice-roller/scripts/roll.sh" "1d20+2"
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 20 }], "modifier": 2 }
 ```
 
 (Assuming Constitution save modifier of +2)
@@ -126,17 +128,19 @@ If the save fails, the spell ends immediately.
 When a spell requires an attack roll:
 
 1. **Calculate modifier**: Proficiency Bonus + Spellcasting Ability Modifier
-2. **Roll attack**: Use dice-roller with `1d20+[modifier]`
+2. **Roll attack**: Use the mcp__corvran__roll_dice tool with `1d20+[modifier]`
 3. **Compare to AC**: Meet or exceed target's AC to hit
 4. **Roll damage**: If hit, roll damage dice specified by the spell
 
 **Example**: Casting Chromatic Orb (ranged spell attack, 3d8 damage)
 
-```bash
+```
 # Attack roll with +7 modifier
-bash "${CLAUDE_PLUGIN_ROOT}/skills/dice-roller/scripts/roll.sh" "1d20+7"
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 20 }], "modifier": 7 }
 # If result >= target AC, roll damage
-bash "${CLAUDE_PLUGIN_ROOT}/skills/dice-roller/scripts/roll.sh" "3d8"
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 3, "d": 8 }] }
 ```
 
 ## Saving Throw Spells

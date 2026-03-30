@@ -144,7 +144,7 @@ Load `references/npc-example.md` for a complete Goblin Warrior stat block with d
 
 ## Rolling Dice for HP and Damage
 
-Use the corvran dice-roller skill for randomized values:
+Use the mcp__corvran__roll_dice tool for randomized values:
 
 **Roll HP for a creature with 3d8 + 6:**
 ```
