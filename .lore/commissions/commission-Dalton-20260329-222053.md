@@ -1,0 +1,24 @@
+---
+title: "Commission: Clean Up Comparative Framing in Daggerheart Skill Files"
+date: 2026-03-30
+status: dispatched
+type: one-shot
+tags: [commission]
+worker: Dalton
+workerDisplayTitle: "Guild Artificer"
+prompt: "Thorne's final review of the Adventure System Integration flagged three Daggerheart skill files with comparative framing that references other game systems. This violates the spirit of REQ-SYS-12 (bootstrap prompts must be self-contained, no comparative framing). While REQ-SYS-12 technically targets only bootstrap files, the same principle applies to skill files: each system should stand on its own terms.\n\n## Files and locations\n\n1. **`plugins/daggerheart-system/skills/dh-combat/SKILL.md`** (line 9): Contains \"Unlike d20-style initiative\" or similar comparative framing\n2. **`plugins/daggerheart-system/skills/dh-players/SKILL.md`** (line 172): Contains \"unlike D&D AC\" or similar\n3. **`plugins/daggerheart-system/skills/dh-rules/SKILL.md`** (line 211): Contains \"unlike d20's single large file\" or similar\n\n## What to do\n\nRead each file, find the comparative references, and rewrite them to describe Daggerheart mechanics on their own terms without mentioning other systems.\n\n**The pattern**: Replace \"Unlike X in [other system]\" with a positive description of how Daggerheart works. For example:\n- \"Unlike d20-style initiative, spotlight flows from action outcomes\" → \"Spotlight flows from action outcomes\"\n- \"Unlike D&D AC, Evasion works as...\" → \"Evasion is the target number for attacks...\"\n\nDo a broader grep across all Daggerheart skill files to catch any other comparative references Thorne might have missed:\n\n```bash\ngrep -rni 'd&d\\|d20\\|pathfinder\\|fate\\|dungeons' plugins/daggerheart-system/skills/\n```\n\nFix all instances found, not just the three flagged.\n\n## Verification\n\nAfter cleanup:\n```bash\ngrep -rni 'd&d\\|d20\\|pathfinder\\|fate\\|dungeons' plugins/daggerheart-system/skills/\n```\n\nExpected: zero matches.\n\nAlso check the d20 system skills for any reverse references:\n```bash\ngrep -rni 'daggerheart\\|duality\\|hope.*fear\\|spotlight' plugins/d20-system/skills/\n```\n\nFix any found there too. Each system should be self-contained."
+dependencies: []
+linked_artifacts: []
+
+activity_timeline:
+  - timestamp: 2026-03-30T05:20:53.157Z
+    event: created
+    reason: "Commission created"
+  - timestamp: 2026-03-30T05:20:53.159Z
+    event: status_dispatched
+    reason: "Dispatched to worker"
+    from: "pending"
+    to: "dispatched"
+current_progress: ""
+projectName: corvran
+---
