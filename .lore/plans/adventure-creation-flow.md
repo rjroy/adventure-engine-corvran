@@ -1,7 +1,7 @@
 ---
 title: "Implementation plan: adventure-creation-flow"
 date: 2026-03-30
-status: approved
+status: executed
 tags: [plan, adventure-creation, lobby, onboarding, plugin-manifest, api, ux]
 modules: [backend, shared, web]
 related: [.lore/specs/adventure-creation-flow.md, .lore/plans/adventure-system-integration.md, .lore/reference/architecture-pattern.md]
