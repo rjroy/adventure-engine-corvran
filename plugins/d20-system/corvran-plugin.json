@@ -1,0 +1,6 @@
+{
+  "name": "d20-system",
+  "type": "system",
+  "aliases": ["d20"],
+  "bootstrap": "bootstrap.md"
+}
