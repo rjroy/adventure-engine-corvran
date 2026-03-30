@@ -6,7 +6,7 @@ version: 1.0.0
 
 # Daggerheart Combat Management Skill
 
-Use this skill to guide Daggerheart combat encounters. Unlike d20-style initiative, Daggerheart uses spotlight flow where the GM takes action when player rolls result in Fear or failure. The Hope/Fear token economy creates narrative tension between player momentum and GM opportunity.
+Use this skill to guide Daggerheart combat encounters. Daggerheart uses spotlight flow instead of fixed initiative: the GM takes action when player rolls result in Fear or failure. The Hope/Fear token economy creates narrative tension between player momentum and GM opportunity.
 
 **Authoritative Source**: For exact rule wording, use the `dh-rules` skill to reference `srd/contents/Combat.md`, `srd/contents/Making Moves and Taking Action.md`, and `srd/contents/Death.md`.
 

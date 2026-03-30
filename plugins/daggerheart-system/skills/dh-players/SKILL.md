@@ -169,7 +169,7 @@ Each Experience defines:
 
 Your character's starting **Evasion is determined by their class**. Copy this number into the Evasion field.
 
-Evasion can be modified by ancestry features, subclass features, armor, weapons, and magic items. **Evasion is NOT modified by traits** (unlike D&D AC).
+Evasion can be modified by ancestry features, subclass features, armor, weapons, and magic items. **Evasion is NOT modified by traits.**
 
 Attackers must meet or exceed your Evasion with their attack roll to hit you.
 
