@@ -4,10 +4,13 @@ import { z } from "zod";
 export const AdventureListItemSchema = z.object({
   id: z.string(),
   name: z.string(),
-  hasCharacter: z.boolean(),
-  hasWorld: z.boolean(),
-  hasHistory: z.boolean(),
   system: z.string().nullable(),
+  concept: z.string().nullable(),
+  characterName: z.string().nullable(),
+  hasCharacter: z.boolean(),    // kept until Phase 4 removes web references
+  hasWorld: z.boolean(),        // kept until Phase 4 removes web references
+  hasHistory: z.boolean(),
+  lastPlayed: z.string().nullable(),
 });
 
 // Response from GET /adventures
@@ -23,6 +26,7 @@ export const AdventureDetailSchema = z.object({
   world: z.string().nullable(),
   hasHistory: z.boolean(),
   system: z.string().nullable(),
+  concept: z.string().nullable(),
 });
 
 // Request body for POST /adventures/:id/message
@@ -58,4 +62,25 @@ export const DoneEventSchema = z.object({
 
 export const ErrorEventSchema = z.object({
   error: z.string(),
+});
+
+// System info for GET /systems (Phase 3)
+export const SystemInfoSchema = z.object({
+  alias: z.string(),
+  description: z.string(),
+});
+
+export const SystemsResponseSchema = z.object({
+  systems: z.array(SystemInfoSchema),
+});
+
+// Adventure creation (Phase 3)
+export const CreateAdventureRequestSchema = z.object({
+  name: z.string().min(1).max(100),
+  system: z.string().nullable(),
+  concept: z.string().max(1000).nullable(),
+});
+
+export const CreateAdventureResponseSchema = z.object({
+  adventure: AdventureListItemSchema,
 });

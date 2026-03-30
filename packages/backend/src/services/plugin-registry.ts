@@ -33,7 +33,7 @@ function isValidManifest(
   const obj = data as Record<string, unknown>;
   if (typeof obj.name !== "string") return false;
   if (obj.type !== "core" && obj.type !== "system") return false;
-  if (typeof obj.alias !== "string") return false;
+  if (typeof obj.alias !== "string" || obj.alias === "") return false;
   return true;
 }
 
@@ -93,6 +93,19 @@ export async function buildPluginRegistry(
     aliasMap.set(parsed.alias, entry);
   }
 
+  // Pre-compute available systems at startup so the warning fires once, not on every call
+  const systems: SystemInfo[] = [];
+  for (const [alias, entry] of aliasMap) {
+    if (entry.manifest.type !== "system") continue;
+    if (!entry.manifest.description) {
+      warn(
+        `[plugin-registry] System plugin "${entry.manifest.name}" has no description, excluded from system picker`,
+      );
+      continue;
+    }
+    systems.push({ alias, description: entry.manifest.description });
+  }
+
   return {
     corePlugins,
     resolveSystem(alias: string): PluginEntry | null {
@@ -101,17 +114,6 @@ export async function buildPluginRegistry(
       return entry;
     },
     availableSystems(): SystemInfo[] {
-      const systems: SystemInfo[] = [];
-      for (const [alias, entry] of aliasMap) {
-        if (entry.manifest.type !== "system") continue;
-        if (!entry.manifest.description) {
-          warn(
-            `[plugin-registry] System plugin "${entry.manifest.name}" has no description, excluded from system picker`,
-          );
-          continue;
-        }
-        systems.push({ alias, description: entry.manifest.description });
-      }
       return systems;
     },
   };

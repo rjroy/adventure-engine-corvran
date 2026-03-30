@@ -38,6 +38,14 @@ function createRealFileOps(): FileOps {
         return false;
       }
     },
+    async stat(path: string): Promise<{ mtime: Date } | null> {
+      try {
+        const s = await stat(path);
+        return { mtime: s.mtime };
+      } catch {
+        return null;
+      }
+    },
     resolvePath(...segments: string[]): string {
       return resolve(...segments);
     },

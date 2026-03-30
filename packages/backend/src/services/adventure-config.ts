@@ -1,22 +1,26 @@
 export interface AdventureConfig {
   system: string | null;
+  name: string | null;
+  concept: string | null;
   warning?: string;
 }
 
 /**
- * Extracts the `system` field from adventure.md YAML frontmatter.
- * Returns system: null on any parse failure (REQ-SYS-4a).
- * Uses regex-based parsing since the frontmatter has a single mechanical field.
+ * Extracts system, name, and concept from adventure.md.
+ * Frontmatter fields (system, name) come from YAML between --- delimiters.
+ * Concept is the body text after the closing --- delimiter.
+ * If no frontmatter exists, the entire content is treated as concept.
  */
 export function parseAdventureConfig(content: string): AdventureConfig {
   if (!content || !content.startsWith("---")) {
-    return { system: null };
+    const trimmed = content?.trim() || null;
+    return { system: null, name: null, concept: trimmed || null };
   }
 
   // Find closing delimiter: must be on its own line after the opening ---
   const afterOpening = content.indexOf("\n");
   if (afterOpening === -1) {
-    return { system: null };
+    return { system: null, name: null, concept: null };
   }
 
   const rest = content.slice(afterOpening + 1);
@@ -24,17 +28,25 @@ export function parseAdventureConfig(content: string): AdventureConfig {
   if (closingIndex === -1) {
     return {
       system: null,
+      name: null,
+      concept: null,
       warning: "Malformed frontmatter: missing closing delimiter",
     };
   }
 
   const frontmatter = rest.slice(0, closingIndex);
 
-  // Extract system field via regex. Handles `system: value` and `system: "value"`
-  const match = frontmatter.match(/^system:\s*"?([^"\n]*)"?\s*$/m);
-  if (!match || !match[1] || match[1].trim() === "") {
-    return { system: null };
-  }
+  // Extract system field
+  const systemMatch = frontmatter.match(/^system:\s*"?([^"\n]*)"?\s*$/m);
+  const system = systemMatch?.[1]?.trim() || null;
 
-  return { system: match[1].trim() };
+  // Extract name field
+  const nameMatch = frontmatter.match(/^name:\s*"?([^"\n]*)"?\s*$/m);
+  const name = nameMatch?.[1]?.trim() || null;
+
+  // Extract concept: everything after the closing --- delimiter
+  const afterClosing = rest.slice(closingIndex + 4); // skip \n---
+  const concept = afterClosing.trim() || null;
+
+  return { system, name, concept };
 }

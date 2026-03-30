@@ -8,6 +8,7 @@ export interface FileOps {
   writeFile(path: string, content: string): Promise<void>;
   appendFile(path: string, content: string): Promise<void>;
   fileExists(path: string): Promise<boolean>;
+  stat(path: string): Promise<{ mtime: Date } | null>;
   resolvePath(...segments: string[]): string;
 }
 

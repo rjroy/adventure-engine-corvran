@@ -73,6 +73,7 @@ describe("GET /adventures/:id", () => {
       world: "Forest",
       hasHistory: false,
       system: null,
+      concept: null,
     });
   });
 

@@ -20,6 +20,9 @@ const registryFileOps: FileOps = {
   async fileExists(path: string) {
     try { await stat(path); return true; } catch { return false; }
   },
+  async stat(path: string) {
+    try { const s = await stat(path); return { mtime: s.mtime }; } catch { return null; }
+  },
   resolvePath(...segments: string[]) { return resolve(...segments); },
 };
 
