@@ -356,20 +356,16 @@ Daggerheart supports multiclassing, allowing characters to gain features from a 
 Use the dice-roller skill for any randomization:
 
 **Duality Dice for trait-related rolls**:
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "DdD+2"
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 12, "label": "hope" }, { "n": 1, "d": 12, "label": "fear" }], "modifier": 2 }
 ```
 
 **Standard dice for other purposes**:
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "1d6"
 ```
-
-## Fallback Without Dice Roller
-
-If the corvran dice-roller is unavailable, describe the required roll and ask the player for the result:
-
-> "Roll 2d12 for your Duality Dice and add your Agility modifier (+2). Tell me both die values and the total."
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 6 }] }
+```
 
 ## References
 

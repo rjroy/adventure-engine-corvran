@@ -130,18 +130,21 @@ A goblin leader with better equipment and more Hit Dice:
 Use the corvran dice-roller skill for randomized rolls:
 
 **Rolling Goblin HP:**
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "3d6"
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 3, "d": 6 }] }
 ```
 
 **Rolling Scimitar Damage:**
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "1d6+2"
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 6 }], "modifier": 2 }
 ```
 
 **Rolling Bonus Damage (on Advantage):**
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "1d4"
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 4 }] }
 ```
 
 ---

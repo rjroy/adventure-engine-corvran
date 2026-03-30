@@ -41,11 +41,12 @@ Use these six scores, assigning each to one ability: **15, 14, 13, 12, 10, 8**
 ### Random Generation
 For each of the six abilities, roll 4d6 and sum the highest three dice:
 
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "4d6"
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 4, "d": 6 }] }
 ```
 
-Parse the JSON output, discard the lowest roll, and sum the remaining three. Repeat six times.
+Discard the lowest roll from the result and sum the remaining three. Repeat six times.
 
 ### Point Buy
 Start with 27 points. Each ability starts at 8 (free). Costs to increase:
@@ -164,8 +165,9 @@ When a character gains enough XP to level up:
 1. **Increase Hit Points** - Roll Hit Die + CON modifier (or use fixed value):
 
 Roll HP:
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "1d10"
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 10 }] }
 ```
 
 Fixed HP values per level:
@@ -195,25 +197,22 @@ To take a level in a new class:
 Use the dice-roller skill for all randomization:
 
 **Ability Score (4d6 drop lowest)**:
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "4d6"
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 4, "d": 6 }] }
 ```
 
 **Starting Gold (if not using equipment packs)**:
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "5d4"
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 5, "d": 4 }] }
 ```
 
 **Trinket Roll**:
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "1d100"
 ```
-
-## Fallback Without Dice Roller
-
-If the corvran dice-roller is unavailable, describe the required roll and ask the player for the result:
-
-> "Roll 4d6 and tell me the results. We'll drop the lowest die and sum the rest for your ability score."
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 100 }] }
+```
 
 ## References
 

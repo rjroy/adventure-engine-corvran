@@ -100,24 +100,26 @@ See `references/action-outcomes.md` for detailed resolution tables.
 
 **Tie between dice values** (non-critical): Player chooses Hope or Fear.
 
-### Using the Dice Roller
+### Using the Dice Tool
 
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "DdD+3"
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 12, "label": "hope" }, { "n": 1, "d": 12, "label": "fear" }], "modifier": 3 }
 ```
 
 Output:
 ```json
 {
-  "expression": "DdD+3",
-  "rolls": [7, 4],
+  "groups": [
+    { "label": "hope", "rolls": [7] },
+    { "label": "fear", "rolls": [4] }
+  ],
   "modifier": 3,
-  "total": 14,
-  "hope": 7,
-  "fear": 4,
-  "higher": "hope"
+  "total": 14
 }
 ```
+
+Compare the "hope" and "fear" group rolls to determine which die is higher for spotlight and token effects.
 
 ## Advantage and Disadvantage
 
@@ -126,6 +128,12 @@ Daggerheart uses additional d6 dice for advantage/disadvantage:
 ### Advantage (+d6)
 Roll an additional d6 and **add** it to your total.
 
+**With the dice tool**, include a third labeled group in the same call:
+```
+{ "groups": [{ "n": 1, "d": 12, "label": "hope" }, { "n": 1, "d": 12, "label": "fear" }, { "n": 1, "d": 6, "label": "advantage" }], "modifier": 3 }
+```
+All groups sum into the total. The hope/fear determination still comes from comparing the two d12 groups.
+
 **Common sources**:
 - Target is Hidden (against you, until revealed)
 - Target is Vulnerable
@@ -133,7 +141,7 @@ Roll an additional d6 and **add** it to your total.
 - Tactical superiority (high ground, flanking)
 
 ### Disadvantage (-d6)
-Roll a d6 and **subtract** it from your total.
+Roll a d6 and **subtract** it from your total. Since all dice groups are additive, roll the disadvantage d6 in a separate call and subtract the result narratively from the action roll total.
 
 **Common sources**:
 - You are Frightened (against source of fear)
@@ -369,12 +377,6 @@ The spotlight system naturally creates dramatic pacing:
 - Tension builds as Fear accumulates
 - Players feel momentum when Hope flows
 - GM spotlight moments punctuate player actions
-
-## Dice Roller Fallback
-
-If the corvran dice-roller skill is unavailable, describe the required roll:
-
-> "Roll 2d12 for your action roll, adding your Presence modifier (+2). Tell me both dice values and the total. The higher die determines whether you gain Hope or I gain Fear."
 
 ---
 

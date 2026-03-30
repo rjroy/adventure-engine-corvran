@@ -24,10 +24,11 @@ Each combatant rolls initiative to determine turn order:
 Initiative = d20 + Dexterity modifier
 ```
 
-Use the corvran dice-roller skill for initiative rolls:
+Use the mcp__corvran__roll_dice tool for initiative rolls:
 
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "1d20+2"
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 20 }], "modifier": 2 }
 ```
 
 Order combatants from highest to lowest initiative. Ties between players are resolved by player choice; ties between monsters use GM discretion.
@@ -95,10 +96,11 @@ Attack Roll = d20 + Ability Modifier + Proficiency Bonus (if proficient)
 - **Natural 20**: Critical Hit. Always hits. Double all damage dice.
 - **Natural 1**: Automatic miss regardless of modifiers.
 
-Use the dice-roller for attack rolls:
+Use the mcp__corvran__roll_dice tool for attack rolls:
 
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "1d20+5"
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 20 }], "modifier": 5 }
 ```
 
 ### Advantage and Disadvantage
@@ -128,10 +130,11 @@ On a hit, roll the weapon's damage dice plus your ability modifier:
 Damage = Weapon Dice + Ability Modifier
 ```
 
-Use the dice-roller for damage:
+Use the mcp__corvran__roll_dice tool for damage:
 
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "1d8+3"
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 8 }], "modifier": 3 }
 ```
 
 ### Common Weapon Damage
@@ -224,12 +227,6 @@ Use the Help action with a DC 10 Medicine check to stabilize a dying creature. A
 ## Encounter Templates
 
 For encounter setup and tracking, see `references/encounter-template.md` and `references/encounter-example.md`.
-
-## Dice Roller Fallback
-
-If the corvran dice-roller skill is unavailable, describe the required roll and ask the player for the result:
-
-> "Roll 1d20+5 for your attack against the goblin (AC 15). What did you get?"
 
 ---
 

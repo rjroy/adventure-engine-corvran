@@ -187,18 +187,21 @@ The Leader stays protected, Rally buffs the group, Bandits deal damage, Minions 
 Use the corvran dice-roller skill for attack resolution:
 
 **Rolling Corrupted Blade damage:**
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "1d8+2"
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 8 }], "modifier": 2 }
 ```
 
 **Rolling Throwing Dagger damage:**
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "1d6"
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 6 }] }
 ```
 
 **Rolling Ambush Strike bonus:**
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh" "1d6"
+```
+Use the mcp__corvran__roll_dice tool:
+{ "groups": [{ "n": 1, "d": 6 }] }
 ```
 
 ---
