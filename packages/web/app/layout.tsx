@@ -3,7 +3,9 @@ import "./globals.css";
 
 export const viewport: Viewport = {
   viewportFit: "cover",
-  interactiveWidget: "resizes-visual",
+  interactiveWidget: "overlays-content",
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export const metadata: Metadata = {
