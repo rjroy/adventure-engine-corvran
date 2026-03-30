@@ -5,13 +5,18 @@ import type { FileOps } from "../../src/types.js";
  * In-memory FileOps for testing. Files are stored as a flat map of
  * absolute paths to contents. Directories are inferred from file paths.
  */
-export type MockFileOps = FileOps & { getStore(): Map<string, string> };
+export type MockFileOps = FileOps & {
+  getStore(): Map<string, string>;
+  setMtime(path: string, date: Date): void;
+};
 
 export function createMockFileOps(files: Record<string, string> = {}): MockFileOps {
   const store = new Map<string, string>(Object.entries(files));
+  const mtimes = new Map<string, Date>();
 
   return {
     getStore() { return store; },
+    setMtime(path: string, date: Date) { mtimes.set(path, date); },
     async readDir(path: string): Promise<string[]> {
       const prefix = path.endsWith("/") ? path : path + "/";
       const dirs = new Set<string>();
@@ -54,6 +59,12 @@ export function createMockFileOps(files: Record<string, string> = {}): MockFileO
         if (key.startsWith(prefix)) return true;
       }
       return false;
+    },
+
+    async stat(path: string): Promise<{ mtime: Date } | null> {
+      if (!store.has(path)) return null;
+      const mtime = mtimes.get(path) ?? new Date(0);
+      return { mtime };
     },
 
     resolvePath(...segments: string[]): string {

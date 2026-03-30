@@ -9,6 +9,10 @@ export {
   ToolUseEventSchema,
   DoneEventSchema,
   ErrorEventSchema,
+  SystemInfoSchema,
+  SystemsResponseSchema,
+  CreateAdventureRequestSchema,
+  CreateAdventureResponseSchema,
 } from "./schemas/adventures.js";
 
 export type {
@@ -22,4 +26,8 @@ export type {
   ToolUseEvent,
   DoneEvent,
   ErrorEvent,
+  SystemInfo,
+  SystemsResponse,
+  CreateAdventureRequest,
+  CreateAdventureResponse,
 } from "./types.js";

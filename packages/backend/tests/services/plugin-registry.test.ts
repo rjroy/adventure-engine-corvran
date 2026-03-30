@@ -8,7 +8,7 @@ function manifest(overrides: Record<string, unknown> = {}) {
   return JSON.stringify({
     name: "test-plugin",
     type: "system",
-    aliases: ["test"],
+    alias: "test",
     ...overrides,
   });
 }
@@ -19,7 +19,8 @@ describe("buildPluginRegistry", () => {
       [`${PLUGINS_DIR}/my-plugin/corvran-plugin.json`]: manifest({
         name: "my-plugin",
         type: "system",
-        aliases: ["my"],
+        alias: "my",
+        description: "A test system",
         bootstrap: "bootstrap.md",
       }),
     });
@@ -29,6 +30,7 @@ describe("buildPluginRegistry", () => {
     expect(entry).not.toBeNull();
     expect(entry!.manifest.name).toBe("my-plugin");
     expect(entry!.manifest.bootstrap).toBe("bootstrap.md");
+    expect(entry!.manifest.description).toBe("A test system");
   });
 
   it("parses a manifest without optional bootstrap field", async () => {
@@ -36,7 +38,7 @@ describe("buildPluginRegistry", () => {
       [`${PLUGINS_DIR}/core/corvran-plugin.json`]: manifest({
         name: "core",
         type: "core",
-        aliases: ["core"],
+        alias: "core",
       }),
     });
 
@@ -52,7 +54,7 @@ describe("buildPluginRegistry", () => {
 
     const registry = await buildPluginRegistry(PLUGINS_DIR, fileOps);
     expect(registry.corePlugins).toHaveLength(0);
-    expect(registry.availableAliases()).toEqual([]);
+    expect(registry.availableSystems()).toEqual([]);
   });
 
   it("skips manifest with missing name field and warns", async () => {
@@ -60,14 +62,14 @@ describe("buildPluginRegistry", () => {
     const fileOps = createMockFileOps({
       [`${PLUGINS_DIR}/bad/corvran-plugin.json`]: JSON.stringify({
         type: "system",
-        aliases: ["bad"],
+        alias: "bad",
       }),
     });
 
     const registry = await buildPluginRegistry(PLUGINS_DIR, fileOps, (msg) =>
       warnings.push(msg),
     );
-    expect(registry.availableAliases()).toEqual([]);
+    expect(registry.availableSystems()).toEqual([]);
     expect(warnings.some((w) => w.includes("missing required fields"))).toBe(
       true,
     );
@@ -78,20 +80,20 @@ describe("buildPluginRegistry", () => {
     const fileOps = createMockFileOps({
       [`${PLUGINS_DIR}/bad/corvran-plugin.json`]: JSON.stringify({
         name: "bad",
-        aliases: ["bad"],
+        alias: "bad",
       }),
     });
 
     const registry = await buildPluginRegistry(PLUGINS_DIR, fileOps, (msg) =>
       warnings.push(msg),
     );
-    expect(registry.availableAliases()).toEqual([]);
+    expect(registry.availableSystems()).toEqual([]);
     expect(warnings.some((w) => w.includes("missing required fields"))).toBe(
       true,
     );
   });
 
-  it("skips manifest with missing aliases field and warns", async () => {
+  it("skips manifest with missing alias field and warns", async () => {
     const warnings: string[] = [];
     const fileOps = createMockFileOps({
       [`${PLUGINS_DIR}/bad/corvran-plugin.json`]: JSON.stringify({
@@ -103,7 +105,7 @@ describe("buildPluginRegistry", () => {
     const registry = await buildPluginRegistry(PLUGINS_DIR, fileOps, (msg) =>
       warnings.push(msg),
     );
-    expect(registry.availableAliases()).toEqual([]);
+    expect(registry.availableSystems()).toEqual([]);
     expect(warnings.some((w) => w.includes("missing required fields"))).toBe(
       true,
     );
@@ -118,7 +120,7 @@ describe("buildPluginRegistry", () => {
     const registry = await buildPluginRegistry(PLUGINS_DIR, fileOps, (msg) =>
       warnings.push(msg),
     );
-    expect(registry.availableAliases()).toEqual([]);
+    expect(registry.availableSystems()).toEqual([]);
     expect(warnings.some((w) => w.includes("Invalid JSON"))).toBe(true);
   });
 
@@ -127,18 +129,20 @@ describe("buildPluginRegistry", () => {
       [`${PLUGINS_DIR}/corvran/corvran-plugin.json`]: manifest({
         name: "corvran",
         type: "core",
-        aliases: ["corvran"],
+        alias: "corvran",
       }),
       [`${PLUGINS_DIR}/d20-system/corvran-plugin.json`]: manifest({
         name: "d20-system",
         type: "system",
-        aliases: ["d20"],
+        alias: "d20",
+        description: "d20 system",
         bootstrap: "bootstrap.md",
       }),
       [`${PLUGINS_DIR}/daggerheart-system/corvran-plugin.json`]: manifest({
         name: "daggerheart-system",
         type: "system",
-        aliases: ["daggerheart"],
+        alias: "daggerheart",
+        description: "Daggerheart system",
         bootstrap: "bootstrap.md",
       }),
     });
@@ -146,7 +150,9 @@ describe("buildPluginRegistry", () => {
     const registry = await buildPluginRegistry(PLUGINS_DIR, fileOps);
     expect(registry.corePlugins).toHaveLength(1);
     expect(registry.corePlugins[0].manifest.name).toBe("corvran");
-    expect(registry.availableAliases().sort()).toEqual(["d20", "daggerheart"]);
+    const systems = registry.availableSystems();
+    const aliases = systems.map((s) => s.alias).sort();
+    expect(aliases).toEqual(["d20", "daggerheart"]);
   });
 
   it("resolves alias to the correct plugin entry", async () => {
@@ -154,7 +160,7 @@ describe("buildPluginRegistry", () => {
       [`${PLUGINS_DIR}/d20-system/corvran-plugin.json`]: manifest({
         name: "d20-system",
         type: "system",
-        aliases: ["d20"],
+        alias: "d20",
       }),
     });
 
@@ -170,7 +176,7 @@ describe("buildPluginRegistry", () => {
       [`${PLUGINS_DIR}/d20-system/corvran-plugin.json`]: manifest({
         name: "d20-system",
         type: "system",
-        aliases: ["d20"],
+        alias: "d20",
       }),
     });
 
@@ -178,22 +184,44 @@ describe("buildPluginRegistry", () => {
     expect(registry.resolveSystem("pathfinder")).toBeNull();
   });
 
-  it("availableAliases returns only system plugin aliases", async () => {
+  it("availableSystems returns SystemInfo for system plugins with description", async () => {
     const fileOps = createMockFileOps({
       [`${PLUGINS_DIR}/corvran/corvran-plugin.json`]: manifest({
         name: "corvran",
         type: "core",
-        aliases: ["corvran"],
+        alias: "corvran",
       }),
       [`${PLUGINS_DIR}/d20-system/corvran-plugin.json`]: manifest({
         name: "d20-system",
         type: "system",
-        aliases: ["d20"],
+        alias: "d20",
+        description: "Classic d20 fantasy",
       }),
     });
 
     const registry = await buildPluginRegistry(PLUGINS_DIR, fileOps);
-    expect(registry.availableAliases()).toEqual(["d20"]);
+    expect(registry.availableSystems()).toEqual([
+      { alias: "d20", description: "Classic d20 fantasy" },
+    ]);
+  });
+
+  it("availableSystems excludes system plugins without description and warns", async () => {
+    const warnings: string[] = [];
+    const fileOps = createMockFileOps({
+      [`${PLUGINS_DIR}/d20-system/corvran-plugin.json`]: manifest({
+        name: "d20-system",
+        type: "system",
+        alias: "d20",
+      }),
+    });
+
+    const registry = await buildPluginRegistry(PLUGINS_DIR, fileOps, (msg) =>
+      warnings.push(msg),
+    );
+    expect(registry.availableSystems()).toEqual([]);
+    expect(
+      warnings.some((w) => w.includes("no description") && w.includes("d20-system")),
+    ).toBe(true);
   });
 
   it("detects duplicate alias and warns naming both plugins", async () => {
@@ -202,12 +230,12 @@ describe("buildPluginRegistry", () => {
       [`${PLUGINS_DIR}/alpha/corvran-plugin.json`]: manifest({
         name: "alpha",
         type: "system",
-        aliases: ["shared-alias"],
+        alias: "shared-alias",
       }),
       [`${PLUGINS_DIR}/beta/corvran-plugin.json`]: manifest({
         name: "beta",
         type: "system",
-        aliases: ["shared-alias"],
+        alias: "shared-alias",
       }),
     });
 
@@ -234,7 +262,7 @@ describe("buildPluginRegistry", () => {
       [`${PLUGINS_DIR}/corvran/corvran-plugin.json`]: manifest({
         name: "corvran",
         type: "core",
-        aliases: ["corvran"],
+        alias: "corvran",
       }),
     });
 

@@ -1,7 +1,7 @@
 ---
 title: Adventure System Integration
 date: 2026-03-29
-status: approved
+status: implemented
 tags: [plugins, game-systems, bootstrap-prompts, adventure-config, prompt-service, api]
 modules: [backend, shared]
 related: [.lore/vision.md, .lore/specs/mvp.md, .lore/brainstorm/rpg-system-loading.md]
@@ -48,7 +48,7 @@ A Daggerheart adventure set in the besieged city of Thornwall.
 
 - REQ-SYS-4a: If `adventure.md` exists but its YAML frontmatter cannot be parsed (syntax error), treat the adventure as freeform. Log a warning naming the adventure and the parse error. Do not block play over a malformed config file.
 
-- REQ-SYS-5: The file is named `adventure.md` to match the existing convention of `character.md` and `world.md` as the adventure's identity documents. It is configuration, not game state. The AI should not modify it during play. (Write protection for `adventure.md` is not enforced mechanically in this spec; the bootstrap prompt instructs the AI to treat it as read-only. Broader file-access scoping is a separate concern.)
+- REQ-SYS-5: The file is named `adventure.md` to match the existing convention of `character.md` and `world.md` as the adventure's identity documents. Like all adventure files, `adventure.md` is fully readable and writable by both the AI and the player. The AI may update it during play (e.g., refining the adventure description as the story develops). No file access restrictions exist within the adventure directory.
 
 ### Plugin Manifest
 
@@ -275,7 +275,6 @@ export const AdventureListItemSchema = z.object({
 
 - Adventure creation UI with system selection step
 - Conversational system selection (AI describes options, player picks, AI writes `adventure.md`)
-- Write protection for `adventure.md` (preventing AI from modifying config during play)
 - Remote or versioned plugins
 - Multi-system adventures
 - Plugin compatibility validation beyond alias matching

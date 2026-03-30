@@ -1,6 +1,14 @@
 import type { AdventureListItem, AdventureDetail, HistoryResponse } from "@corvran/shared";
 import type { FileOps } from "../types.js";
 import { parseAdventureConfig } from "./adventure-config.js";
+import { slugify } from "./slugify.js";
+
+export class DuplicateAdventureError extends Error {
+  constructor(slug: string) {
+    super("An adventure with this name already exists.");
+    this.name = "DuplicateAdventureError";
+  }
+}
 
 export interface AdventureService {
   listAdventures(): Promise<AdventureListItem[]>;
@@ -8,6 +16,11 @@ export interface AdventureService {
   getHistory(id: string): Promise<HistoryResponse>;
   getAdventurePath(id: string): string;
   isValidAdventureId(id: string): boolean;
+  createAdventure(params: {
+    name: string;
+    system: string | null;
+    concept: string | null;
+  }): Promise<AdventureListItem>;
 }
 
 export function createAdventureService(deps: {
@@ -26,34 +39,66 @@ export function createAdventureService(deps: {
     return true;
   }
 
+  async function extractCharacterName(characterPath: string): Promise<string | null> {
+    try {
+      const content = await fileOps.readFile(characterPath);
+      const lines = content.split("\n");
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        const match = trimmed.match(/^# (.+)$/);
+        return match ? match[1] : null;
+      }
+    } catch {
+      // File doesn't exist or can't be read
+    }
+    return null;
+  }
+
+  async function getLastPlayed(historyPath: string): Promise<string | null> {
+    const result = await fileOps.stat(historyPath);
+    return result ? result.mtime.toISOString() : null;
+  }
+
   async function listAdventures(): Promise<AdventureListItem[]> {
     const entries = await fileOps.readDir(adventuresPath);
     const adventures: AdventureListItem[] = [];
 
     for (const entry of entries) {
       const adventurePath = fileOps.resolvePath(adventuresPath, entry);
-      const hasCharacter = await fileOps.fileExists(fileOps.resolvePath(adventurePath, "character.md"));
-      const hasWorld = await fileOps.fileExists(fileOps.resolvePath(adventurePath, "world.md"));
-      const hasHistory = await fileOps.fileExists(fileOps.resolvePath(adventurePath, "history.md"));
+      const characterPath = fileOps.resolvePath(adventurePath, "character.md");
+      const historyPath = fileOps.resolvePath(adventurePath, "history.md");
+
+      const characterExists = await fileOps.fileExists(characterPath);
+      const hasHistory = await fileOps.fileExists(historyPath);
 
       let system: string | null = null;
+      let configName: string | null = null;
+      let concept: string | null = null;
+
       const adventureConfigPath = fileOps.resolvePath(adventurePath, "adventure.md");
       if (await fileOps.fileExists(adventureConfigPath)) {
         const content = await fileOps.readFile(adventureConfigPath);
         const config = parseAdventureConfig(content);
         system = config.system;
+        configName = config.name;
+        concept = config.concept;
         if (config.warning) {
           console.warn(`[adventure-service] ${entry}: ${config.warning}`);
         }
       }
 
+      const characterName = characterExists ? await extractCharacterName(characterPath) : null;
+      const lastPlayed = hasHistory ? await getLastPlayed(historyPath) : null;
+
       adventures.push({
         id: entry,
-        name: entry,
-        hasCharacter,
-        hasWorld,
+        name: configName || entry,
         hasHistory,
         system,
+        concept,
+        characterName,
+        lastPlayed,
       });
     }
 
@@ -83,17 +128,21 @@ export function createAdventureService(deps: {
     const hasHistory = await fileOps.fileExists(historyPath);
 
     let system: string | null = null;
+    let concept: string | null = null;
+    let configName: string | null = null;
     const adventureConfigPath = fileOps.resolvePath(adventurePath, "adventure.md");
     if (await fileOps.fileExists(adventureConfigPath)) {
       const content = await fileOps.readFile(adventureConfigPath);
       const config = parseAdventureConfig(content);
       system = config.system;
+      concept = config.concept;
+      configName = config.name;
       if (config.warning) {
         console.warn(`[adventure-service] ${id}: ${config.warning}`);
       }
     }
 
-    return { id, name: id, character, world, hasHistory, system };
+    return { id, name: configName || id, character, world, hasHistory, system, concept };
   }
 
   async function getHistory(id: string): Promise<HistoryResponse> {
@@ -111,5 +160,45 @@ export function createAdventureService(deps: {
     return fileOps.resolvePath(adventuresPath, id);
   }
 
-  return { listAdventures, getAdventure, getHistory, getAdventurePath, isValidAdventureId };
+  async function createAdventure(params: {
+    name: string;
+    system: string | null;
+    concept: string | null;
+  }): Promise<AdventureListItem> {
+    const slug = slugify(params.name);
+    const adventurePath = fileOps.resolvePath(adventuresPath, slug);
+
+    if (await fileOps.fileExists(adventurePath)) {
+      throw new DuplicateAdventureError(slug);
+    }
+
+    // Build adventure.md content
+    let content = "---\n";
+    content += `name: ${params.name}\n`;
+    if (params.system !== null) {
+      content += `system: ${params.system}\n`;
+    }
+    content += "---\n";
+    if (params.concept !== null) {
+      content += `\n${params.concept}\n`;
+    }
+
+    const configPath = fileOps.resolvePath(adventurePath, "adventure.md");
+    await fileOps.writeFile(configPath, content);
+
+    return {
+      id: slug,
+      name: params.name,
+      hasHistory: false,
+      system: params.system,
+      concept: params.concept,
+      characterName: null,
+      lastPlayed: null,
+    };
+  }
+
+  return {
+    listAdventures, getAdventure, getHistory, getAdventurePath,
+    isValidAdventureId, createAdventure,
+  };
 }

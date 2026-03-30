@@ -10,6 +10,10 @@ import type {
   ToolUseEventSchema,
   DoneEventSchema,
   ErrorEventSchema,
+  SystemInfoSchema,
+  SystemsResponseSchema,
+  CreateAdventureRequestSchema,
+  CreateAdventureResponseSchema,
 } from "./schemas/adventures.js";
 
 export type AdventureListItem = z.infer<typeof AdventureListItemSchema>;
@@ -22,3 +26,7 @@ export type TextEvent = z.infer<typeof TextEventSchema>;
 export type ToolUseEvent = z.infer<typeof ToolUseEventSchema>;
 export type DoneEvent = z.infer<typeof DoneEventSchema>;
 export type ErrorEvent = z.infer<typeof ErrorEventSchema>;
+export type SystemInfo = z.infer<typeof SystemInfoSchema>;
+export type SystemsResponse = z.infer<typeof SystemsResponseSchema>;
+export type CreateAdventureRequest = z.infer<typeof CreateAdventureRequestSchema>;
+export type CreateAdventureResponse = z.infer<typeof CreateAdventureResponseSchema>;

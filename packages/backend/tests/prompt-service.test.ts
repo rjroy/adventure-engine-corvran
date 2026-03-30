@@ -8,6 +8,7 @@ describe("assembleSystemPrompt", () => {
       world: "# Lost Mines\nA dangerous dungeon",
       history: "**Player:** Hello\n\n**GM:** Welcome!",
       systemBootstrap: null,
+      concept: null,
     });
 
     // Verify section order by checking relative positions
@@ -38,6 +39,7 @@ describe("assembleSystemPrompt", () => {
       world: "# Lost Mines\nA dungeon",
       history: null,
       systemBootstrap: null,
+      concept: null,
     });
 
     expect(prompt).toContain("No character has been created yet.");
@@ -52,6 +54,7 @@ describe("assembleSystemPrompt", () => {
       world: null,
       history: null,
       systemBootstrap: null,
+      concept: null,
     });
 
     expect(prompt).toContain("No world has been created yet.");
@@ -65,6 +68,7 @@ describe("assembleSystemPrompt", () => {
       world: null,
       history: null,
       systemBootstrap: null,
+      concept: null,
     });
 
     expect(prompt).toContain("No character has been created yet.");
@@ -79,6 +83,7 @@ describe("assembleSystemPrompt", () => {
       world: "# Mines",
       history: null,
       systemBootstrap: null,
+      concept: null,
     });
 
     expect(prompt).not.toContain("# Conversation History");
@@ -92,6 +97,7 @@ describe("assembleSystemPrompt", () => {
       world: null,
       history: null,
       systemBootstrap: null,
+      concept: null,
     });
 
     expect(prompt).toContain("You are the Game Master for a tabletop RPG adventure.");
@@ -103,6 +109,7 @@ describe("assembleSystemPrompt", () => {
       world: null,
       history: null,
       systemBootstrap: null,
+      concept: null,
     });
 
     expect(prompt).toContain("Player agency is sacred");
@@ -115,6 +122,7 @@ describe("assembleSystemPrompt", () => {
       world: null,
       history: null,
       systemBootstrap: null,
+      concept: null,
     });
 
     expect(prompt).toContain("Use the dice tool for rolls");
@@ -128,6 +136,7 @@ describe("assembleSystemPrompt", () => {
       world: "# World",
       history: null,
       systemBootstrap: bootstrap,
+      concept: null,
     });
 
     // Bootstrap appears after the identity line, inside the Identity section
@@ -143,6 +152,7 @@ describe("assembleSystemPrompt", () => {
       world: null,
       history: null,
       systemBootstrap: "You are running a Daggerheart game.",
+      concept: null,
     });
 
     expect(prompt).not.toContain("# Onboarding");
@@ -154,8 +164,69 @@ describe("assembleSystemPrompt", () => {
       world: null,
       history: null,
       systemBootstrap: null,
+      concept: null,
     });
 
     expect(prompt).toContain("# Onboarding");
+  });
+
+  test("includes Adventure Concept section when concept is present", () => {
+    const prompt = assembleSystemPrompt({
+      character: "# Hero",
+      world: "# World",
+      history: null,
+      systemBootstrap: null,
+      concept: "A dark fantasy adventure in a cursed kingdom",
+    });
+
+    expect(prompt).toContain("## Adventure Concept");
+    expect(prompt).toContain("A dark fantasy adventure in a cursed kingdom");
+  });
+
+  test("omits Adventure Concept section when concept is null", () => {
+    const prompt = assembleSystemPrompt({
+      character: "# Hero",
+      world: "# World",
+      history: null,
+      systemBootstrap: null,
+      concept: null,
+    });
+
+    expect(prompt).not.toContain("## Adventure Concept");
+  });
+
+  test("concept appears after Principles and before Adventure State", () => {
+    const prompt = assembleSystemPrompt({
+      character: "# Hero",
+      world: "# World",
+      history: null,
+      systemBootstrap: null,
+      concept: "A pirate adventure on the high seas",
+    });
+
+    const principlesIdx = prompt.indexOf("# Principles");
+    const conceptIdx = prompt.indexOf("## Adventure Concept");
+    const stateIdx = prompt.indexOf("# Adventure State");
+
+    expect(conceptIdx).toBeGreaterThan(principlesIdx);
+    expect(stateIdx).toBeGreaterThan(conceptIdx);
+  });
+
+  test("concept, character, and world all appear in correct order", () => {
+    const prompt = assembleSystemPrompt({
+      character: "# Captain Hook",
+      world: "# Neverland",
+      history: null,
+      systemBootstrap: null,
+      concept: "A reimagining of Peter Pan as a horror story",
+    });
+
+    const conceptIdx = prompt.indexOf("A reimagining of Peter Pan");
+    const characterIdx = prompt.indexOf("# Captain Hook");
+    const worldIdx = prompt.indexOf("# Neverland");
+
+    expect(conceptIdx).toBeGreaterThan(0);
+    expect(characterIdx).toBeGreaterThan(conceptIdx);
+    expect(worldIdx).toBeGreaterThan(characterIdx);
   });
 });

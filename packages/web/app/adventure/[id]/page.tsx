@@ -20,7 +20,9 @@ export default function AdventurePlayPage() {
   const [inputValue, setInputValue] = useState("");
   const conversationRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const hasScrolledOnLoad = useRef(false);
 
   const handleStreamComplete = useCallback((text: string) => {
     setMessages((prev) => [...prev, { role: "gm", body: text }]);
@@ -43,6 +45,23 @@ export default function AdventurePlayPage() {
       })
       .catch(() => setLoadError("Failed to load adventure"));
   }, [id]);
+
+  // Scroll to bottom on initial history load (instant, no animation)
+  useEffect(() => {
+    if (messages.length > 0 && !hasScrolledOnLoad.current) {
+      hasScrolledOnLoad.current = true;
+      bottomRef.current?.scrollIntoView();
+    }
+  }, [messages]);
+
+  // Smooth scroll to bottom when a new message is added (not during streaming)
+  const prevMessageCount = useRef(0);
+  useEffect(() => {
+    if (messages.length > prevMessageCount.current && hasScrolledOnLoad.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    prevMessageCount.current = messages.length;
+  }, [messages.length]);
 
   // Auto-scroll during streaming
   useEffect(() => {
@@ -158,6 +177,8 @@ export default function AdventurePlayPage() {
               />
             </div>
           )}
+
+          <div ref={bottomRef} />
         </div>
       </div>
 

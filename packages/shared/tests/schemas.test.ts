@@ -17,9 +17,11 @@ describe("AdventureListItemSchema", () => {
     const result = AdventureListItemSchema.parse({
       id: "lost-mines",
       name: "lost-mines",
-      hasCharacter: true,
-      hasWorld: false,
       hasHistory: true,
+      system: null,
+      concept: null,
+      characterName: null,
+      lastPlayed: null,
     });
     expect(result.id).toBe("lost-mines");
   });
@@ -33,7 +35,7 @@ describe("AdventureListResponseSchema", () => {
   test("accepts valid response", () => {
     const result = AdventureListResponseSchema.parse({
       adventures: [
-        { id: "a", name: "a", hasCharacter: false, hasWorld: false, hasHistory: false },
+        { id: "a", name: "a", hasHistory: false, system: null, concept: null, characterName: null, lastPlayed: null },
       ],
     });
     expect(result.adventures).toHaveLength(1);
@@ -52,6 +54,8 @@ describe("AdventureDetailSchema", () => {
       character: null,
       world: "# The Lost Mines\n...",
       hasHistory: false,
+      system: null,
+      concept: null,
     });
     expect(result.character).toBeNull();
     expect(result.world).toBe("# The Lost Mines\n...");

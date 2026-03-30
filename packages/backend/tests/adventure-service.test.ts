@@ -1,5 +1,4 @@
 import { describe, test, expect } from "bun:test";
-import { resolve } from "node:path";
 import { createAdventureService } from "../src/services/adventure-service.js";
 import { createMockFileOps } from "./helpers/mock-file-ops.js";
 
@@ -43,14 +42,11 @@ describe("listAdventures", () => {
 
   test("discovers adventures with various file combinations", async () => {
     const files: Record<string, string> = {
-      // full-adventure has all three files
-      [`${ADVENTURES_ROOT}/full-adventure/character.md`]: "# Character",
+      [`${ADVENTURES_ROOT}/full-adventure/character.md`]: "# Hero\nA brave warrior",
       [`${ADVENTURES_ROOT}/full-adventure/world.md`]: "# World",
       [`${ADVENTURES_ROOT}/full-adventure/history.md`]: "# History",
-      // new-adventure has character and world, no history
       [`${ADVENTURES_ROOT}/new-adventure/character.md`]: "# Char",
       [`${ADVENTURES_ROOT}/new-adventure/world.md`]: "# World",
-      // bare-adventure has nothing (just needs a marker file for directory detection)
       [`${ADVENTURES_ROOT}/bare-adventure/.keep`]: "",
     };
 
@@ -66,31 +62,165 @@ describe("listAdventures", () => {
     expect(full).toEqual({
       id: "full-adventure",
       name: "full-adventure",
-      hasCharacter: true,
-      hasWorld: true,
       hasHistory: true,
       system: null,
+      concept: null,
+      characterName: "Hero",
+      lastPlayed: "1970-01-01T00:00:00.000Z",
     });
 
     const newAdv = result.find((a) => a.id === "new-adventure");
     expect(newAdv).toEqual({
       id: "new-adventure",
       name: "new-adventure",
-      hasCharacter: true,
-      hasWorld: true,
       hasHistory: false,
       system: null,
+      concept: null,
+      characterName: "Char",
+      lastPlayed: null,
     });
 
     const bare = result.find((a) => a.id === "bare-adventure");
     expect(bare).toEqual({
       id: "bare-adventure",
       name: "bare-adventure",
-      hasCharacter: false,
-      hasWorld: false,
       hasHistory: false,
       system: null,
+      concept: null,
+      characterName: null,
+      lastPlayed: null,
     });
+  });
+
+  test("returns name from frontmatter when present", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/my-quest/adventure.md`]:
+        '---\nname: "The Lost Mines"\nsystem: d20\n---\n\nA classic dungeon crawl.',
+      [`${ADVENTURES_ROOT}/my-quest/.keep`]: "",
+    };
+
+    const service = createAdventureService({
+      fileOps: createMockFileOps(files),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const result = await service.listAdventures();
+    const quest = result.find((a) => a.id === "my-quest");
+    expect(quest?.name).toBe("The Lost Mines");
+    expect(quest?.concept).toBe("A classic dungeon crawl.");
+  });
+
+  test("returns directory name when name absent from frontmatter", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/old-quest/adventure.md`]: "---\nsystem: d20\n---\n",
+      [`${ADVENTURES_ROOT}/old-quest/.keep`]: "",
+    };
+
+    const service = createAdventureService({
+      fileOps: createMockFileOps(files),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const result = await service.listAdventures();
+    const quest = result.find((a) => a.id === "old-quest");
+    expect(quest?.name).toBe("old-quest");
+  });
+
+  test("returns concept from body text", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/story/adventure.md`]:
+        "---\nsystem: daggerheart\n---\n\nAn epic tale of frozen wastes.",
+      [`${ADVENTURES_ROOT}/story/.keep`]: "",
+    };
+
+    const service = createAdventureService({
+      fileOps: createMockFileOps(files),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const result = await service.listAdventures();
+    const story = result.find((a) => a.id === "story");
+    expect(story?.concept).toBe("An epic tale of frozen wastes.");
+  });
+
+  test("returns characterName from # heading in character.md", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/named/character.md`]: "# Aria Stormborn\nA fierce warrior",
+      [`${ADVENTURES_ROOT}/named/.keep`]: "",
+    };
+
+    const service = createAdventureService({
+      fileOps: createMockFileOps(files),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const result = await service.listAdventures();
+    const named = result.find((a) => a.id === "named");
+    expect(named?.characterName).toBe("Aria Stormborn");
+  });
+
+  test("returns null characterName when no heading in character.md", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/nohead/character.md`]: "Just some text, no heading",
+      [`${ADVENTURES_ROOT}/nohead/.keep`]: "",
+    };
+
+    const service = createAdventureService({
+      fileOps: createMockFileOps(files),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const result = await service.listAdventures();
+    const nohead = result.find((a) => a.id === "nohead");
+    expect(nohead?.characterName).toBeNull();
+  });
+
+  test("returns null characterName when no character.md", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/nochar/.keep`]: "",
+    };
+
+    const service = createAdventureService({
+      fileOps: createMockFileOps(files),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const result = await service.listAdventures();
+    const nochar = result.find((a) => a.id === "nochar");
+    expect(nochar?.characterName).toBeNull();
+  });
+
+  test("returns lastPlayed as ISO string from history.md mtime", async () => {
+    const fileOps = createMockFileOps({
+      [`${ADVENTURES_ROOT}/played/history.md`]: "some history",
+      [`${ADVENTURES_ROOT}/played/.keep`]: "",
+    });
+    const playDate = new Date("2026-03-15T10:30:00.000Z");
+    fileOps.setMtime(`${ADVENTURES_ROOT}/played/history.md`, playDate);
+
+    const service = createAdventureService({
+      fileOps,
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const result = await service.listAdventures();
+    const played = result.find((a) => a.id === "played");
+    expect(played?.lastPlayed).toBe("2026-03-15T10:30:00.000Z");
+  });
+
+  test("returns null lastPlayed when no history.md", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/fresh/.keep`]: "",
+    };
+
+    const service = createAdventureService({
+      fileOps: createMockFileOps(files),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const result = await service.listAdventures();
+    const fresh = result.find((a) => a.id === "fresh");
+    expect(fresh?.lastPlayed).toBeNull();
   });
 });
 
@@ -114,6 +244,7 @@ describe("getAdventure", () => {
       world: "Dark forest",
       hasHistory: false,
       system: null,
+      concept: null,
     });
   });
 
@@ -135,6 +266,7 @@ describe("getAdventure", () => {
       world: null,
       hasHistory: false,
       system: null,
+      concept: null,
     });
   });
 
@@ -157,12 +289,62 @@ describe("getAdventure", () => {
     const result = await service.getAdventure("../etc/passwd");
     expect(result).toBeNull();
   });
+
+  test("returns frontmatter name over directory name", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/the-healers-burden/adventure.md`]:
+        '---\nname: "The Healer\'s Burden"\nsystem: d20\n---\n\nA story of sacrifice.',
+      [`${ADVENTURES_ROOT}/the-healers-burden/.keep`]: "",
+    };
+
+    const service = createAdventureService({
+      fileOps: createMockFileOps(files),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const result = await service.getAdventure("the-healers-burden");
+    expect(result?.name).toBe("The Healer's Burden");
+    expect(result?.concept).toBe("A story of sacrifice.");
+    expect(result?.system).toBe("d20");
+  });
+
+  test("returns directory name when no frontmatter name", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/old-quest/adventure.md`]: "---\nsystem: d20\n---\n",
+      [`${ADVENTURES_ROOT}/old-quest/.keep`]: "",
+    };
+
+    const service = createAdventureService({
+      fileOps: createMockFileOps(files),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const result = await service.getAdventure("old-quest");
+    expect(result?.name).toBe("old-quest");
+  });
+
+  test("returns concept from adventure.md", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/concept-quest/adventure.md`]:
+        "---\nsystem: d20\n---\n\nA dungeon beneath the mountain.",
+      [`${ADVENTURES_ROOT}/concept-quest/.keep`]: "",
+    };
+
+    const service = createAdventureService({
+      fileOps: createMockFileOps(files),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const result = await service.getAdventure("concept-quest");
+    expect(result?.concept).toBe("A dungeon beneath the mountain.");
+    expect(result?.system).toBe("d20");
+  });
 });
 
 describe("system field from adventure.md", () => {
   test("listAdventures returns system from adventure.md", async () => {
     const files: Record<string, string> = {
-      [`${ADVENTURES_ROOT}/dh-quest/character.md`]: "Hero",
+      [`${ADVENTURES_ROOT}/dh-quest/character.md`]: "# Hero",
       [`${ADVENTURES_ROOT}/dh-quest/adventure.md`]: "---\nsystem: daggerheart\n---\n\nA Daggerheart adventure.",
     };
 

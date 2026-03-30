@@ -13,22 +13,25 @@ import type {
 
 describe("Mock API response shapes", () => {
   test("adventure list response matches AdventureListResponse type", () => {
-    // This validates the shape our mock returns
     const response: AdventureListResponse = {
       adventures: [
         {
           id: "lost-mines",
           name: "Lost Mines of Phandelver",
-          hasCharacter: true,
-          hasWorld: true,
           hasHistory: true,
+          system: "d20",
+          concept: "A classic dungeon crawl.",
+          characterName: "Thorin",
+          lastPlayed: "2026-03-20T14:00:00.000Z",
         },
         {
           id: "freeform-narrative",
           name: "freeform-narrative",
-          hasCharacter: false,
-          hasWorld: false,
           hasHistory: false,
+          system: null,
+          concept: null,
+          characterName: null,
+          lastPlayed: null,
         },
       ],
     };
@@ -45,6 +48,8 @@ describe("Mock API response shapes", () => {
       character: "# Thorin Ironforge\nDwarf Fighter",
       world: "# Lost Mines\nA classic adventure",
       hasHistory: true,
+      system: "d20",
+      concept: "A classic dungeon crawl.",
     };
 
     expect(response.character).not.toBeNull();
@@ -58,6 +63,8 @@ describe("Mock API response shapes", () => {
       character: null,
       world: null,
       hasHistory: false,
+      system: null,
+      concept: null,
     };
 
     expect(response.character).toBeNull();
@@ -85,24 +92,6 @@ describe("Mock API response shapes", () => {
     const response: AdventureListResponse = { adventures: [] };
     expect(response.adventures).toHaveLength(0);
   });
-
-  test("single adventure list triggers auto-redirect", () => {
-    const response: AdventureListResponse = {
-      adventures: [
-        {
-          id: "only-one",
-          name: "The Only Adventure",
-          hasCharacter: true,
-          hasWorld: true,
-          hasHistory: false,
-        },
-      ],
-    };
-
-    // When length === 1, the page should auto-redirect
-    expect(response.adventures).toHaveLength(1);
-    expect(response.adventures[0].id).toBe("only-one");
-  });
 });
 
 describe("Adventure list badge logic", () => {
@@ -110,64 +99,62 @@ describe("Adventure list badge logic", () => {
     const adventure: AdventureListItem = {
       id: "test",
       name: "Test",
-      hasCharacter: true,
-      hasWorld: true,
       hasHistory: true,
+      system: null,
+      concept: null,
+      characterName: null,
+      lastPlayed: "2026-03-20T14:00:00.000Z",
     };
     expect(adventure.hasHistory).toBe(true);
-    // Badge: "Continue"
   });
 
   test("adventure without history gets New adventure badge", () => {
     const adventure: AdventureListItem = {
       id: "test",
       name: "Test",
-      hasCharacter: false,
-      hasWorld: false,
       hasHistory: false,
+      system: null,
+      concept: null,
+      characterName: null,
+      lastPlayed: null,
     };
     expect(adventure.hasHistory).toBe(false);
-    // Badge: "New adventure"
   });
 });
 
-describe("File hints rendering logic", () => {
-  test("builds hint string from available files", () => {
+describe("Adventure card display logic", () => {
+  test("shows system badge when system present", () => {
     const adventure: AdventureListItem = {
       id: "test",
       name: "Test",
-      hasCharacter: true,
-      hasWorld: true,
-      hasHistory: true,
+      hasHistory: false,
+      system: "daggerheart",
+      concept: "A story of hope.",
+      characterName: "Aria",
+      lastPlayed: null,
     };
 
-    const hints: string[] = [];
-    if (adventure.hasCharacter) hints.push("Character");
-    if (adventure.hasWorld) hints.push("World");
-    if (adventure.hasHistory) hints.push("History");
-
-    expect(hints.join(" \u00b7 ")).toBe("Character \u00b7 World \u00b7 History");
+    expect(adventure.system).toBe("daggerheart");
+    expect(adventure.concept).toBe("A story of hope.");
+    expect(adventure.characterName).toBe("Aria");
   });
 
-  test("shows fallback hint when no files exist", () => {
-    const adventure: AdventureListItem = {
-      id: "test",
-      name: "Test",
-      hasCharacter: false,
-      hasWorld: false,
-      hasHistory: false,
-    };
+  test("adventure sorting: new first then by lastPlayed desc", () => {
+    const adventures: AdventureListItem[] = [
+      { id: "old", name: "Old", hasHistory: true, system: null, concept: null, characterName: null, lastPlayed: "2026-03-10T00:00:00.000Z" },
+      { id: "new", name: "New", hasHistory: false, system: null, concept: null, characterName: null, lastPlayed: null },
+      { id: "recent", name: "Recent", hasHistory: true, system: null, concept: null, characterName: null, lastPlayed: "2026-03-20T00:00:00.000Z" },
+    ];
 
-    const hints: string[] = [];
-    if (adventure.hasCharacter) hints.push("Character");
-    if (adventure.hasWorld) hints.push("World");
-    if (adventure.hasHistory) hints.push("History");
+    const sorted = [...adventures].sort((a, b) => {
+      if (a.lastPlayed === null && b.lastPlayed !== null) return -1;
+      if (a.lastPlayed !== null && b.lastPlayed === null) return 1;
+      if (a.lastPlayed === null && b.lastPlayed === null) return a.name.localeCompare(b.name);
+      return new Date(b.lastPlayed!).getTime() - new Date(a.lastPlayed!).getTime();
+    });
 
-    const hintText =
-      hints.length > 0
-        ? hints.join(" \u00b7 ")
-        : "No files yet \u2014 GM will help you begin";
-
-    expect(hintText).toBe("No files yet \u2014 GM will help you begin");
+    expect(sorted[0].id).toBe("new");
+    expect(sorted[1].id).toBe("recent");
+    expect(sorted[2].id).toBe("old");
   });
 });
