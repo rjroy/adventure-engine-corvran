@@ -1,9 +1,9 @@
 ---
 title: RPG System Loading and Selection
 date: 2026-03-29
-status: open
+status: resolved
 tags: [plugins, game-systems, bootstrap-prompts, adventure-config, architecture]
-modules: [backend, session-runner, prompt-service, adventure-service]
+modules: [backend, session-runner, prompt-service, adventure-service, dice-tool]
 related: [.lore/vision.md, .lore/brainstorm/mvp-scope.md]
 ---
 
@@ -54,9 +54,9 @@ This aligns with Principle 5 (system-agnostic core): the engine doesn't know abo
 
 Looking at what each plugin actually provides:
 
-**corvran** (2 skills):
-- `dice-roller`: Generic dice rolling via bash script. Supports d20, 2d6, DdD (Daggerheart's Duality Dice), percentile, Fudge dice. System-agnostic by design.
+**corvran** (1 skill after dice roller extraction):
 - `gm-craft`: Storytelling techniques, improv principles, NPC creation, scene pacing, failure handling. Explicitly references techniques from multiple systems (Critical Role, Dimension 20, Dungeon World, FATE, Daggerheart). Universal.
+- ~~`dice-roller`: Moves to engine-level MCP tool. See "Dice Roller as Engine Tool" below.~~
 
 **d20-system** (5 skills):
 - `d20-rules`: SRD 5.2 lookup (1.3MB of reference material)
@@ -73,11 +73,11 @@ Looking at what each plugin actually provides:
 - `dh-adversaries`: Adversary stat blocks, encounter building
 - `dh-players`: Character creation, Experiences, leveling
 
-The split is clean. Corvran is GM craft and tooling. The system plugins are rules and mechanics. Both d20-combat and dh-combat reference corvran's dice-roller via relative path (`${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh`), confirming the dependency direction: system plugins depend on corvran, not the reverse.
+The split is clean. Corvran is GM craft. The system plugins are rules and mechanics. The dice roller, which both d20-combat and dh-combat currently reference via relative path (`${CLAUDE_PLUGIN_ROOT}/../corvran/skills/dice-roller/scripts/roll.sh`), is better understood as engine infrastructure than a plugin concern. See "Dice Roller as Engine Tool" below.
 
 **Proposal:** Corvran always loads. It's the "core" plugin. System plugins are additive. An adventure with no system plugin is freeform storytelling (the AI has GM craft and dice but no specific rules). This is actually a valid play mode, and it falls out naturally from the architecture.
 
-**What if someone wants a system-agnostic adventure?** They just don't declare a system. Corvran loads alone. The AI has gm-craft for storytelling and dice-roller for any ad-hoc rolls. This is Principle 5 in its purest form.
+**What if someone wants a system-agnostic adventure?** They just don't declare a system. Corvran loads alone. The AI has gm-craft for storytelling and the engine's dice tool for any ad-hoc rolls. This is Principle 5 in its purest form.
 
 ### 3. Bootstrap Prompts: What the AI Needs Beyond Skills
 
@@ -88,15 +88,14 @@ Having the right skills available is necessary but not sufficient. The current p
 **What a bootstrap prompt needs to establish:**
 
 1. **System identity**: "You are running a Daggerheart game" (not just "a tabletop RPG")
-2. **Core mechanic summary**: The one-paragraph version of how this system works differently from D&D
-3. **Dice convention**: "Roll 2d12 (Duality Dice), not d20" or "Roll d20 + modifier"
-4. **Narrative philosophy**: Daggerheart is narrative-first with spotlight flow; D&D is tactical with initiative order
-5. **Key vocabulary**: Hope/Fear, Evasion, Stress vs Hit Points, Armor Class, Spell Slots
-6. **What NOT to do**: "Do not use initiative order" (for Daggerheart), "Do not use spotlight flow" (for D&D)
+2. **Core mechanic summary**: How this system works, described on its own terms
+3. **Dice convention**: How rolls work in this system, using the engine's dice tool
+4. **Narrative philosophy**: The system's approach to storytelling and action
+5. **Key vocabulary**: The system's own terminology, used exclusively
 
-The "what not to do" is important. Without negative guidance, the AI blends systems. It'll describe Hope tokens while also asking for initiative rolls.
+**Anti-pattern: comparative framing.** A Daggerheart bootstrap that says "no initiative rolls" or "not AC" defines itself by what it isn't, which anchors the AI's reasoning on D&D as the baseline. Each system should stand on its own terms. "Spotlight flows from action outcomes" is correct framing. "No initiative rolls" is comparative poisoning.
 
-**Draft: Daggerheart bootstrap prompt:**
+**Draft: Daggerheart bootstrap prompt (revised, self-contained):**
 
 ```
 You are running a Daggerheart game by Darrington Press.
@@ -105,24 +104,22 @@ Core mechanic: Players roll Duality Dice (2d12) for action rolls. The higher die
 determines whether the player gains Hope or you gain Fear. This token economy drives
 the narrative: Hope empowers players, Fear empowers your responses.
 
-Combat uses spotlight flow, not initiative. Players act first. When a roll generates
-Fear or fails, you take the spotlight and adversaries act. After your turn, spotlight
-returns to a player.
+Spotlight flow: Players act first. When a roll generates Fear or fails, you take the
+spotlight and adversaries act. After your turn, spotlight returns to a player.
+Spotlight moves through the fiction, not through a fixed order.
 
-Key differences from other systems:
-- No initiative rolls. Spotlight flows from action outcomes.
-- No Armor Class. Adversaries have Evasion.
-- Damage uses thresholds (Major/Severe), not direct HP subtraction.
-- Characters have Stress alongside HP. Maximum Stress causes Vulnerability.
-- Death is a dramatic choice (Blaze of Glory, Avoid Death, Risk It All), not a
-  saving throw countdown.
+Damage and defense: Adversaries have Evasion (the target number for attacks). Damage
+is measured in thresholds (Minor/Major/Severe) against Hit Points. Characters also
+carry Stress; maximum Stress causes Vulnerability.
 
-Use Daggerheart terminology exclusively. Refer to "Evasion" not "AC," "Stress" not
-"exhaustion," "Hope" and "Fear" not "inspiration." Use the dh-* skills for rules,
-combat, and character management.
+Death is a dramatic choice: Blaze of Glory, Avoid Death, or Risk It All. The player
+decides how their character faces the end.
+
+Use Daggerheart terminology exclusively. Use the dh-* skills for rules, combat, and
+character management. Use the engine dice tool for all rolls.
 ```
 
-**Draft: D&D 5E bootstrap prompt:**
+**Draft: D&D 5E bootstrap prompt (revised, self-contained):**
 
 ```
 You are running a D&D 5th Edition game using the SRD 5.2 rules.
@@ -130,41 +127,25 @@ You are running a D&D 5th Edition game using the SRD 5.2 rules.
 Core mechanic: Players roll a d20 and add modifiers for ability checks, attack rolls,
 and saving throws. Meet or exceed the target number to succeed.
 
-Combat uses initiative order. All combatants roll initiative (d20 + DEX modifier) at
-combat start. Turns proceed from highest to lowest each round.
+Initiative: All combatants roll initiative (d20 + DEX modifier) at combat start.
+Turns proceed from highest to lowest each round.
 
-Key elements:
-- Armor Class (AC) determines what attack rolls need to hit.
-- Hit Points are a direct numerical pool. Damage subtracts from HP.
-- Advantage/Disadvantage: roll 2d20, take higher or lower. Multiple sources don't stack.
-- Six ability scores (STR, DEX, CON, INT, WIS, CHA) with modifiers.
-- Proficiency bonus increases with level and applies to trained skills, saves, and attacks.
+Armor Class (AC) is the target number for attack rolls. Hit Points are a numerical
+pool; damage subtracts directly. Advantage and Disadvantage: roll 2d20, take higher
+or lower. Multiple sources of either don't stack.
 
-Use D&D terminology. Refer to ability checks, saving throws, Armor Class, Hit Dice,
-spell slots. Use the d20-* skills for rules, combat, spellcasting, and character
-management.
+Six ability scores (STR, DEX, CON, INT, WIS, CHA) with derived modifiers. Proficiency
+bonus increases with level and applies to trained skills, saves, and attacks.
+
+Use D&D terminology. Use the d20-* skills for rules, combat, spellcasting, and
+character management. Use the engine dice tool for all rolls.
 ```
+
+**Note:** These drafts are illustrative. The actual bootstrap files are well-structured markdown authored by the plugin maintainer. They are not constrained to this format. Each system decides what sections it needs.
 
 **Where should bootstrap prompts live?**
 
-Three options:
-
-**Option A: Inside the plugin directory.** Each system plugin includes a `bootstrap.md` (or similar) that the engine reads when loading that plugin. The plugin is self-contained: its skills teach the AI how to do things, and its bootstrap prompt establishes the right mental model.
-
-Pros: Plugin authors control their own bootstrap. Adding a new game system is fully self-service.
-Cons: The engine needs to know to look for this file, which is a convention, not enforced by plugin structure.
-
-**Option B: In the prompt service.** The prompt service has a map of system names to bootstrap text, or reads from a known location.
-
-Pros: Centralized. Easy to test.
-Cons: Adding a new system requires changing engine code. Violates Principle 2.
-
-**Option C: In the adventure directory.** Each adventure includes a `system.md` that contains (or references) the bootstrap prompt.
-
-Pros: Maximum flexibility. Different adventures using the same system could customize the prompt.
-Cons: Duplicates content across adventures. Maintenance burden.
-
-**Recommendation: Option A.** A file like `plugins/daggerheart-system/.claude-plugin/bootstrap.md` that the engine reads when loading the plugin. The prompt service assembles it into the system prompt alongside adventure state. This keeps plugin authorship self-contained (Principle 2) while giving the engine a predictable convention.
+**Decision: Inside the plugin directory.** Each system plugin includes a `bootstrap.md` declared in its `corvran-plugin.json` manifest. The engine reads the file when loading the plugin. Plugin authorship is fully self-contained: skills teach the AI how to use mechanics, the bootstrap establishes the mental model, and the manifest ties them together. Adding a new game system requires no engine code changes.
 
 The prompt assembly order in `prompt-service.ts` would become:
 
@@ -248,7 +229,24 @@ The second option is interesting. It means system selection could be conversatio
 
 Currently `resolveConfig()` returns global plugin paths, and `createSessionRunner` receives them at construction time. Every session uses the same plugins.
 
-The change: plugin resolution becomes per-adventure.
+The change: plugin resolution becomes per-adventure, driven by plugin manifests.
+
+**Plugin manifest (`corvran-plugin.json`):**
+
+Each plugin declares its identity in a `corvran-plugin.json` file at the plugin root. The engine scans `plugins/` at startup, reads these manifests, and builds an alias-to-path map for resolution.
+
+```json
+// plugins/corvran/corvran-plugin.json
+{ "name": "corvran", "type": "core", "aliases": ["corvran"] }
+
+// plugins/daggerheart-system/corvran-plugin.json
+{ "name": "daggerheart-system", "type": "system", "aliases": ["daggerheart"], "bootstrap": "bootstrap.md" }
+
+// plugins/d20-system/corvran-plugin.json
+{ "name": "d20-system", "type": "system", "aliases": ["d20"], "bootstrap": "bootstrap.md" }
+```
+
+Fields: `name` (string), `type` (`"core"` or `"system"`), `aliases` (string array), `bootstrap` (optional, path relative to plugin root). Two types exist today; the field is a forward seam for future extension. Duplicate aliases across plugins are undefined behavior ("don't do that"), not a designed-for scenario.
 
 **Option A: Resolve at session start.**
 
@@ -276,31 +274,7 @@ A dedicated service that takes a system name and returns plugin paths. The adven
 
 This adds a layer of indirection that's useful if plugin resolution becomes complex (remote plugins, version resolution, compatibility checks). Overkill for now, but worth noting as a future seam.
 
-**Recommendation: Option A for now.** Move plugin paths from session runner config to per-query params. Add a helper function that resolves system name to plugin paths. Keep the seam for Option C later.
-
-```typescript
-function resolvePluginPaths(system: string | null): string[] {
-  const repoRoot = process.cwd();
-  const corePaths = [resolve(repoRoot, "plugins/corvran")];
-
-  if (!system) return corePaths;
-
-  // Map short names to plugin directories
-  const systemMap: Record<string, string> = {
-    "d20": "d20-system",
-    "d20-system": "d20-system",
-    "daggerheart": "daggerheart-system",
-    "daggerheart-system": "daggerheart-system",
-  };
-
-  const pluginDir = systemMap[system];
-  if (!pluginDir) {
-    throw new Error(`Unknown game system: ${system}`);
-  }
-
-  return [...corePaths, resolve(repoRoot, `plugins/${pluginDir}`)];
-}
-```
+**Decision: Option A (resolve at session start) with manifest-based discovery.** Move plugin paths from session runner config to per-query params. At startup, the engine scans `plugins/` for `corvran-plugin.json` manifests and builds an alias-to-path map. The `resolvePluginPaths` function uses this map instead of a hardcoded one. No engine code changes when adding a new system plugin.
 
 ### 7. What the Prompt Service Becomes
 
@@ -332,6 +306,66 @@ You are the Game Master for a tabletop RPG adventure.
 
 The prompt service stays pure. It doesn't read files or resolve plugins. The adventure routes read the bootstrap file and pass it in. Clean separation.
 
+### 8. Dice Roller as Engine Tool
+
+The original brainstorm noted that both d20-combat and dh-combat depend on corvran's dice-roller via `${CLAUDE_PLUGIN_ROOT}/../corvran/`. This raised a fragility question (Q3), but the deeper question is: why do system plugins depend on corvran at all?
+
+The only cross-plugin dependency is dice rolling. Every game system needs dice. No plugin should own that. The dice roller is engine infrastructure.
+
+**Decision: The dice roller becomes an engine-provided MCP tool.** The session runner exposes it via the Agent SDK's MCP server support. Every session gets it automatically, regardless of which plugins are loaded. The bash script (`plugins/corvran/skills/dice-roller/scripts/roll.sh`) and all cross-plugin `${CLAUDE_PLUGIN_ROOT}/../corvran/` references are removed. System plugins have zero dependency on corvran.
+
+**Tool contract:**
+
+Input:
+```typescript
+{
+  groups: [
+    { n: number, d: number, label?: string }
+  ],
+  modifier?: number,
+  threshold?: number
+}
+```
+
+Output:
+```typescript
+{
+  groups: [
+    { label?: string, rolls: number[] }
+  ],
+  modifier: number,
+  total: number,
+  threshold?: number,
+  met?: boolean
+}
+```
+
+The engine does all arithmetic. The AI narrates results without computing anything.
+
+**Examples:**
+
+D&D attack roll (d20+5 vs AC 15):
+```json
+// Input
+{ "groups": [{ "n": 1, "d": 20, "label": "attack" }], "modifier": 5, "threshold": 15 }
+// Output
+{ "groups": [{ "label": "attack", "rolls": [14] }], "modifier": 5, "total": 19, "threshold": 15, "met": true }
+```
+
+Daggerheart action roll (Duality Dice + 3 vs difficulty 14):
+```json
+// Input
+{ "groups": [{ "n": 1, "d": 12, "label": "hope" }, { "n": 1, "d": 12, "label": "fear" }], "modifier": 3, "threshold": 14 }
+// Output
+{ "groups": [{ "label": "hope", "rolls": [9] }, { "label": "fear", "rolls": [6] }], "modifier": 3, "total": 18, "threshold": 14, "met": true }
+```
+
+The AI sees which die was higher (hope 9 vs fear 6, player gains Hope) and whether the roll succeeded (18 vs 14, met). All math is engine-side.
+
+**Scope:** Standard dice (NdD) with optional modifier and threshold. Fudge/Fate dice are v2.
+
+**Impact on corvran plugin:** The dice-roller skill is removed. Corvran retains gm-craft as its sole skill. The `corvran-plugin.json` manifest declares `"type": "core"`. Corvran's role narrows to GM craft and storytelling; mechanical tooling lives in the engine.
+
 ## Risks and Tensions
 
 ### adventure.md is config, not state
@@ -362,19 +396,21 @@ Migration path: when the engine encounters an adventure with no `adventure.md`, 
 
 ## Open Questions
 
-1. **Bootstrap prompt format**: Should `bootstrap.md` be plain text that gets inserted verbatim? Or structured markdown with sections (identity, mechanics, onboarding, vocabulary)? Plain text is simpler. Structured sections let the engine compose more intelligently. Start with plain text, add structure if the single-blob approach creates problems.
+All questions resolved.
 
-2. **Plugin discovery vs. hardcoded map**: The `resolvePluginPaths` sketch uses a hardcoded map of system names to plugin directories. Should plugins self-describe instead? A `"type": "system"` or `"aliases": ["d20"]` field in `plugin.json` would make the engine discoverable without code changes when adding a new system. Worth noting as a forward seam even if not implemented immediately.
+1. **Bootstrap prompt format**: Well-structured markdown, no enforced schema. Each system decides what sections it needs. Bootstrap prompts must be self-contained descriptions, not comparative ones (no "unlike D&D" framing). The engine reads the file verbatim and inserts it into the system prompt.
 
-3. **System plugins depending on corvran**: Both d20-combat and dh-combat reference corvran's dice-roller via `${CLAUDE_PLUGIN_ROOT}/../corvran/`. This relative path assumption works only if corvran is a sibling directory. If plugin paths ever change, these references break. Is the sibling assumption stable enough, or should the dice-roller path be injected differently?
+2. **Plugin discovery vs. hardcoded map**: Plugins self-describe via `corvran-plugin.json` manifest. Engine scans `plugins/` at startup and builds alias-to-path map dynamically. No engine code changes when adding a new system. Manifest fields: `name`, `type`, `aliases`, optional `bootstrap`.
 
-4. **Multiple system plugins per adventure**: Is there ever a reason to load more than one system plugin? Crossover adventures? This seems like a novelty case not worth designing for. The architecture shouldn't actively prevent it, but it should be uncommon.
+3. **System plugins depending on corvran**: Dissolved. The dice roller becomes an engine-provided MCP tool. System plugins have zero dependency on corvran. All cross-plugin `${CLAUDE_PLUGIN_ROOT}/../corvran/` references are removed. The engine's dice tool accepts grouped rolls with labels, modifier, and threshold, and returns pre-computed results.
 
-5. **Adventure listing**: When the UI lists adventures, should it show the game system? Adding `system: string | null` to `AdventureListItemSchema` is a minor schema change that enables system badges or filtering in the UI.
+4. **Multiple system plugins per adventure**: One system per adventure. The `system` field in `adventure.md` is a single string, not an array. No multi-system support.
 
-6. **Freeform validation**: If an adventure has no `adventure.md` (or no `system` field), is that freeform or an error? Freeform-by-default preserves backward compatibility with existing MVP adventures.
+5. **Adventure listing**: Yes, include `system` in the adventure list API response. `system: string | null` in `AdventureListItemSchema`. It's a UX requirement.
 
-7. **Plugin path resolution fragility**: The current code and the proposed sketch both use `process.cwd()` to find the `plugins/` directory. This works when the daemon runs from the repo root but breaks in tests or alternative deployments. The spec should address how plugin base paths are configured (environment variable, config file, or resolved relative to the module).
+6. **Freeform validation**: No `adventure.md` = freeform. No warning, no error. An adventure without structure is just an adventure without structure. Players add rules when they want them.
+
+7. **Plugin path resolution fragility**: Not fragile. Plugins live in `plugins/` in the repo. The daemon runs from the repo root. The path is fixed by project structure. No environment variable or configurable path needed. Tests pass the path explicitly through DI.
 
 ## Next Steps
 
@@ -382,8 +418,14 @@ This brainstorm is ready to feed a spec. The core decisions are:
 
 - One system per adventure, declared in `adventure.md`
 - Corvran always loads as the core plugin
-- System plugins include bootstrap prompts that frame the AI's behavior
-- Plugin paths move from global config to per-query resolution
+- Plugins self-describe via `corvran-plugin.json` manifest (name, type, aliases, optional bootstrap)
+- Bootstrap prompts are well-structured markdown, self-contained (no comparative framing), authored by the plugin maintainer
+- Plugin paths move from global config to per-query resolution via manifest-based discovery
 - Prompt service gains a system bootstrap section
+- Dice roller moves from corvran plugin to engine-provided MCP tool with structured input (groups with labels, modifier, threshold) and pre-computed output
+- One system per adventure (single string, not array)
+- Adventure list API includes `system` field
+- No `adventure.md` = freeform (no error, no warning)
+- Plugin path resolution is not fragile; `plugins/` is a fixed repo-relative path
 
-The spec should define the `adventure.md` format, the bootstrap prompt convention, the changes to plugin resolution, and the prompt assembly order. It should also define how the adventure list API changes and what happens when a system declaration doesn't match an installed plugin.
+All open questions are resolved. The spec should define: the `adventure.md` format, the `corvran-plugin.json` manifest schema, the bootstrap prompt convention and anti-patterns, the dice tool's MCP contract, the changes to plugin resolution and session runner, and the prompt assembly order. It should also define how the adventure list API changes and what happens when a system declaration doesn't match an installed plugin.
