@@ -171,10 +171,18 @@ The research notes that Ironsworn was "designed for the exact use case (GM-less 
 
 These aren't design decisions, just flags for whoever picks this up.
 
+**Plugin manifest changes needed:**
+- `aliases` (array) becomes `alias` (singular string). Every existing manifest uses a single-element array; the plural form was premature.
+- Add a `description` field. The system picker needs a human-readable sentence per system.
+- Updated manifest shape: `{ "name": "daggerheart-system", "type": "system", "alias": "daggerheart", "description": "A fantasy RPG where hope and fear drive the story", "bootstrap": "bootstrap.md" }`
+- The plugin registry's `availableAliases()` becomes something that returns `{ alias, description }[]` instead of `string[]`.
+- This is a breaking change to the manifest schema. All three existing manifests (corvran, d20-system, daggerheart-system) need updating, along with the registry parsing code and its tests.
+
 **Backend changes needed:**
 - A `POST /adventures` endpoint that creates the directory and writes `adventure.md`
 - The adventure name needs to be a real field (in frontmatter or derived from directory), not just the directory name
 - A `lastPlayed` or `lastModified` timestamp in the list response (stat the history file, or track it explicitly)
+- A `GET /systems` endpoint (or similar) that returns `{ alias, description }[]` for all `type === "system"` plugins from the registry
 
 **Web changes needed:**
 - Remove the single-adventure auto-redirect in `page.tsx`
@@ -189,12 +197,12 @@ These aren't design decisions, just flags for whoever picks this up.
 
 **What about the "full session zero" (Option A)?** It's not gone, just deferred. The concept field in Option C doesn't prevent later adding a "Setup conversation" option that launches a pre-game agent. The creation wizard could have an "Advanced: Talk through your concept with an AI collaborator" link that opens a setup conversation before creating the adventure. That's an additive feature, not a structural change.
 
-## Open Questions
+## Resolved Questions
 
-1. **Can the GM write `character.md` and `world.md` during play?** The current spec (REQ-SYS-5) says `adventure.md` is read-only for the AI, but says nothing about character and world files. If the GM can create these files during onboarding, it means the "new adventure" state naturally evolves into a "has character + world" state through play. If not, the player has to create them manually, which breaks the flow. The bootstrap prompts should include guidance for the AI to write these files as part of onboarding.
+1. **Can the GM write `character.md` and `world.md` during play?** Yes. All adventure files are fully read/write for both the AI and the player. There are no file restrictions. REQ-SYS-5's "adventure.md is read-only for the AI" was a bad spec decision that contradicts the project vision and must be corrected. The infrastructure already supports this: the session runner sets the adventure path as the working directory and the AI has the Write tool. What's needed is bootstrap prompt guidance telling the GM to persist character and world details as they emerge through conversation.
 
-2. **How does the name relate to the directory name?** Today the directory name IS the adventure name. If the creation flow lets players choose display names with spaces and special characters, the directory name becomes an id (slugified or generated) and the display name lives in frontmatter. This is a small change but affects the entire adventure service.
+2. **How does the name relate to the directory name?** The directory name is slugified from the player's chosen name (spaces to dashes, strip special characters). It stays human-readable for developer maintenance when navigating `~/.corvran/adventures/` directly. The player-chosen display name lives in `adventure.md` frontmatter as a `name` field. The adventure service reads `name` from frontmatter for display, falling back to the directory name if frontmatter is missing (backward compatibility with existing adventures).
 
-3. **Should available systems come from the API?** The creation wizard needs to know what systems are installed. The plugin registry already has this information. A `GET /systems` endpoint (or including system info in a general config endpoint) would let the web client build the picker dynamically.
+3. **Should available systems come from the API?** Yes. The plugin manifest simplifies: `aliases` (array) becomes `alias` (singular string), and gains a `description` field. A manifest becomes `{ "name": "daggerheart-system", "type": "system", "alias": "daggerheart", "description": "A fantasy RPG where hope and fear drive the story", "bootstrap": "bootstrap.md" }`. A new endpoint returns `{ alias, description }[]` for all `type === "system"` plugins, and the web client builds the picker dynamically from that.
 
-4. **What about the concept field for freeform adventures?** Freeform has no system bootstrap. The concept text becomes the only guidance the GM has beyond the generic prompt. This is fine, but worth noting: a freeform adventure with a blank concept field starts the GM with almost nothing. The freeform onboarding in the prompt service should be strong enough to handle this gracefully.
+4. **What about the concept field for freeform adventures?** Freeform gets no special treatment. Freeform is the absence of a system, not a system. The generic GM prompt ("you're a Game Master") carries the weight. A blank concept field with no system selected is a valid blank-slate state. If that's not enough, the fix is improving the generic prompt, not adding freeform-specific scaffolding.
