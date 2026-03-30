@@ -3,7 +3,8 @@ import type { FileOps } from "../types.js";
 export interface PluginManifest {
   name: string;
   type: "core" | "system";
-  aliases: string[];
+  alias: string;
+  description?: string;
   bootstrap?: string;
 }
 
@@ -12,10 +13,15 @@ export interface PluginEntry {
   path: string;
 }
 
+export interface SystemInfo {
+  alias: string;
+  description: string;
+}
+
 export interface PluginRegistry {
   corePlugins: PluginEntry[];
   resolveSystem(alias: string): PluginEntry | null;
-  availableAliases(): string[];
+  availableSystems(): SystemInfo[];
 }
 
 const MANIFEST_FILE = "corvran-plugin.json";
@@ -27,7 +33,7 @@ function isValidManifest(
   const obj = data as Record<string, unknown>;
   if (typeof obj.name !== "string") return false;
   if (obj.type !== "core" && obj.type !== "system") return false;
-  if (!Array.isArray(obj.aliases)) return false;
+  if (typeof obj.alias !== "string") return false;
   return true;
 }
 
@@ -78,15 +84,13 @@ export async function buildPluginRegistry(
       corePlugins.push(entry);
     }
 
-    for (const alias of parsed.aliases) {
-      const existing = aliasMap.get(alias);
-      if (existing) {
-        warn(
-          `[plugin-registry] Duplicate alias "${alias}" claimed by "${existing.manifest.name}" and "${parsed.name}"`,
-        );
-      }
-      aliasMap.set(alias, entry);
+    const existing = aliasMap.get(parsed.alias);
+    if (existing) {
+      warn(
+        `[plugin-registry] Duplicate alias "${parsed.alias}" claimed by "${existing.manifest.name}" and "${parsed.name}"`,
+      );
     }
+    aliasMap.set(parsed.alias, entry);
   }
 
   return {
@@ -96,14 +100,19 @@ export async function buildPluginRegistry(
       if (!entry || entry.manifest.type !== "system") return null;
       return entry;
     },
-    availableAliases(): string[] {
-      const aliases: string[] = [];
+    availableSystems(): SystemInfo[] {
+      const systems: SystemInfo[] = [];
       for (const [alias, entry] of aliasMap) {
-        if (entry.manifest.type === "system") {
-          aliases.push(alias);
+        if (entry.manifest.type !== "system") continue;
+        if (!entry.manifest.description) {
+          warn(
+            `[plugin-registry] System plugin "${entry.manifest.name}" has no description, excluded from system picker`,
+          );
+          continue;
         }
+        systems.push({ alias, description: entry.manifest.description });
       }
-      return aliases;
+      return systems;
     },
   };
 }

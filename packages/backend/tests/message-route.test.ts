@@ -15,7 +15,7 @@ import {
   userWithToolResult,
 } from "./helpers/mock-query.js";
 import type { QueryFn } from "../src/services/session-runner.js";
-import type { PluginRegistry, PluginEntry } from "../src/services/plugin-registry.js";
+import type { PluginRegistry, PluginEntry, SystemInfo } from "../src/services/plugin-registry.js";
 
 const ADVENTURES_ROOT = "/test/adventures";
 const PLUGINS_ROOT = "/test/plugins";
@@ -23,15 +23,15 @@ const PLUGINS_ROOT = "/test/plugins";
 /** Creates a mock plugin registry with corvran (core) + two system plugins */
 function createMockRegistry(): PluginRegistry {
   const corvranEntry: PluginEntry = {
-    manifest: { name: "corvran", type: "core", aliases: ["corvran"] },
+    manifest: { name: "corvran", type: "core", alias: "corvran" },
     path: `${PLUGINS_ROOT}/corvran`,
   };
   const daggerheartEntry: PluginEntry = {
-    manifest: { name: "daggerheart-system", type: "system", aliases: ["daggerheart"], bootstrap: "bootstrap.md" },
+    manifest: { name: "daggerheart-system", type: "system", alias: "daggerheart", description: "Daggerheart system", bootstrap: "bootstrap.md" },
     path: `${PLUGINS_ROOT}/daggerheart-system`,
   };
   const d20Entry: PluginEntry = {
-    manifest: { name: "d20-system", type: "system", aliases: ["d20"], bootstrap: "bootstrap.md" },
+    manifest: { name: "d20-system", type: "system", alias: "d20", description: "d20 system", bootstrap: "bootstrap.md" },
     path: `${PLUGINS_ROOT}/d20-system`,
   };
 
@@ -45,8 +45,10 @@ function createMockRegistry(): PluginRegistry {
     resolveSystem(alias: string): PluginEntry | null {
       return systemMap.get(alias) ?? null;
     },
-    availableAliases(): string[] {
-      return [...systemMap.keys()];
+    availableSystems(): SystemInfo[] {
+      return [...systemMap.entries()]
+        .filter(([, e]) => e.manifest.description)
+        .map(([a, e]) => ({ alias: a, description: e.manifest.description! }));
     },
   };
 }

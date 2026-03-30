@@ -1,6 +1,7 @@
 {
   "name": "d20-system",
   "type": "system",
-  "aliases": ["d20"],
+  "alias": "d20",
+  "description": "Classic d20 fantasy with classes, levels, and ability scores",
   "bootstrap": "bootstrap.md"
 }

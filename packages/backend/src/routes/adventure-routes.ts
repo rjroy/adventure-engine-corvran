@@ -120,7 +120,7 @@ export function createAdventureRoutes(deps: {
       if (systemAlias) {
         const systemPlugin = pluginRegistry.resolveSystem(systemAlias);
         if (!systemPlugin) {
-          const available = pluginRegistry.availableAliases().join(", ");
+          const available = pluginRegistry.availableSystems().map(s => s.alias).join(", ");
           return c.json({
             error: `Adventure '${id}' declares system '${systemAlias}' but no matching plugin is installed. Available systems: ${available}.`,
           }, 400);

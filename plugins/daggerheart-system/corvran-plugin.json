@@ -1,6 +1,7 @@
 {
   "name": "daggerheart-system",
   "type": "system",
-  "aliases": ["daggerheart"],
+  "alias": "daggerheart",
+  "description": "A fantasy RPG where hope and fear drive the story",
   "bootstrap": "bootstrap.md"
 }

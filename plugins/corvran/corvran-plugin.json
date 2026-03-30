@@ -1,5 +1,5 @@
 {
   "name": "corvran",
   "type": "core",
-  "aliases": ["corvran"]
+  "alias": "corvran"
 }
