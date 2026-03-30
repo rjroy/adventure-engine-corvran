@@ -1,7 +1,7 @@
 ---
 title: "Implementation plan: engine-dice-tool"
 date: 2026-03-29
-status: draft
+status: approved 
 tags: [plan, dice, mcp, engine-tool, session-runner, agent-sdk]
 modules: [backend]
 related: [.lore/specs/engine-dice-tool.md, .lore/reference/architecture-pattern.md, .lore/plans/mvp-implementation.md]
