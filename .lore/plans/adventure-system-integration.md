@@ -1,7 +1,7 @@
 ---
 title: "Implementation plan: adventure-system-integration"
 date: 2026-03-29
-status: draft
+status: approved
 tags: [plan, plugins, game-systems, bootstrap-prompts, adventure-config, prompt-service, api]
 modules: [backend, shared]
 related: [.lore/specs/adventure-system-integration.md, .lore/specs/engine-dice-tool.md, .lore/plans/engine-dice-tool.md, .lore/reference/architecture-pattern.md]
