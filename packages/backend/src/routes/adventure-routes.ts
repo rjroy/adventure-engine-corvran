@@ -185,6 +185,7 @@ export function createAdventureRoutes(deps: {
       world: adventure.world,
       history,
       systemBootstrap,
+      concept: adventure.concept ?? null,
     });
 
     // Set up abort for client disconnect

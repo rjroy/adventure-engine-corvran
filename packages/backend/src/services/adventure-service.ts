@@ -69,7 +69,7 @@ export function createAdventureService(deps: {
       const characterPath = fileOps.resolvePath(adventurePath, "character.md");
       const historyPath = fileOps.resolvePath(adventurePath, "history.md");
 
-      const hasCharacter = await fileOps.fileExists(characterPath);
+      const characterExists = await fileOps.fileExists(characterPath);
       const hasHistory = await fileOps.fileExists(historyPath);
 
       let system: string | null = null;
@@ -88,7 +88,7 @@ export function createAdventureService(deps: {
         }
       }
 
-      const characterName = hasCharacter ? await extractCharacterName(characterPath) : null;
+      const characterName = characterExists ? await extractCharacterName(characterPath) : null;
       const lastPlayed = hasHistory ? await getLastPlayed(historyPath) : null;
 
       adventures.push({

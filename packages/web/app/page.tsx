@@ -214,6 +214,7 @@ function CreationWizard({
   onCreated: (id: string) => void;
 }) {
   const [systems, setSystems] = useState<SystemInfo[] | null>(null);
+  const [systemsError, setSystemsError] = useState(false);
   const [selectedSystem, setSelectedSystem] = useState<string | null>(null);
   const [concept, setConcept] = useState("");
   const [name, setName] = useState("Untitled Adventure");
@@ -229,6 +230,7 @@ function CreationWizard({
       })
       .catch(() => {
         setSystems([]);
+        setSystemsError(true);
       });
   }, []);
 
@@ -263,7 +265,7 @@ function CreationWizard({
   }
 
   return (
-    <div className={styles.wizardOverlay} onClick={onClose}>
+    <div className={styles.wizardOverlay} onClick={onClose} onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}>
       <div className={styles.wizardModal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.wizardHeader}>
           <h2>New Adventure</h2>
@@ -279,10 +281,14 @@ function CreationWizard({
               <button
                 className={`${styles.systemOption} ${selectedSystem === null ? styles.systemOptionSelected : ""}`}
                 onClick={() => setSelectedSystem(null)}
+                aria-pressed={selectedSystem === null}
               >
                 <span className={styles.systemOptionAlias}>Freeform</span>
                 <span className={styles.systemOptionDesc}>No rules system, pure narrative</span>
               </button>
+              {systemsError && (
+                <div className={styles.systemsLoading}>Could not load systems</div>
+              )}
               {systems === null ? (
                 <div className={styles.systemsLoading}>Loading systems...</div>
               ) : (
@@ -291,6 +297,7 @@ function CreationWizard({
                     key={sys.alias}
                     className={`${styles.systemOption} ${selectedSystem === sys.alias ? styles.systemOptionSelected : ""}`}
                     onClick={() => setSelectedSystem(sys.alias)}
+                    aria-pressed={selectedSystem === sys.alias}
                   >
                     <span className={styles.systemOptionAlias}>{sys.alias}</span>
                     <span className={styles.systemOptionDesc}>{sys.description}</span>
@@ -311,7 +318,7 @@ function CreationWizard({
               onChange={(e) => setConcept(e.target.value)}
               maxLength={1000}
               rows={4}
-              placeholder="Describe the setting, theme, or premise. Leave blank to start with a blank slate."
+              placeholder="A sentence or two about your character, the world, or both. Leave blank to discover as you play."
             />
             <div className={styles.charCount}>{concept.length}/1000</div>
           </div>
