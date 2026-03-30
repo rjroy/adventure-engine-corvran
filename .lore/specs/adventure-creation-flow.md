@@ -1,7 +1,7 @@
 ---
 title: Adventure Creation Flow
 date: 2026-03-30
-status: draft
+status: approved
 tags: [ux, adventure-creation, lobby, onboarding, plugin-manifest, api]
 modules: [web, backend, shared]
 related: [.lore/specs/adventure-system-integration.md, .lore/brainstorm/adventure-creation-flow.md, .lore/vision.md]
