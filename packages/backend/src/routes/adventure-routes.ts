@@ -317,7 +317,7 @@ export function createAdventureRoutes(deps: {
     }
 
     const imageBytes = await fileOps.readFileBytes(moodImagePath);
-    return new Response(imageBytes, {
+    return new Response(imageBytes as unknown as BodyInit, {
       headers: { "Content-Type": "image/png" },
     });
   });

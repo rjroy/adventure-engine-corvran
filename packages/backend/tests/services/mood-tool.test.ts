@@ -143,7 +143,8 @@ describe("createMoodToolDef", () => {
         }),
       );
       await toolDef.handler({ description: "dark cavern" }, {});
-      expect(savedMood).toEqual({
+      expect(savedMood).not.toBeNull();
+      expect(savedMood!).toEqual({
         hue: 142,
         description: "dark cavern",
         imagePath: "mood.png",
@@ -161,7 +162,8 @@ describe("createMoodToolDef", () => {
         }),
       );
       await toolDef.handler({ description: "dark cavern" }, {});
-      expect(emittedPayload).toEqual({
+      expect(emittedPayload).not.toBeNull();
+      expect(emittedPayload!).toEqual({
         hue: 142,
         description: "dark cavern",
         imagePath: "mood.png",
@@ -221,7 +223,8 @@ describe("createMoodToolDef", () => {
         }),
       );
       await toolDef.handler({ description: "a dark forest clearing" }, {});
-      expect(savedMood).toEqual({
+      expect(savedMood).not.toBeNull();
+      expect(savedMood!).toEqual({
         hue: 142,
         description: "a dark forest clearing",
       });
@@ -238,7 +241,8 @@ describe("createMoodToolDef", () => {
         }),
       );
       await toolDef.handler({ description: "a dark forest clearing" }, {});
-      expect(emittedPayload).toEqual({
+      expect(emittedPayload).not.toBeNull();
+      expect(emittedPayload!).toEqual({
         hue: 142,
         description: "a dark forest clearing",
       });

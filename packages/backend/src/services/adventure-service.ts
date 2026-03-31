@@ -4,7 +4,7 @@ import { parseAdventureConfig, type AdventureConfig } from "./adventure-config.j
 import { slugify } from "./slugify.js";
 
 export class DuplicateAdventureError extends Error {
-  constructor(slug: string) {
+  constructor() {
     super("An adventure with this name already exists.");
     this.name = "DuplicateAdventureError";
   }
@@ -165,7 +165,7 @@ export function createAdventureService(deps: {
     const adventurePath = fileOps.resolvePath(adventuresPath, slug);
 
     if (await fileOps.fileExists(adventurePath)) {
-      throw new DuplicateAdventureError(slug);
+      throw new DuplicateAdventureError();
     }
 
     // Build adventure.md content
