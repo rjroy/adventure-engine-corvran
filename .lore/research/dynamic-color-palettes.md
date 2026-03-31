@@ -1,7 +1,7 @@
 ---
 title: Dynamic UI Color Palette Generation from Seed Colors
 date: 2026-03-30
-status: open
+status: active
 tags: [research, ui, color, accessibility, frontend, web]
 ---
 
