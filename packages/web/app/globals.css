@@ -21,7 +21,7 @@
   --text-secondary: oklch(65% 0.024 85);
   --text-tertiary:  oklch(45% 0.024 85);
 
-  /* ── Amber (primary accent) ─────────────────────────────── */
+  /* ── Primary accent ─────────────────────────────────────── */
   --accent:         oklch(65% 0.135 78);
   --accent-hover:   oklch(85% 0.135 78);
   --accent-dim:     color-mix(in oklch, var(--accent) 15%, transparent);
