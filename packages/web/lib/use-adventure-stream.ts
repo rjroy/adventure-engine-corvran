@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from "react";
 import type { ToolUseEvent } from "@corvran/shared";
 import { MoodEventSchema } from "@corvran/shared";
 import { applyMood } from "@/lib/apply-mood";
+import { getMoodImageUrl } from "@/lib/mood-image-url";
 
 interface StreamMessage {
   role: "gm";
@@ -93,10 +94,10 @@ export function useAdventureStream(
             } else if (eventType === "mood") {
               const moodParsed = MoodEventSchema.safeParse(parsed);
               if (moodParsed.success) {
-                const imageUrl = moodParsed.data.imagePath
-                  ? `/api/daemon/adventures/${adventureId}/mood-image`
-                  : undefined;
-                applyMood(moodParsed.data.hue, imageUrl);
+                applyMood(
+                  moodParsed.data.hue,
+                  getMoodImageUrl(adventureId, moodParsed.data.imagePath),
+                );
               }
             }
           } catch {

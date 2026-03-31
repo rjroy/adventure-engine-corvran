@@ -10,6 +10,7 @@ import { useAdventureStream } from "@/lib/use-adventure-stream";
 import { parseHistory, type HistoryMessage } from "@/lib/parse-history";
 import { isTouchDevice, shouldSendOnEnter } from "@/lib/keyboard-handler";
 import { applyMood } from "@/lib/apply-mood";
+import { getMoodImageUrl } from "@/lib/mood-image-url";
 import styles from "./page.module.css";
 
 export default function AdventurePlayPage() {
@@ -50,10 +51,10 @@ export default function AdventurePlayPage() {
   // Apply mood palette on mount to prevent flash of default colors
   useLayoutEffect(() => {
     if (adventure?.currentMood) {
-      const imageUrl = adventure.currentMood.imagePath
-        ? `/api/daemon/adventures/${id}/mood-image`
-        : undefined;
-      applyMood(adventure.currentMood.hue, imageUrl);
+      applyMood(
+        adventure.currentMood.hue,
+        getMoodImageUrl(id, adventure.currentMood.imagePath),
+      );
     }
   }, [adventure, id]);
 
