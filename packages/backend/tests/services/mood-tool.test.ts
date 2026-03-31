@@ -22,59 +22,75 @@ function createMockDeps(overrides?: Partial<MoodToolDeps>): MoodToolDeps {
 }
 
 describe("keywordHue", () => {
-  test("fire keywords return 25", () => {
-    expect(keywordHue("a blazing fire surrounds the room")).toBe(25);
-    expect(keywordHue("the inferno rages")).toBe(25);
+  test("fire keywords return 20", () => {
+    expect(keywordHue("a blazing fire surrounds the room")).toBe(20);
+    expect(keywordHue("the inferno rages")).toBe(20);
+    expect(keywordHue("lava flows down the mountainside")).toBe(20);
+    expect(keywordHue("an ember glows in the ashes")).toBe(20);
   });
 
-  test("blood/rage keywords return 10", () => {
-    expect(keywordHue("blood flows through the halls")).toBe(10);
-    expect(keywordHue("fury of the gods")).toBe(10);
+  test("blood keywords return 5", () => {
+    expect(keywordHue("blood flows through the halls")).toBe(5);
+    expect(keywordHue("crimson banners hang from the walls")).toBe(5);
+    expect(keywordHue("war drums echo across the valley")).toBe(5);
   });
 
   test("forest keywords return 142", () => {
     expect(keywordHue("deep in the forest")).toBe(142);
     expect(keywordHue("a verdant meadow")).toBe(142);
+    expect(keywordHue("moss covers the ancient stones")).toBe(142);
+    expect(keywordHue("vine-wrapped pillars")).toBe(142);
   });
 
   test("ocean keywords return 220", () => {
     expect(keywordHue("across the ocean")).toBe(220);
     expect(keywordHue("the tide rises")).toBe(220);
+    expect(keywordHue("a river cuts through the canyon")).toBe(220);
   });
 
-  test("storm keywords return 250", () => {
-    expect(keywordHue("a terrible storm brews")).toBe(250);
-    expect(keywordHue("lightning strikes")).toBe(250);
+  test("sky keywords return 195", () => {
+    expect(keywordHue("an open sky stretches above")).toBe(195);
+    expect(keywordHue("dawn breaks over the hills")).toBe(195);
+    expect(keywordHue("the morning air is crisp")).toBe(195);
   });
 
-  test("shadow keywords return 285", () => {
-    expect(keywordHue("shadow creeps forward")).toBe(285);
-    expect(keywordHue("darkness envelops everything")).toBe(285);
+  test("night keywords return 270", () => {
+    expect(keywordHue("the void consumes all light")).toBe(270);
+    expect(keywordHue("darkness envelops everything")).toBe(270);
+    expect(keywordHue("shadow creeps closer")).toBe(270);
+    expect(keywordHue("the abyss stares back")).toBe(270);
   });
 
-  test("holy keywords return 85", () => {
-    expect(keywordHue("a holy aura")).toBe(85);
-    expect(keywordHue("celestial beings descend")).toBe(85);
+  test("ice keywords return 205", () => {
+    expect(keywordHue("ice covers the path")).toBe(205);
+    expect(keywordHue("a frozen tundra")).toBe(205);
+    expect(keywordHue("the glacier groans")).toBe(205);
   });
 
-  test("ice keywords return 200", () => {
-    expect(keywordHue("ice covers the path")).toBe(200);
-    expect(keywordHue("a frozen wasteland")).toBe(200);
+  test("desert keywords return 50", () => {
+    expect(keywordHue("endless desert sands")).toBe(50);
+    expect(keywordHue("stone pillars rise from the earth")).toBe(50);
+    expect(keywordHue("an ancient ruin stands alone")).toBe(50);
   });
 
-  test("desert keywords return 55", () => {
-    expect(keywordHue("endless desert sands")).toBe(55);
-    expect(keywordHue("arid landscape stretches")).toBe(55);
+  test("magic keywords return 300", () => {
+    expect(keywordHue("arcane symbols glow on the floor")).toBe(300);
+    expect(keywordHue("a mystical aura surrounds the portal")).toBe(300);
+    expect(keywordHue("ethereal light shimmers")).toBe(300);
+    expect(keywordHue("the fey court gathers")).toBe(300);
   });
 
-  test("death keywords return 310", () => {
-    expect(keywordHue("death awaits")).toBe(310);
-    expect(keywordHue("undead rise from graves")).toBe(310);
+  test("poison keywords return 120", () => {
+    expect(keywordHue("poison drips from the fangs")).toBe(120);
+    expect(keywordHue("a plague sweeps the land")).toBe(120);
+    expect(keywordHue("decay fills the chamber")).toBe(120);
+    expect(keywordHue("rot covers the fallen body")).toBe(120);
+    expect(keywordHue("corruption spreads through the kingdom")).toBe(120);
   });
 
   test("first match wins when multiple keywords appear", () => {
-    // "fire" group (25) appears before "ocean" group (220)
-    expect(keywordHue("fire on the ocean waves")).toBe(25);
+    // "fire" group (20) appears before "ocean" group (220)
+    expect(keywordHue("fire on the ocean waves")).toBe(20);
   });
 
   test("returns 270 when no keyword matches", () => {

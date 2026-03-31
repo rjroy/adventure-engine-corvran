@@ -304,6 +304,11 @@ export function createAdventureRoutes(deps: {
     if (!isValidId(id)) return c.json({ error: "Invalid adventure ID" }, 400);
     if (!fileOps) return c.json({ error: "File operations unavailable" }, 503);
 
+    const adventure = await adventureService.getAdventure(id);
+    if (!adventure) {
+      return c.json({ error: "Adventure not found" }, 404);
+    }
+
     const adventurePath = adventureService.getAdventurePath(id);
     const moodImagePath = fileOps.resolvePath(adventurePath, "mood.png");
 

@@ -11,13 +11,16 @@ export async function generateMoodImage(
   fetchFn: typeof fetch = globalThis.fetch,
 ): Promise<string | null> {
   const token = process.env.REPLICATE_API_TOKEN;
-  if (!token) return null;
+  if (!token) {
+    console.warn("[image-gen] REPLICATE_API_TOKEN not set; image generation disabled");
+    return null;
+  }
 
   try {
     const response = await fetchFn(REPLICATE_URL, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Token ${token}`,
         "Content-Type": "application/json",
         Prefer: "wait",
       },

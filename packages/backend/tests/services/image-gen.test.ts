@@ -60,6 +60,22 @@ describe("generateMoodImage", () => {
     expect(result).toBeNull();
   });
 
+  it("uses Token auth header format per Replicate convention (REQ-MOOD-11)", async () => {
+    let capturedHeaders: HeadersInit | undefined;
+    const mockFetch = async (_url: string | URL | Request, init?: RequestInit) => {
+      capturedHeaders = init?.headers;
+      return new Response(
+        JSON.stringify({ status: "succeeded", output: ["https://example.com/img.png"] }),
+        { status: 200 },
+      );
+    };
+
+    await generateMoodImage("test prompt", mockFetch);
+    expect(capturedHeaders).toBeDefined();
+    const headers = capturedHeaders as Record<string, string>;
+    expect(headers.Authorization).toBe("Token test-token");
+  });
+
   it("includes the prompt in the request body", async () => {
     let capturedBody: string | undefined;
     const mockFetch = async (_url: string | URL | Request, init?: RequestInit) => {

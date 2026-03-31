@@ -10,12 +10,19 @@ const CHROMA_THRESHOLD = 0.02;
 const SAMPLE_STRIDE = 8;
 const DEFAULT_HUE = 270;
 
+export type ReadFileBytes = (path: string) => Promise<ArrayBuffer>;
+
+const defaultReadFileBytes: ReadFileBytes = (path) => Bun.file(path).arrayBuffer();
+
 /**
  * Extracts the dominant hue from a PNG file at the given path.
  * Returns OKLCH hue angle in [0, 360). Returns 270 for achromatic images.
  */
-export async function extractDominantHue(imagePath: string): Promise<number> {
-  const fileBuffer = await Bun.file(imagePath).arrayBuffer();
+export async function extractDominantHue(
+  imagePath: string,
+  readFileBytes: ReadFileBytes = defaultReadFileBytes,
+): Promise<number> {
+  const fileBuffer = await readFileBytes(imagePath);
   const png = PNG.sync.read(Buffer.from(fileBuffer));
   const { width, height, data } = png;
 

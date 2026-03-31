@@ -121,6 +121,61 @@ A tale of adventure.
     expect(content).toContain("mood_hue: 30");
     expect(content).toContain("A tale of adventure.");
   });
+
+  test("escapes double quotes in description on write (F2)", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/quest/adventure.md`]: `---
+name: The Quest
+---
+`,
+    };
+
+    const fileOps = createMockFileOps(files);
+    const service = createAdventureService({ fileOps, adventuresPath: ADVENTURES_ROOT });
+
+    await service.setMood("quest", {
+      hue: 142,
+      description: 'A tavern called "The Dragon"',
+      imagePath: "mood.png",
+    });
+
+    const content = fileOps.getStore().get(`${ADVENTURES_ROOT}/quest/adventure.md`)!;
+    expect(content).toContain('mood_description: "A tavern called \\"The Dragon\\""');
+    // Verify it doesn't have unescaped inner quotes that would corrupt YAML
+    const lines = content.split("\n");
+    const descLine = lines.find(l => l.startsWith("mood_description:"));
+    expect(descLine).toBeDefined();
+    // The value after the key should be a single well-formed quoted string
+    expect(descLine).toBe('mood_description: "A tavern called \\"The Dragon\\""');
+  });
+
+  test("handles malformed frontmatter without worsening corruption (F4)", async () => {
+    // Content starts with --- but has no closing ---
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/quest/adventure.md`]: `---
+name: The Quest
+Some broken content here
+`,
+    };
+
+    const fileOps = createMockFileOps(files);
+    const service = createAdventureService({ fileOps, adventuresPath: ADVENTURES_ROOT });
+
+    await service.setMood("quest", {
+      hue: 200,
+      description: "icy cavern",
+    });
+
+    const content = fileOps.getStore().get(`${ADVENTURES_ROOT}/quest/adventure.md`)!;
+    // Should have exactly one opening and one closing --- pair
+    const dashLines = content.split("\n").filter(l => l.trim() === "---");
+    expect(dashLines.length).toBe(2);
+    // Should contain the mood fields
+    expect(content).toContain("mood_hue: 200");
+    expect(content).toContain('mood_description: "icy cavern"');
+    // Original body content should be preserved after frontmatter
+    expect(content).toContain("name: The Quest");
+  });
 });
 
 describe("getAdventure with currentMood", () => {

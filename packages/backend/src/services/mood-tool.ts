@@ -25,16 +25,16 @@ const SetMoodInputSchema = {
 
 // Keyword-to-hue mapping table (REQ-MOOD-17). First match wins.
 const KEYWORD_HUE_TABLE: Array<{ keywords: string[]; hue: number }> = [
-  { keywords: ["fire", "flame", "inferno", "blaze", "burning"], hue: 25 },
-  { keywords: ["blood", "rage", "anger", "fury", "wrath"], hue: 10 },
-  { keywords: ["forest", "nature", "verdant", "grove", "woodland"], hue: 142 },
-  { keywords: ["ocean", "sea", "water", "tide", "wave"], hue: 220 },
-  { keywords: ["storm", "thunder", "lightning", "tempest"], hue: 250 },
-  { keywords: ["shadow", "dark", "darkness", "gloom", "dread"], hue: 285 },
-  { keywords: ["holy", "divine", "sacred", "celestial", "light"], hue: 85 },
-  { keywords: ["ice", "frost", "frozen", "cold", "winter"], hue: 200 },
-  { keywords: ["desert", "sand", "arid", "dust", "barren"], hue: 55 },
-  { keywords: ["death", "undead", "necro", "corpse", "decay"], hue: 310 },
+  { keywords: ["fire", "flame", "lava", "ember", "inferno", "burning"], hue: 20 },
+  { keywords: ["blood", "crimson", "war", "rage"], hue: 5 },
+  { keywords: ["forest", "tree", "moss", "vine", "growth", "verdant"], hue: 142 },
+  { keywords: ["ocean", "sea", "water", "river", "tide"], hue: 220 },
+  { keywords: ["sky", "air", "wind", "dawn", "sunrise", "morning"], hue: 195 },
+  { keywords: ["night", "void", "darkness", "shadow", "abyss"], hue: 270 },
+  { keywords: ["ice", "snow", "frost", "tundra", "glacier"], hue: 205 },
+  { keywords: ["desert", "sand", "stone", "ruin", "ancient"], hue: 50 },
+  { keywords: ["magic", "arcane", "mystical", "ethereal", "fey"], hue: 300 },
+  { keywords: ["poison", "plague", "decay", "rot", "corruption"], hue: 120 },
 ];
 
 export function keywordHue(description: string): number {

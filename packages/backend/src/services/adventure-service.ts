@@ -215,8 +215,11 @@ export function createAdventureService(deps: {
     const rest = content.slice(afterOpening + 1);
     const closingIndex = rest.indexOf("\n---");
     if (closingIndex === -1) {
-      // Malformed frontmatter; create a new one preserving existing content
-      content = "---\n---\n" + content;
+      // Malformed frontmatter (opening --- but no closing ---).
+      // Strip the opening --- line and wrap in a clean frontmatter block with
+      // empty frontmatter section so re-parse can find the \n--- closing marker.
+      const bodyAfterBroken = content.slice(afterOpening + 1);
+      content = "---\n\n---\n" + bodyAfterBroken;
     }
 
     // Re-parse after possible fixup
@@ -235,11 +238,12 @@ export function createAdventureService(deps: {
       frontmatter += `\nmood_hue: ${mood.hue}`;
     }
 
-    // Update or insert mood_description
+    // Update or insert mood_description (escape inner double quotes for YAML safety)
+    const escapedDescription = mood.description.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     if (/^mood_description:/m.test(frontmatter)) {
-      frontmatter = frontmatter.replace(/^mood_description:.*$/m, `mood_description: "${mood.description}"`);
+      frontmatter = frontmatter.replace(/^mood_description:.*$/m, `mood_description: "${escapedDescription}"`);
     } else {
-      frontmatter += `\nmood_description: "${mood.description}"`;
+      frontmatter += `\nmood_description: "${escapedDescription}"`;
     }
 
     // Update, insert, or remove mood_image
