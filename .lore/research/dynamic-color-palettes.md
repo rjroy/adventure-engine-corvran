@@ -298,9 +298,11 @@ Google's custom color space combining CAM16 (perceptual color model) with CIELAB
 
 ---
 
-## Implementation Sketch for Corvran
+## Implementation Sketch (Generic Light-Mode Example)
 
-Given the research, a Corvran palette generator would work as follows:
+> **Gap: this sketch does not reflect Corvran's actual palette structure.** Corvran is a dark-mode UI. Backgrounds sit at L:20-30% (hue 270, cool indigo), text at L:45-90% (hue 85, warm amber), and accents at hue 78. The existing palette uses two hue families (indigo + amber), `color-mix()` for dim/border variants, and semantic roles (GM accent, player accent, tool events, error) that each carry their own hue and chroma. The lightness curves, chroma values, and role assignments below are calibrated for light-on-white and will produce incorrect results if applied to Corvran without adaptation. See `packages/web/app/globals.css` for the actual variable structure any implementation must target.
+
+Given the research, a generic light-mode palette generator would work as follows:
 
 **Input**: 1-3 hex or named colors from the GM
 **Output**: A set of CSS custom properties applied to `:root`
