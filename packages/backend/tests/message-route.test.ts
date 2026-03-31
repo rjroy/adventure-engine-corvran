@@ -620,6 +620,43 @@ describe("POST /adventures/:id/message - set_mood suppression (REQ-MOOD-20)", ()
     expect(parsed.name).toBe("Bash");
     expect(parsed.result).toBe("test");
   });
+
+  test("mcp__corvran__set_mood tool results are also suppressed", async () => {
+    const moodToolId = "toolu_mood_2";
+    const bashToolId = "toolu_bash_2";
+    const queryFn = createMockQueryFn([
+      assistantWithToolUse([
+        { id: moodToolId, name: "mcp__corvran__set_mood", input: { description: "dark forest" } },
+        { id: bashToolId, name: "Bash", input: { command: "echo test" } },
+      ]),
+      userWithToolResult([
+        { tool_use_id: moodToolId, content: "mood set" },
+        { tool_use_id: bashToolId, content: "test" },
+      ]),
+      textDelta("The forest darkens..."),
+      successResult("The forest darkens..."),
+    ]);
+    const { app } = buildTestApp(
+      { [`${ADVENTURES_ROOT}/quest/character.md`]: "Hero" },
+      queryFn,
+    );
+
+    const res = await app.request("/adventures/quest/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "I enter the forest" }),
+    });
+
+    const text = await res.text();
+    const events = parseSSE(text);
+    const toolEvents = events.filter((e) => e.event === "tool_use");
+
+    // Only Bash should appear, not the MCP-prefixed set_mood
+    expect(toolEvents.length).toBe(1);
+    const parsed = JSON.parse(toolEvents[0].data);
+    expect(parsed.name).toBe("Bash");
+    expect(parsed.result).toBe("test");
+  });
 });
 
 describe("POST /adventures/:id/message - bootstrap integration (REQ-SYS-23)", () => {

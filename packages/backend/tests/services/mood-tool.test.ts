@@ -208,7 +208,7 @@ describe("createMoodToolDef", () => {
       );
       const result = await toolDef.handler({ description: "dark cavern" }, {});
       expect(result.content).toEqual([
-        { type: "text", text: "mood set (image generation failed \u2014 using fallback hue)" },
+        { type: "text", text: "mood set (using fallback hue)" },
       ]);
     });
 
@@ -260,6 +260,91 @@ describe("createMoodToolDef", () => {
       );
       await toolDef.handler({ description: "dark cavern" }, {});
       expect(saveImageCalled).toBe(false);
+    });
+  });
+
+  describe("error recovery", () => {
+    test("falls back to keyword hue when extractHue throws", async () => {
+      let savedMood: MoodState | null = null;
+      let emittedPayload: MoodEventPayload | null = null;
+      const toolDef = createMoodToolDef(
+        createMockDeps({
+          extractHue: async () => {
+            throw new Error("PNG parse failed");
+          },
+          setMood: async (mood) => {
+            savedMood = mood;
+          },
+          emitMoodEvent: async (payload) => {
+            emittedPayload = payload;
+          },
+        }),
+      );
+      const result = await toolDef.handler({ description: "a dark forest clearing" }, {});
+      // Keyword hue for "forest" is 142, no imagePath since extraction failed
+      expect(savedMood).not.toBeNull();
+      expect(savedMood!).toEqual({ hue: 142, description: "a dark forest clearing" });
+      expect(emittedPayload).not.toBeNull();
+      expect(emittedPayload!).toEqual({ hue: 142, description: "a dark forest clearing" });
+      expect(result.content).toEqual([{ type: "text", text: "mood set (using fallback hue)" }]);
+    });
+
+    test("skips extractHue when saveImage throws", async () => {
+      let extractHueCalled = false;
+      let savedMood: MoodState | null = null;
+      const toolDef = createMoodToolDef(
+        createMockDeps({
+          saveImage: async () => {
+            throw new Error("disk full");
+          },
+          extractHue: async () => {
+            extractHueCalled = true;
+            return 180;
+          },
+          setMood: async (mood) => {
+            savedMood = mood;
+          },
+        }),
+      );
+      await toolDef.handler({ description: "ocean waves" }, {});
+      expect(extractHueCalled).toBe(false);
+      expect(savedMood).not.toBeNull();
+      expect(savedMood!).toEqual({ hue: 220, description: "ocean waves" });
+    });
+
+    test("still emits mood event when setMood throws", async () => {
+      let emittedPayload: MoodEventPayload | null = null;
+      const toolDef = createMoodToolDef(
+        createMockDeps({
+          setMood: async () => {
+            throw new Error("write failed");
+          },
+          emitMoodEvent: async (payload) => {
+            emittedPayload = payload;
+          },
+        }),
+      );
+      const result = await toolDef.handler({ description: "dark cavern" }, {});
+      expect(emittedPayload).not.toBeNull();
+      expect(emittedPayload!.hue).toBe(180);
+      expect(result.content[0].text).toBe("mood set");
+    });
+
+    test("still returns success when emitMoodEvent throws", async () => {
+      let savedMood: MoodState | null = null;
+      const toolDef = createMoodToolDef(
+        createMockDeps({
+          setMood: async (mood) => {
+            savedMood = mood;
+          },
+          emitMoodEvent: async () => {
+            throw new Error("stream closed");
+          },
+        }),
+      );
+      const result = await toolDef.handler({ description: "dark cavern" }, {});
+      expect(savedMood).not.toBeNull();
+      expect(result.content[0].text).toBe("mood set");
     });
   });
 });

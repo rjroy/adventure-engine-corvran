@@ -243,8 +243,9 @@ export function createAdventureRoutes(deps: {
                 if (block.type === "tool_result") {
                   const toolName = pendingTools.get(block.tool_use_id) ?? "tool";
                   pendingTools.delete(block.tool_use_id);
-                  // Suppress set_mood from tool_use SSE events (REQ-MOOD-20)
-                  if (toolName === "set_mood") continue;
+                  // Suppress set_mood from tool_use SSE events (REQ-MOOD-20).
+                  // MCP tools are prefixed as mcp__{server}__{tool} by the SDK.
+                  if (toolName === "set_mood" || toolName === "mcp__corvran__set_mood") continue;
                   const result = typeof block.content === "string"
                     ? block.content
                     : JSON.stringify(block.content);
