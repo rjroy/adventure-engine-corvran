@@ -55,32 +55,66 @@ export function createMoodToolDef(deps: MoodToolDeps) {
     "Set the visual mood/atmosphere of the adventure. Call this when the scene's emotional tone shifts significantly.",
     SetMoodInputSchema,
     async (args) => {
+      console.log(`[mood-tool] ${deps.adventureId}: invoked with description="${args.description}"`);
+
       const prompt = deps.artStyle
         ? `${deps.artStyle}. ${args.description}`
         : args.description;
 
       const imageUrl = await deps.generateImage(prompt);
+      let hue: number;
+      let imagePath: string | undefined;
 
       if (imageUrl) {
-        const moodImagePath = deps.adventurePath + "/mood.png";
-        await deps.saveImage(imageUrl, moodImagePath);
-        const hue = await deps.extractHue(moodImagePath);
+        const moodImageDest = deps.adventurePath + "/mood.png";
+        let imageSaved = false;
+        try {
+          await deps.saveImage(imageUrl, moodImageDest);
+          imageSaved = true;
+          console.log(`[mood-tool] ${deps.adventureId}: image saved to ${moodImageDest}`);
+        } catch (err) {
+          console.error(`[mood-tool] ${deps.adventureId}: failed to save image:`, err);
+        }
 
-        const mood: MoodState = { hue, description: args.description, imagePath: "mood.png" };
-        await deps.setMood(mood);
-        await deps.emitMoodEvent({ hue, description: args.description, imagePath: "mood.png" });
-
-        return { content: [{ type: "text", text: "mood set" }] };
+        if (imageSaved) {
+          try {
+            hue = await deps.extractHue(moodImageDest);
+            imagePath = "mood.png";
+            console.log(`[mood-tool] ${deps.adventureId}: extracted hue=${hue} from image`);
+          } catch (err) {
+            console.warn(`[mood-tool] ${deps.adventureId}: hue extraction failed, using keyword fallback:`, err);
+          }
+        }
+      } else {
+        console.log(`[mood-tool] ${deps.adventureId}: image generation returned null, using keyword fallback`);
       }
 
-      const hue = keywordHue(args.description);
-      const mood: MoodState = { hue, description: args.description };
-      await deps.setMood(mood);
-      await deps.emitMoodEvent({ hue, description: args.description });
+      // Fall back to keyword hue if we don't have one from the image
+      hue ??= keywordHue(args.description);
+      console.log(`[mood-tool] ${deps.adventureId}: final hue=${hue}, imagePath=${imagePath ?? "none"}`);
 
-      return {
-        content: [{ type: "text", text: "mood set (image generation failed \u2014 using fallback hue)" }],
-      };
+      const mood: MoodState = imagePath
+        ? { hue, description: args.description, imagePath }
+        : { hue, description: args.description };
+
+      try {
+        await deps.setMood(mood);
+        console.log(`[mood-tool] ${deps.adventureId}: mood persisted to adventure.md`);
+      } catch (err) {
+        console.error(`[mood-tool] ${deps.adventureId}: failed to persist mood:`, err);
+      }
+
+      try {
+        const eventPayload: MoodEventPayload = { hue, description: args.description };
+        if (imagePath) eventPayload.imagePath = imagePath;
+        await deps.emitMoodEvent(eventPayload);
+        console.log(`[mood-tool] ${deps.adventureId}: mood event emitted`);
+      } catch (err) {
+        console.error(`[mood-tool] ${deps.adventureId}: failed to emit mood event:`, err);
+      }
+
+      const status = imagePath ? "mood set" : "mood set (using fallback hue)";
+      return { content: [{ type: "text", text: status }] };
     },
   );
 }
