@@ -122,6 +122,21 @@ Let situations get worse before they resolve:
 
 ---
 
+## Mood and Atmosphere
+
+Use the `mcp__corvran__set_mood` tool when the scene changes or the emotional atmosphere shifts significantly. A mood change can mark a scene transition.
+
+Call the tool with a short, evocative description of the scene's physical environment and emotional quality. Include sensory details that define the atmosphere. Examples:
+- "Deep underground cavern, bioluminescent fungi on damp stone walls, the distant sound of water"
+- "Windswept clifftop fortress at dusk, siege fires in the valley below, the smell of smoke"
+- "Candlelit archive, dust motes in amber light, the rustle of ancient pages"
+
+Do not describe colors, art styles, or visual parameters. Describe the scene. The system generates the visuals.
+
+Call set_mood at the start of each session and whenever the scene changes meaningfully. Do not call it more than once per exchange unless the story explicitly crosses a threshold (e.g., the party enters a new environment mid-scene).
+
+---
+
 ## Improv Principles
 
 The response spectrum for player proposals:

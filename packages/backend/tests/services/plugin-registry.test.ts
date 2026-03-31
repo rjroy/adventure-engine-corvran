@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { createMockFileOps } from "../helpers/mock-file-ops.js";
-import { buildPluginRegistry } from "../../src/services/plugin-registry.js";
+import { createMockFileOps } from "../helpers/mock-file-ops";
+import { buildPluginRegistry } from "../../src/services/plugin-registry";
 
 const PLUGINS_DIR = "/plugins";
 

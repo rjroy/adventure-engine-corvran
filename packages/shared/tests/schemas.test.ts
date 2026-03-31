@@ -10,7 +10,7 @@ import {
   ToolUseEventSchema,
   DoneEventSchema,
   ErrorEventSchema,
-} from "../src/index.js";
+} from "../src/index";
 
 describe("AdventureListItemSchema", () => {
   test("accepts valid item", () => {
@@ -56,6 +56,7 @@ describe("AdventureDetailSchema", () => {
       hasHistory: false,
       system: null,
       concept: null,
+      currentMood: null,
     });
     expect(result.character).toBeNull();
     expect(result.world).toBe("# The Lost Mines\n...");

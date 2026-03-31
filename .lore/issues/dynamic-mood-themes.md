@@ -1,6 +1,6 @@
 ---
 title: Dynamic Mood Theme
-status: open
+status: resolved 
 ---
 There was previously a system for the GM to be able to set the mood. It did two things:
 - change the color palette

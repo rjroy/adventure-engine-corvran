@@ -4,6 +4,17 @@
    Component styles use .module.css files.
    ============================================================ */
 
+/* ── @property declarations for animated color transitions ── */
+@property --bg-base        { syntax: '<color>'; initial-value: oklch(20% 0.045 270); inherits: true; }
+@property --bg-surface     { syntax: '<color>'; initial-value: oklch(25% 0.045 270); inherits: true; }
+@property --bg-elevated    { syntax: '<color>'; initial-value: oklch(30% 0.045 270); inherits: true; }
+@property --text-primary   { syntax: '<color>'; initial-value: oklch(90% 0.024 85);  inherits: true; }
+@property --text-secondary { syntax: '<color>'; initial-value: oklch(65% 0.024 85);  inherits: true; }
+@property --text-tertiary  { syntax: '<color>'; initial-value: oklch(45% 0.024 85);  inherits: true; }
+@property --accent         { syntax: '<color>'; initial-value: oklch(65% 0.135 78);  inherits: true; }
+@property --accent-hover   { syntax: '<color>'; initial-value: oklch(85% 0.135 78);  inherits: true; }
+@property --gm-accent      { syntax: '<color>'; initial-value: oklch(70% 0.075 238); inherits: true; }
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -12,49 +23,49 @@
 
 :root {
   /* ── Backgrounds ────────────────────────────────────────── */
-  --bg-base:        lch( 7%  7 285);
-  --bg-surface:     lch(12% 12 285);
-  --bg-elevated:    lch(17% 17 285);
+  --bg-base:        oklch(20% 0.045 270);
+  --bg-surface:     oklch(25% 0.045 270);
+  --bg-elevated:    oklch(30% 0.045 270);
 
   /* ── Text ───────────────────────────────────────────────── */
-  --text-primary:   lch(89%  9  90);
-  --text-secondary: lch(59%  9  90);
-  --text-tertiary:  lch(39%  9  90);
+  --text-primary:   oklch(90% 0.024 85);
+  --text-secondary: oklch(65% 0.024 85);
+  --text-tertiary:  oklch(45% 0.024 85);
 
-  /* ── Amber (primary accent) ─────────────────────────────── */
-  --accent:         lch(64% 60  79);
-  --accent-hover:   lch(78% 60  79);
-  --accent-dim:     color-mix(in lch, var(--accent) 15%, transparent);
-  --accent-border:  color-mix(in lch, var(--accent) 30%, transparent);
+  /* ── Primary accent ─────────────────────────────────────── */
+  --accent:         oklch(65% 0.135 78);
+  --accent-hover:   oklch(85% 0.135 78);
+  --accent-dim:     color-mix(in oklch, var(--accent) 15%, transparent);
+  --accent-border:  color-mix(in oklch, var(--accent) 30%, transparent);
 
   /* ── Badges (adventure list) ────────────────────────────── */
-  --badge-new:       lch(42% 24 142);
-  --badge-new-text:  lch(74% 35 142);
-  --badge-cont:      lch(28% 20 268);
-  --badge-cont-text: lch(68% 24 249);
+  --badge-new:       oklch(45% 0.050 144);
+  --badge-new-text:  oklch(75% 0.090 144);
+  --badge-cont:      oklch(38% 0.060 238);
+  --badge-cont-text: oklch(70% 0.075 238);
 
   /* ── GM accent ──────────────────────────────────────────── */
-  --gm-accent:      lch(68% 24 249);
-  --gm-accent-dim:  color-mix(in lch, var(--gm-accent) 15%, transparent);
-  --gm-border:      color-mix(in lch, var(--gm-accent) 30%, transparent);
+  --gm-accent:      oklch(70% 0.075 238);
+  --gm-accent-dim:  color-mix(in oklch, var(--gm-accent) 15%, transparent);
+  --gm-border:      color-mix(in oklch, var(--gm-accent) 30%, transparent);
 
   /* ── Player ─────────────────────────────────────────────── */
   --player-accent:  var(--accent);
   --player-input:   var(--text-primary);
 
   /* ── Tool events ────────────────────────────────────────── */
-  --tool-accent:        lch(60% 30 133);
-  --tool-accent-dim:    color-mix(in lch, var(--tool-accent) 15%, transparent);
-  --tool-accent-border: color-mix(in lch, var(--tool-accent) 30%, transparent);
+  --tool-accent:        oklch(65% 0.079 135);
+  --tool-accent-dim:    color-mix(in oklch, var(--tool-accent) 15%, transparent);
+  --tool-accent-border: color-mix(in oklch, var(--tool-accent) 30%, transparent);
 
   /* ── Stop / Error ───────────────────────────────────────── */
-  --stop-red:              lch(45% 55  29);
-  --stop-red-text:         lch(65% 55  29);
-  --stop-red-dim:          color-mix(in lch, var(--stop-red) 15%, transparent);
-  --stop-red-border:       color-mix(in lch, var(--stop-red) 30%, transparent);
-  --stop-red-highlight-bg: color-mix(in lch, var(--stop-red) 25%, transparent);
-  --stop-red-hover:        color-mix(in lch, var(--stop-red) 25%, transparent);
-  --stop-red-hover-border: color-mix(in lch, var(--stop-red) 75%, transparent);
+  --stop-red:              oklch(55% 0.154 24);
+  --stop-red-text:         oklch(72% 0.154 24);
+  --stop-red-dim:          color-mix(in oklch, var(--stop-red) 15%, transparent);
+  --stop-red-border:       color-mix(in oklch, var(--stop-red) 30%, transparent);
+  --stop-red-highlight-bg: color-mix(in oklch, var(--stop-red) 25%, transparent);
+  --stop-red-hover:        color-mix(in oklch, var(--stop-red) 25%, transparent);
+  --stop-red-hover-border: color-mix(in oklch, var(--stop-red) 75%, transparent);
   --error-bg:              var(--stop-red-dim);
   --error-border:          var(--stop-red-border);
   --error-text:            var(--stop-red-text);
@@ -64,6 +75,18 @@
   --font-serif: Georgia, "Times New Roman", serif;
   --font-sans:  -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono:  "SFMono-Regular", "Cascadia Code", "Consolas", monospace;
+
+  /* ── Mood transitions ─────────────────────────────────────── */
+  transition:
+    --bg-base 2s ease,
+    --bg-surface 2s ease,
+    --bg-elevated 2s ease,
+    --text-primary 1.5s ease,
+    --text-secondary 1.5s ease,
+    --text-tertiary 1.5s ease,
+    --accent 1.5s ease,
+    --accent-hover 1.5s ease,
+    --gm-accent 1.5s ease;
 }
 
 html, body {

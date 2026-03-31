@@ -13,7 +13,9 @@ export {
   SystemsResponseSchema,
   CreateAdventureRequestSchema,
   CreateAdventureResponseSchema,
-} from "./schemas/adventures.js";
+  MoodStateSchema,
+  MoodEventSchema,
+} from "./schemas/adventures";
 
 export type {
   AdventureListItem,
@@ -30,4 +32,6 @@ export type {
   SystemsResponse,
   CreateAdventureRequest,
   CreateAdventureResponse,
-} from "./types.js";
+  MoodState,
+  MoodEvent,
+} from "./types";

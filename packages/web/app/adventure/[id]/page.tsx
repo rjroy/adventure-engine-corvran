@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useEffect, useLayoutEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -9,6 +9,8 @@ import type { AdventureDetail, HistoryResponse, ToolUseEvent } from "@corvran/sh
 import { useAdventureStream } from "@/lib/use-adventure-stream";
 import { parseHistory, type HistoryMessage } from "@/lib/parse-history";
 import { isTouchDevice, shouldSendOnEnter } from "@/lib/keyboard-handler";
+import { applyMood } from "@/lib/apply-mood";
+import { getMoodImageUrl } from "@/lib/mood-image-url";
 import styles from "./page.module.css";
 
 export default function AdventurePlayPage() {
@@ -45,6 +47,16 @@ export default function AdventurePlayPage() {
       })
       .catch(() => setLoadError("Failed to load adventure"));
   }, [id]);
+
+  // Apply mood palette on mount to prevent flash of default colors
+  useLayoutEffect(() => {
+    if (adventure?.currentMood) {
+      applyMood(
+        adventure.currentMood.hue,
+        getMoodImageUrl(id, adventure.currentMood.imagePath),
+      );
+    }
+  }, [adventure, id]);
 
   // Scroll to bottom on initial history load (instant, no animation)
   useEffect(() => {
@@ -141,6 +153,18 @@ export default function AdventurePlayPage() {
 
   return (
     <div className={styles.page}>
+      <div
+        id="mood-bg-layer"
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: -1,
+          pointerEvents: "none",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          opacity: 0.1,
+        }}
+      />
       <PlayHeader name={adventure.name} />
 
       <div className={styles.conversation} ref={conversationRef}>

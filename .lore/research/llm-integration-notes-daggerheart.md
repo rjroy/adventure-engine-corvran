@@ -1,7 +1,7 @@
 ---
 title: LLM Integration Summary - Daggerheart
 date: 2026-03-28
-status: current
+status: resolved
 tags: [research, llm-integration, daggerheart, keyword-systems]
 ---
 

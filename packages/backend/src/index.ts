@@ -2,9 +2,9 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { resolve } from "node:path";
 import { readdir, readFile, stat } from "node:fs/promises";
-import { createApp, resolveConfig } from "./app.js";
-import { buildPluginRegistry } from "./services/plugin-registry.js";
-import type { FileOps } from "./types.js";
+import { createApp, resolveConfig } from "./app";
+import { buildPluginRegistry } from "./services/plugin-registry";
+import type { FileOps } from "./types";
 
 /** Minimal FileOps for registry building at startup */
 const registryFileOps: FileOps = {
@@ -15,13 +15,17 @@ const registryFileOps: FileOps = {
   async readFile(path: string) {
     return readFile(path, "utf-8");
   },
-  async writeFile() { throw new Error("not implemented"); },
-  async appendFile() { throw new Error("not implemented"); },
+  writeFile() { throw new Error("not implemented"); },
+  appendFile() { throw new Error("not implemented"); },
   async fileExists(path: string) {
     try { await stat(path); return true; } catch { return false; }
   },
   async stat(path: string) {
     try { const s = await stat(path); return { mtime: s.mtime }; } catch { return null; }
+  },
+  async readFileBytes(path: string) {
+    const buf = await Bun.file(path).arrayBuffer();
+    return new Uint8Array(buf);
   },
   resolvePath(...segments: string[]) { return resolve(...segments); },
 };

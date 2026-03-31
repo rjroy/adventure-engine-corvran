@@ -4,7 +4,7 @@ import {
   rollDice,
   createDiceTool,
   RollDiceInputSchema,
-} from "../../src/services/dice-tool.js";
+} from "../../src/services/dice-tool";
 
 /** Returns a random function that yields values from a sequence, cycling if needed. */
 function createSequence(values: number[]): () => number {

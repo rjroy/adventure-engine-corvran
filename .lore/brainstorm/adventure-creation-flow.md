@@ -1,7 +1,7 @@
 ---
 title: Adventure Creation Flow
 date: 2026-03-30
-status: open
+status: resolved
 tags: [ux, adventure-creation, session-zero, lobby, onboarding]
 modules: [web, backend, shared]
 related: [.lore/specs/adventure-system-integration.md, .lore/research/llm-optimized-rpg-systems.md, .lore/vision.md]

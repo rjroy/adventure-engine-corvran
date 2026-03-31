@@ -304,15 +304,15 @@ Thorne verifies: prompt assembly matches REQ-MVP-12 exactly, SSE streaming works
 
 1. **Global styles** (`app/globals.css`)
    - CSS custom properties for the full palette from the visual brief:
-     - `--bg-base: lch(7% 7 285)`, `--bg-surface: lch(12% 12 285)`, `--bg-elevated: lch(17% 17 285)`
-     - `--text-primary: lch(89% 9 90)`, `--text-secondary: lch(59% 9 90)`, `--text-tertiary: lch(39% 9 90)`
-     - `--accent: lch(64% 60 79)`, `--accent-hover: lch(78% 60 79)`
-     - `--gm-accent: lch(68% 24 249)`, `--tool-accent: lch(60% 30 133)`, `--stop-red: lch(45% 55 29)`
+     - `--bg-base: oklch(20% 0.045 270)`, `--bg-surface: oklch(25% 0.045 270)`, `--bg-elevated: oklch(30% 0.045 270)`
+     - `--text-primary: oklch(90% 0.024 85)`, `--text-secondary: oklch(65% 0.024 85)`, `--text-tertiary: oklch(45% 0.024 85)`
+     - `--accent: oklch(65% 0.135 78)`, `--accent-hover: oklch(85% 0.135 78)`
+     - `--gm-accent: oklch(70% 0.075 238)`, `--tool-accent: oklch(65% 0.079 135)`, `--stop-red: oklch(55% 0.154 23)`
    - Palette rules from the visual brief are mandatory:
      - Always use `var()` references for colors and fonts, never hard-code raw `lch()` values in components
-     - Always use `color-mix(in lch, ...)` to derive alpha variants from base tokens, never hand-calculate translucent colors
-     - `-dim` tokens = 15% mix: `color-mix(in lch, var(--base) 15%, transparent)`
-     - `-border` tokens = 30% mix: `color-mix(in lch, var(--base) 30%, transparent)`
+     - Always use `color-mix(in oklch, ...)` to derive alpha variants from base tokens, never hand-calculate translucent colors
+     - `-dim` tokens = 15% mix: `color-mix(in oklch, var(--base) 15%, transparent)`
+     - `-border` tokens = 30% mix: `color-mix(in oklch, var(--base) 30%, transparent)`
    - Typography: Georgia serif as body font, system sans for chrome, 16px/1.8 line-height for conversation
    - No web font imports (Georgia is system-wide, per Sienna's brief)
    - Streaming cursor: CSS animation for blinking 2px vertical line (`animation: blink 1s step-end infinite`)

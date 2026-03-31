@@ -3,15 +3,15 @@ import { cors } from "hono/cors";
 import { resolve } from "node:path";
 import { readdir, readFile as fsReadFile, writeFile as fsWriteFile, appendFile as fsAppendFile, stat, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
-import type { FileOps, RouteModule } from "./types.js";
-import { createAdventureService } from "./services/adventure-service.js";
-import { createAdventureRoutes } from "./routes/adventure-routes.js";
-import { createHealthRoutes } from "./routes/health-routes.js";
-import { createHelpRoutes } from "./registry.js";
-import { createHistoryService } from "./services/history-service.js";
-import { createSessionRunner, type QueryFn, type SessionRunner } from "./services/session-runner.js";
-import type { PluginRegistry } from "./services/plugin-registry.js";
-import { createSystemRoutes } from "./routes/system-routes.js";
+import type { FileOps, RouteModule } from "./types";
+import { createAdventureService } from "./services/adventure-service";
+import { createAdventureRoutes } from "./routes/adventure-routes";
+import { createHealthRoutes } from "./routes/health-routes";
+import { createHelpRoutes } from "./registry";
+import { createHistoryService } from "./services/history-service";
+import { createSessionRunner, type QueryFn, type SessionRunner } from "./services/session-runner";
+import type { PluginRegistry } from "./services/plugin-registry";
+import { createSystemRoutes } from "./routes/system-routes";
 
 /** Production FileOps backed by node:fs/promises */
 function createRealFileOps(): FileOps {
@@ -46,6 +46,9 @@ function createRealFileOps(): FileOps {
       } catch {
         return null;
       }
+    },
+    async readFileBytes(path: string): Promise<Uint8Array> {
+      return new Uint8Array(await fsReadFile(path));
     },
     resolvePath(...segments: string[]): string {
       return resolve(...segments);
@@ -93,7 +96,7 @@ export function createApp(deps?: AppDeps): Hono {
     sessionRunner = createSessionRunner({
       queryFn: deps.queryFn,
       config: {
-        model: deps.model ?? process.env.MODEL ?? "claude-sonnet-4-5-20250929",
+        model: deps.model ?? process.env.MODEL ?? "sonnet",
       },
     });
   }

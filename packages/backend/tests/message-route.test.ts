@@ -1,10 +1,10 @@
 import { describe, test, expect } from "bun:test";
 import { Hono } from "hono";
-import { createAdventureService } from "../src/services/adventure-service.js";
-import { createAdventureRoutes } from "../src/routes/adventure-routes.js";
-import { createHistoryService } from "../src/services/history-service.js";
-import { createSessionRunner } from "../src/services/session-runner.js";
-import { createMockFileOps } from "./helpers/mock-file-ops.js";
+import { createAdventureService } from "../src/services/adventure-service";
+import { createAdventureRoutes } from "../src/routes/adventure-routes";
+import { createHistoryService } from "../src/services/history-service";
+import { createSessionRunner } from "../src/services/session-runner";
+import { createMockFileOps } from "./helpers/mock-file-ops";
 import {
   createMockQueryFn,
   createThrowingQueryFn,
@@ -13,9 +13,9 @@ import {
   errorResult,
   assistantWithToolUse,
   userWithToolResult,
-} from "./helpers/mock-query.js";
-import type { QueryFn } from "../src/services/session-runner.js";
-import type { PluginRegistry, PluginEntry, SystemInfo } from "../src/services/plugin-registry.js";
+} from "./helpers/mock-query";
+import type { QueryFn } from "../src/services/session-runner";
+import type { PluginRegistry, PluginEntry, SystemInfo } from "../src/services/plugin-registry";
 
 const ADVENTURES_ROOT = "/test/adventures";
 const PLUGINS_ROOT = "/test/plugins";
@@ -540,6 +540,85 @@ describe("POST /adventures/:id/message - plugin resolution (REQ-SYS-19)", () => 
     expect(body.error).toContain("no matching plugin is installed");
     expect(body.error).toContain("daggerheart");
     expect(body.error).toContain("d20");
+  });
+});
+
+describe("GET /adventures/:id/mood-image (REQ-MOOD-25)", () => {
+  test("returns 400 for invalid adventure ID", async () => {
+    const queryFn = createMockQueryFn([successResult("ok")]);
+    const { app } = buildTestApp({}, queryFn);
+
+    const res = await app.request("/adventures/bad..id/mood-image");
+    expect(res.status).toBe(400);
+  });
+
+  test("returns 404 when no mood image exists", async () => {
+    const queryFn = createMockQueryFn([successResult("ok")]);
+    const { app } = buildTestApp(
+      { [`${ADVENTURES_ROOT}/quest/character.md`]: "Hero" },
+      queryFn,
+    );
+
+    const res = await app.request("/adventures/quest/mood-image");
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toBe("No mood image");
+  });
+
+  test("returns PNG bytes with correct content type when mood image exists", async () => {
+    const queryFn = createMockQueryFn([successResult("ok")]);
+    const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]); // PNG magic bytes
+    const { app, fileOps } = buildTestApp(
+      { [`${ADVENTURES_ROOT}/quest/character.md`]: "Hero" },
+      queryFn,
+    );
+    fileOps.getBytesStore().set(`${ADVENTURES_ROOT}/quest/mood.png`, pngBytes);
+
+    const res = await app.request("/adventures/quest/mood-image");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("image/png");
+
+    const body = new Uint8Array(await res.arrayBuffer());
+    expect(body).toEqual(pngBytes);
+  });
+});
+
+describe("POST /adventures/:id/message - set_mood suppression (REQ-MOOD-20)", () => {
+  test("set_mood tool results are not emitted as tool_use SSE events", async () => {
+    const moodToolId = "toolu_mood_1";
+    const bashToolId = "toolu_bash_1";
+    const queryFn = createMockQueryFn([
+      assistantWithToolUse([
+        { id: moodToolId, name: "set_mood", input: { description: "dark forest" } },
+        { id: bashToolId, name: "Bash", input: { command: "echo test" } },
+      ]),
+      userWithToolResult([
+        { tool_use_id: moodToolId, content: "mood set" },
+        { tool_use_id: bashToolId, content: "test" },
+      ]),
+      textDelta("The forest darkens..."),
+      successResult("The forest darkens..."),
+    ]);
+    const { app } = buildTestApp(
+      { [`${ADVENTURES_ROOT}/quest/character.md`]: "Hero" },
+      queryFn,
+    );
+
+    const res = await app.request("/adventures/quest/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "I enter the forest" }),
+    });
+
+    const text = await res.text();
+    const events = parseSSE(text);
+    const toolEvents = events.filter((e) => e.event === "tool_use");
+
+    // Only Bash should appear, not set_mood
+    expect(toolEvents.length).toBe(1);
+    const parsed = JSON.parse(toolEvents[0].data);
+    expect(parsed.name).toBe("Bash");
+    expect(parsed.result).toBe("test");
   });
 });
 

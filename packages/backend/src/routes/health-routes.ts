@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import type { OperationDefinition, RouteModule } from "../types.js";
+import type { OperationDefinition, RouteModule } from "../types";
 
 export function createHealthRoutes(): RouteModule {
   const routes = new Hono();

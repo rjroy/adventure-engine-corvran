@@ -1,4 +1,4 @@
-import type { FileOps } from "../../src/types.js";
+import type { FileOps } from "../../src/types";
 /**
  * In-memory FileOps for testing. Files are stored as a flat map of
  * absolute paths to contents. Directories are inferred from file paths.

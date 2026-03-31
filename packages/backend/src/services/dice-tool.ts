@@ -65,23 +65,26 @@ export function rollDice(
   return result;
 }
 
-export function createDiceTool(
-  deps?: { random?: () => number },
-): McpSdkServerConfigWithInstance {
+export function createDiceToolDef(deps?: { random?: () => number }) {
   const random = deps?.random ?? Math.random;
 
-  const rollDiceTool = tool(
+  return tool(
     "roll_dice",
     "Roll dice for tabletop RPG gameplay. Supports multiple groups of dice with optional labels, a modifier applied to the total, and threshold comparison.",
     RollDiceInputSchema,
+    // eslint-disable-next-line @typescript-eslint/require-await -- tool() expects async callback but rollDice is synchronous
     async (args) => {
       const result = rollDice(args, random);
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     },
   );
+}
 
+export function createDiceTool(
+  deps?: { random?: () => number },
+): McpSdkServerConfigWithInstance {
   return createSdkMcpServer({
     name: "corvran",
-    tools: [rollDiceTool],
+    tools: [createDiceToolDef(deps)],
   });
 }
