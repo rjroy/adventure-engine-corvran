@@ -66,4 +66,9 @@ describe("extractDominantHue", () => {
     expect(hue).toBeGreaterThanOrEqual(250);
     expect(hue).toBeLessThanOrEqual(275);
   });
+
+  it("throws on a non-PNG file (WebP saved as .png)", async () => {
+    const fixturePath = join(__dirname, "../fixtures/webp-as-png.png");
+    await expect(extractDominantHue(fixturePath)).rejects.toThrow();
+  });
 });

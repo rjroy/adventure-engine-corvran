@@ -24,7 +24,7 @@ export async function generateMoodImage(
         "Content-Type": "application/json",
         Prefer: "wait",
       },
-      body: JSON.stringify({ input: { prompt } }),
+      body: JSON.stringify({ input: { prompt, output_format: "png" } }),
       signal: AbortSignal.timeout(30_000),
     });
 
