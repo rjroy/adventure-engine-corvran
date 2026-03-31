@@ -7,7 +7,7 @@ export interface AdventureState {
 }
 
 /**
- * Assembles the system prompt per REQ-MVP-12.
+ * Assembles the system prompt per REQ-MVP-12 and REQ-SYS-22.
  * Pure function, no I/O. Takes pre-read file contents.
  *
  * Section order:

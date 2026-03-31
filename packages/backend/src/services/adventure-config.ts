@@ -36,13 +36,13 @@ export function parseAdventureConfig(content: string): AdventureConfig {
 
   const frontmatter = rest.slice(0, closingIndex);
 
-  // Extract system field
-  const systemMatch = frontmatter.match(/^system:\s*"?([^"\n]*)"?\s*$/m);
-  const system = systemMatch?.[1]?.trim() || null;
+  // Extract system field (strip optional double or single quotes)
+  const systemMatch = frontmatter.match(/^system:\s*(?:"([^"\n]*)"|'([^'\n]*)'|([^\n]*))\s*$/m);
+  const system = (systemMatch?.[1] ?? systemMatch?.[2] ?? systemMatch?.[3])?.trim() || null;
 
-  // Extract name field
-  const nameMatch = frontmatter.match(/^name:\s*"?([^"\n]*)"?\s*$/m);
-  const name = nameMatch?.[1]?.trim() || null;
+  // Extract name field (strip optional double or single quotes)
+  const nameMatch = frontmatter.match(/^name:\s*(?:"([^"\n]*)"|'([^'\n]*)'|([^\n]*))\s*$/m);
+  const name = (nameMatch?.[1] ?? nameMatch?.[2] ?? nameMatch?.[3])?.trim() || null;
 
   // Extract concept: everything after the closing --- delimiter
   const afterClosing = rest.slice(closingIndex + 4); // skip \n---

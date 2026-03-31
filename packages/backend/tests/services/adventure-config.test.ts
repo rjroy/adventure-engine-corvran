@@ -197,6 +197,24 @@ Many challenges await.
     );
   });
 
+  it("handles system value with single quotes", () => {
+    const content = `---
+system: 'daggerheart'
+---
+`;
+    const result = parseAdventureConfig(content);
+    expect(result.system).toBe("daggerheart");
+  });
+
+  it("handles name value with single quotes", () => {
+    const content = `---
+name: 'Dragon Island'
+---
+`;
+    const result = parseAdventureConfig(content);
+    expect(result.name).toBe("Dragon Island");
+  });
+
   it("handles frontmatter with no body text (only delimiters)", () => {
     const content = `---
 name: Empty Adventure
