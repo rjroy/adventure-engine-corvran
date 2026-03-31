@@ -47,9 +47,62 @@ export function useAdventureStream(
       let accumulatedText = "";
       const toolEvents: ToolUseEvent[] = [];
 
+      function processLine(line: string, eventType: string): string {
+        if (line.startsWith("event: ")) {
+          return line.slice(7);
+        }
+        if (line.startsWith("data: ")) {
+          const data = line.slice(6);
+          try {
+            const parsed = JSON.parse(data) as Record<string, unknown>;
+            if (
+              eventType === "text" &&
+              typeof parsed.text === "string"
+            ) {
+              accumulatedText += parsed.text;
+              setStreamingMessage({
+                role: "gm",
+                text: accumulatedText,
+                toolEvents: [...toolEvents],
+              });
+            } else if (eventType === "tool_use") {
+              toolEvents.push(parsed as unknown as ToolUseEvent);
+              setStreamingMessage({
+                role: "gm",
+                text: accumulatedText,
+                toolEvents: [...toolEvents],
+              });
+            } else if (eventType === "done") {
+              const fullResponse =
+                typeof parsed.fullResponse === "string"
+                  ? parsed.fullResponse
+                  : accumulatedText;
+              setStreamingMessage(null);
+              setIsStreaming(false);
+              abortControllerRef.current = null;
+              onComplete?.(fullResponse);
+            } else if (
+              eventType === "error" &&
+              typeof parsed.error === "string"
+            ) {
+              setError(parsed.error);
+              setIsStreaming(false);
+              abortControllerRef.current = null;
+            }
+          } catch {
+            // Ignore malformed JSON lines
+          }
+          return "";
+        }
+        return eventType;
+      }
+
       fetch(`/api/daemon/adventures/${adventureId}/message`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/event-stream",
+        },
         body: JSON.stringify({ message }),
         signal: controller.signal,
       })
@@ -66,6 +119,7 @@ export function useAdventureStream(
 
           const decoder = new TextDecoder();
           let buffer = "";
+          let currentEventType = "";
 
           while (true) {
             const { done, value } = await reader.read();
@@ -73,62 +127,23 @@ export function useAdventureStream(
 
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split("\n");
-            // Keep the last potentially incomplete line in the buffer
             buffer = lines.pop() ?? "";
 
-            let currentEventType = "";
             for (const line of lines) {
-              if (line.startsWith("event: ")) {
-                currentEventType = line.slice(7);
-              } else if (line.startsWith("data: ")) {
-                const data = line.slice(6);
-                try {
-                  const parsed = JSON.parse(data) as Record<string, unknown>;
-                  if (
-                    currentEventType === "text" &&
-                    typeof parsed.text === "string"
-                  ) {
-                    accumulatedText += parsed.text;
-                    setStreamingMessage({
-                      role: "gm",
-                      text: accumulatedText,
-                      toolEvents: [...toolEvents],
-                    });
-                  } else if (currentEventType === "tool_use") {
-                    toolEvents.push(parsed as unknown as ToolUseEvent);
-                    setStreamingMessage({
-                      role: "gm",
-                      text: accumulatedText,
-                      toolEvents: [...toolEvents],
-                    });
-                  } else if (currentEventType === "done") {
-                    const fullResponse =
-                      typeof parsed.fullResponse === "string"
-                        ? parsed.fullResponse
-                        : accumulatedText;
-                    setStreamingMessage(null);
-                    setIsStreaming(false);
-                    abortControllerRef.current = null;
-                    onComplete?.(fullResponse);
-                  } else if (
-                    currentEventType === "error" &&
-                    typeof parsed.error === "string"
-                  ) {
-                    setError(parsed.error);
-                    setIsStreaming(false);
-                    abortControllerRef.current = null;
-                  }
-                } catch {
-                  // Ignore malformed JSON lines
-                }
-                currentEventType = "";
-              }
+              currentEventType = processLine(line, currentEventType);
+            }
+          }
+
+          // Process any remaining data left in the buffer after the stream ends.
+          // This handles the case where the final chunk doesn't end with '\n'.
+          if (buffer.trim()) {
+            for (const line of buffer.split("\n")) {
+              currentEventType = processLine(line, currentEventType);
             }
           }
         })
         .catch((err: unknown) => {
           if (err instanceof Error && err.name === "AbortError") {
-            // Intentional stop, keep partial text visible
             setIsStreaming(false);
             return;
           }

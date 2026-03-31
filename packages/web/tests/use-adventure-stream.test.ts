@@ -9,6 +9,10 @@ interface ParsedEvent {
   data: Record<string, unknown>;
 }
 
+/**
+ * Parses a single SSE chunk into events. Stateless: only sees lines within this chunk.
+ * Use parseSSEChunks for multi-chunk scenarios.
+ */
 function parseSSEChunk(chunk: string): ParsedEvent[] {
   const events: ParsedEvent[] = [];
   const lines = chunk.split("\n");
@@ -28,6 +32,57 @@ function parseSSEChunk(chunk: string): ParsedEvent[] {
       currentEventType = "";
     }
   }
+  return events;
+}
+
+/**
+ * Simulates the hook's multi-chunk reader loop with buffer and persistent event type.
+ * Each string in chunks represents one reader.read() result.
+ */
+function parseSSEChunks(chunks: string[]): ParsedEvent[] {
+  const events: ParsedEvent[] = [];
+  let buffer = "";
+  let currentEventType = "";
+
+  for (const chunk of chunks) {
+    buffer += chunk;
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
+      if (line.startsWith("event: ")) {
+        currentEventType = line.slice(7);
+      } else if (line.startsWith("data: ")) {
+        const data = line.slice(6);
+        try {
+          const parsed = JSON.parse(data) as Record<string, unknown>;
+          events.push({ type: currentEventType, data: parsed });
+        } catch {
+          // Skip malformed JSON
+        }
+        currentEventType = "";
+      }
+    }
+  }
+
+  // Process remaining buffer (matches hook's post-loop logic)
+  if (buffer.trim()) {
+    for (const line of buffer.split("\n")) {
+      if (line.startsWith("event: ")) {
+        currentEventType = line.slice(7);
+      } else if (line.startsWith("data: ")) {
+        const data = line.slice(6);
+        try {
+          const parsed = JSON.parse(data) as Record<string, unknown>;
+          events.push({ type: currentEventType, data: parsed });
+        } catch {
+          // Skip malformed JSON
+        }
+        currentEventType = "";
+      }
+    }
+  }
+
   return events;
 }
 
@@ -86,6 +141,100 @@ describe("SSE event parsing", () => {
     const events = parseSSEChunk(chunk);
     expect(events).toHaveLength(1);
     expect(events[0].data.text).toBe("valid");
+  });
+});
+
+describe("SSE cross-chunk parsing", () => {
+  test("done event split across two chunks: event line in chunk 1, data line in chunk 2", () => {
+    const chunks = [
+      `event: text\ndata: {"text":"Hello"}\n\nevent: done\n`,
+      `data: {"fullResponse":"Hello"}\n\n`,
+    ];
+    const events = parseSSEChunks(chunks);
+    expect(events).toHaveLength(2);
+    expect(events[0]).toEqual({ type: "text", data: { text: "Hello" } });
+    expect(events[1]).toEqual({
+      type: "done",
+      data: { fullResponse: "Hello" },
+    });
+  });
+
+  test("all events in a single chunk still works (regression)", () => {
+    const chunks = [
+      `event: text\ndata: {"text":"Hello "}\n\nevent: text\ndata: {"text":"world"}\n\nevent: done\ndata: {"fullResponse":"Hello world"}\n\n`,
+    ];
+    const events = parseSSEChunks(chunks);
+    expect(events).toHaveLength(3);
+    expect(events[0].type).toBe("text");
+    expect(events[1].type).toBe("text");
+    expect(events[2].type).toBe("done");
+    expect(events[2].data.fullResponse).toBe("Hello world");
+  });
+
+  test("final data line without trailing newline is still processed", () => {
+    const chunks = [
+      `event: text\ndata: {"text":"Hello"}\n\nevent: done\ndata: {"fullResponse":"Hello"}`,
+    ];
+    const events = parseSSEChunks(chunks);
+    expect(events).toHaveLength(2);
+    expect(events[0]).toEqual({ type: "text", data: { text: "Hello" } });
+    expect(events[1]).toEqual({
+      type: "done",
+      data: { fullResponse: "Hello" },
+    });
+  });
+
+  test("event type split mid-line across chunks", () => {
+    // "event: done" split as "event: do" + "ne\ndata: ..."
+    const chunks = [
+      `event: text\ndata: {"text":"Hi"}\n\nevent: do`,
+      `ne\ndata: {"fullResponse":"Hi"}\n\n`,
+    ];
+    const events = parseSSEChunks(chunks);
+    expect(events).toHaveLength(2);
+    expect(events[0]).toEqual({ type: "text", data: { text: "Hi" } });
+    expect(events[1]).toEqual({ type: "done", data: { fullResponse: "Hi" } });
+  });
+
+  test("data line JSON split across chunks", () => {
+    const chunks = [
+      `event: text\ndata: {"text":"He`,
+      `llo"}\n\nevent: done\ndata: {"fullResponse":"Hello"}\n\n`,
+    ];
+    const events = parseSSEChunks(chunks);
+    expect(events).toHaveLength(2);
+    expect(events[0]).toEqual({ type: "text", data: { text: "Hello" } });
+    expect(events[1]).toEqual({
+      type: "done",
+      data: { fullResponse: "Hello" },
+    });
+  });
+
+  test("error event split across chunks sets error type correctly", () => {
+    const chunks = [
+      `event: error\n`,
+      `data: {"error":"Context too long"}\n\n`,
+    ];
+    const events = parseSSEChunks(chunks);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual({
+      type: "error",
+      data: { error: "Context too long" },
+    });
+  });
+
+  test("many small chunks each containing partial lines", () => {
+    // Simulate extreme chunking where each character arrives separately
+    const fullSSE = `event: text\ndata: {"text":"Hi"}\n\nevent: done\ndata: {"fullResponse":"Hi"}\n\n`;
+    // Split into chunks of 5 characters each
+    const chunks: string[] = [];
+    for (let i = 0; i < fullSSE.length; i += 5) {
+      chunks.push(fullSSE.slice(i, i + 5));
+    }
+    const events = parseSSEChunks(chunks);
+    expect(events).toHaveLength(2);
+    expect(events[0]).toEqual({ type: "text", data: { text: "Hi" } });
+    expect(events[1]).toEqual({ type: "done", data: { fullResponse: "Hi" } });
   });
 });
 
