@@ -1,7 +1,7 @@
 ---
 title: Dynamic Mood System
 date: 2026-03-30
-status: draft
+status: approved
 tags: [mood, themes, ux, atmosphere, visual, gm-tools, sse, mcp, image-generation, color]
 modules: [backend, web, shared]
 related: [.lore/issues/dynamic-mood-themes.md, .lore/vision.md, .lore/research/dynamic-color-palettes.md, .lore/research/replicate-image-generation.md]
