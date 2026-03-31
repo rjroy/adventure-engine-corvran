@@ -1,7 +1,7 @@
 ---
 title: "Implementation plan: dynamic-mood-system"
 date: 2026-03-30
-status: ready
+status: approved
 tags: [plan, mood, mcp, sse, image-generation, color, replicate, frontend, atmosphere]
 modules: [backend, web, shared]
 related: [.lore/specs/dynamic-mood-system.md, .lore/brainstorm/dynamic-mood-system.md, .lore/research/dynamic-color-palettes.md, .lore/reference/architecture-pattern.md]
