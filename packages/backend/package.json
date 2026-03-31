@@ -5,8 +5,10 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.69",
     "@corvran/shared": "workspace:*",
+    "culori": "^4.0.2",
     "hono": "^4.6.0",
     "pino": "^10.1.0",
+    "pngjs": "^7.0.0",
     "zod": "^3.25.0"
   },
   "scripts": {
@@ -15,6 +17,7 @@
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
     "@eslint/js": "^9.17.0",
+    "@types/pngjs": "^6.0.5",
     "bun-types": "latest",
     "eslint": "^9.17.0",
     "prettier": "^3.4.2",

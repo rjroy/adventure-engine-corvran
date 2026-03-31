@@ -102,6 +102,7 @@ describe("GET /adventures/:id", () => {
       hasHistory: false,
       system: null,
       concept: null,
+      currentMood: null,
     });
   });
 

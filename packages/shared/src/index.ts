@@ -13,6 +13,8 @@ export {
   SystemsResponseSchema,
   CreateAdventureRequestSchema,
   CreateAdventureResponseSchema,
+  MoodStateSchema,
+  MoodEventSchema,
 } from "./schemas/adventures.js";
 
 export type {
@@ -30,4 +32,6 @@ export type {
   SystemsResponse,
   CreateAdventureRequest,
   CreateAdventureResponse,
+  MoodState,
+  MoodEvent,
 } from "./types.js";

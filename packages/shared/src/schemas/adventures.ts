@@ -16,6 +16,20 @@ export const AdventureListResponseSchema = z.object({
   adventures: z.array(AdventureListItemSchema),
 });
 
+// Mood state persisted in adventure.md frontmatter
+export const MoodStateSchema = z.object({
+  hue: z.number().min(0).max(360),
+  description: z.string(),
+  imagePath: z.string().optional(),
+});
+
+// SSE event payload for mood changes
+export const MoodEventSchema = z.object({
+  hue: z.number(),
+  description: z.string(),
+  imagePath: z.string().optional(),
+});
+
 // Response from GET /adventures/:id
 export const AdventureDetailSchema = z.object({
   id: z.string(),
@@ -25,6 +39,7 @@ export const AdventureDetailSchema = z.object({
   hasHistory: z.boolean(),
   system: z.string().nullable(),
   concept: z.string().nullable(),
+  currentMood: MoodStateSchema.nullable(),
 });
 
 // Request body for POST /adventures/:id/message

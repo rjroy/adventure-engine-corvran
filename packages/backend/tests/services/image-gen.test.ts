@@ -1,0 +1,78 @@
+import { describe, expect, it, beforeEach, afterEach } from "bun:test";
+import { generateMoodImage } from "../../src/services/image-gen.js";
+
+describe("generateMoodImage", () => {
+  let savedToken: string | undefined;
+
+  beforeEach(() => {
+    savedToken = process.env.REPLICATE_API_TOKEN;
+    process.env.REPLICATE_API_TOKEN = "test-token";
+  });
+
+  afterEach(() => {
+    if (savedToken === undefined) {
+      delete process.env.REPLICATE_API_TOKEN;
+    } else {
+      process.env.REPLICATE_API_TOKEN = savedToken;
+    }
+  });
+
+  it("returns image URL on successful prediction", async () => {
+    const mockFetch = async () =>
+      new Response(
+        JSON.stringify({
+          status: "succeeded",
+          output: ["https://replicate.delivery/image.png"],
+        }),
+        { status: 200 },
+      );
+
+    const result = await generateMoodImage("a dark forest", mockFetch);
+    expect(result).toBe("https://replicate.delivery/image.png");
+  });
+
+  it("returns null on non-200 HTTP status", async () => {
+    const mockFetch = async () => new Response("error", { status: 500 });
+    const result = await generateMoodImage("a dark forest", mockFetch);
+    expect(result).toBeNull();
+  });
+
+  it("returns null when prediction status is failed", async () => {
+    const mockFetch = async () =>
+      new Response(JSON.stringify({ status: "failed" }), { status: 200 });
+
+    const result = await generateMoodImage("a dark forest", mockFetch);
+    expect(result).toBeNull();
+  });
+
+  it("returns null when fetch throws", async () => {
+    const mockFetch = async () => {
+      throw new Error("network error");
+    };
+    const result = await generateMoodImage("a dark forest", mockFetch as typeof fetch);
+    expect(result).toBeNull();
+  });
+
+  it("returns null when REPLICATE_API_TOKEN is absent", async () => {
+    delete process.env.REPLICATE_API_TOKEN;
+    const mockFetch = async () => new Response("should not be called", { status: 200 });
+    const result = await generateMoodImage("a dark forest", mockFetch);
+    expect(result).toBeNull();
+  });
+
+  it("includes the prompt in the request body", async () => {
+    let capturedBody: string | undefined;
+    const mockFetch = async (_url: string | URL | Request, init?: RequestInit) => {
+      capturedBody = init?.body as string;
+      return new Response(
+        JSON.stringify({ status: "succeeded", output: ["https://example.com/img.png"] }),
+        { status: 200 },
+      );
+    };
+
+    await generateMoodImage("stormy battlefield", mockFetch);
+    expect(capturedBody).toBeDefined();
+    const parsed = JSON.parse(capturedBody!);
+    expect(parsed.input.prompt).toBe("stormy battlefield");
+  });
+});

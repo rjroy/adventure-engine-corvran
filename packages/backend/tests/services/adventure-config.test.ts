@@ -223,4 +223,90 @@ name: Empty Adventure
     expect(result.name).toBe("Empty Adventure");
     expect(result.concept).toBeNull();
   });
+
+  // Phase 3: artStyle and mood fields
+
+  it("parses art_style without quotes", () => {
+    const content = `---
+art_style: dark fantasy oil painting
+---
+`;
+    const result = parseAdventureConfig(content);
+    expect(result.artStyle).toBe("dark fantasy oil painting");
+  });
+
+  it("parses art_style with double quotes (strips quotes)", () => {
+    const content = `---
+art_style: "watercolor illustration"
+---
+`;
+    const result = parseAdventureConfig(content);
+    expect(result.artStyle).toBe("watercolor illustration");
+  });
+
+  it("returns artStyle: null when field is absent", () => {
+    const content = `---
+system: d20
+---
+`;
+    const result = parseAdventureConfig(content);
+    expect(result.artStyle).toBeNull();
+  });
+
+  it("parses complete mood state", () => {
+    const content = `---
+mood_hue: 142
+mood_description: A serene forest glade
+mood_image: mood.png
+---
+`;
+    const result = parseAdventureConfig(content);
+    expect(result.mood).not.toBeNull();
+    expect(result.mood!.hue).toBe(142);
+    expect(result.mood!.description).toBe("A serene forest glade");
+    expect(result.mood!.imagePath).toBe("mood.png");
+  });
+
+  it("returns mood: null when mood_hue is absent", () => {
+    const content = `---
+mood_description: dark cave
+---
+`;
+    const result = parseAdventureConfig(content);
+    expect(result.mood).toBeNull();
+  });
+
+  it("returns mood: null when mood_hue is not a valid number", () => {
+    const content = `---
+mood_hue: notanumber
+mood_description: dark cave
+---
+`;
+    const result = parseAdventureConfig(content);
+    expect(result.mood).toBeNull();
+  });
+
+  it("returns mood with imagePath: null when mood_image is absent", () => {
+    const content = `---
+mood_hue: 270
+mood_description: eerie twilight
+---
+`;
+    const result = parseAdventureConfig(content);
+    expect(result.mood).not.toBeNull();
+    expect(result.mood!.hue).toBe(270);
+    expect(result.mood!.description).toBe("eerie twilight");
+    expect(result.mood!.imagePath).toBeNull();
+  });
+
+  it("strips quotes from mood_description", () => {
+    const content = `---
+mood_hue: 30
+mood_description: "blazing sunset"
+---
+`;
+    const result = parseAdventureConfig(content);
+    expect(result.mood).not.toBeNull();
+    expect(result.mood!.description).toBe("blazing sunset");
+  });
 });

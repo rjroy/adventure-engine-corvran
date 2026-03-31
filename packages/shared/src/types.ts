@@ -14,6 +14,8 @@ import type {
   SystemsResponseSchema,
   CreateAdventureRequestSchema,
   CreateAdventureResponseSchema,
+  MoodStateSchema,
+  MoodEventSchema,
 } from "./schemas/adventures.js";
 
 export type AdventureListItem = z.infer<typeof AdventureListItemSchema>;
@@ -30,3 +32,5 @@ export type SystemInfo = z.infer<typeof SystemInfoSchema>;
 export type SystemsResponse = z.infer<typeof SystemsResponseSchema>;
 export type CreateAdventureRequest = z.infer<typeof CreateAdventureRequestSchema>;
 export type CreateAdventureResponse = z.infer<typeof CreateAdventureResponseSchema>;
+export type MoodState = z.infer<typeof MoodStateSchema>;
+export type MoodEvent = z.infer<typeof MoodEventSchema>;

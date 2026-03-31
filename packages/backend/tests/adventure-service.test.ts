@@ -245,6 +245,7 @@ describe("getAdventure", () => {
       hasHistory: false,
       system: null,
       concept: null,
+      currentMood: null,
     });
   });
 
@@ -267,6 +268,7 @@ describe("getAdventure", () => {
       hasHistory: false,
       system: null,
       concept: null,
+      currentMood: null,
     });
   });
 
