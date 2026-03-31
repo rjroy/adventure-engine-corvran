@@ -1,7 +1,7 @@
 ---
 title: Replicate Image Generation
 date: 2026-03-17
-status: active
+status: resolved
 tags: [replicate, image-generation, api-reference]
 ---
 
