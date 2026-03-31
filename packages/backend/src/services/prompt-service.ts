@@ -71,7 +71,9 @@ export function assembleSystemPrompt(state: AdventureState): string {
       `The player hasn't set up a ${missing} yet. ` +
       "You can help them create one through conversation. " +
       "Ask what kind of adventure they want to play, then use your skills " +
-      "to guide character creation and world building. Let the player drive the choices."
+      "to guide character creation and world building. Let the player drive the choices. " +
+      "Once details are established, write them to the appropriate file " +
+      "(character.md for the character, world.md for the world)."
     );
   }
 
@@ -86,7 +88,19 @@ export function assembleSystemPrompt(state: AdventureState): string {
     "Respond to the player's latest message. Use the dice tool for rolls and " +
     "available skills for rules lookup and GM techniques. When you roll dice or look up rules, " +
     "include the meaningful result in your narrative (e.g., \"You rolled 14 + 3 = 17, a success!\") " +
-    "but not the raw tool invocation."
+    "but not the raw tool invocation.\n\n" +
+    "## File Tools\n\n" +
+    "You have file tools (Read, Write, Edit, Glob, Grep) with access to the adventure directory. " +
+    "Use them to maintain persistent records:\n\n" +
+    "- **`character.md`** — Write character data here when creating or updating a character. " +
+    "The chat carries the narrative; this file is the structured record (stats, inventory, abilities, background).\n" +
+    "- **`world.md`** — Write world details here when establishing or updating locations, NPCs, factions, or lore. " +
+    "The chat carries the story; this file is the reference material.\n" +
+    "- Read these files to recall state rather than relying solely on conversation context.\n" +
+    "- Do not modify `adventure.md` or `history.md` — those are managed by the system.\n\n" +
+    "Files are the persistent record. Chat is the live interaction. " +
+    "When something changes (a character levels up, a new NPC is introduced, an item is acquired), " +
+    "update the relevant file."
   );
 
   return sections.join("\n\n");

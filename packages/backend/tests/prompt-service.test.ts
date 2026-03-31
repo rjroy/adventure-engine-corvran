@@ -129,6 +129,34 @@ describe("assembleSystemPrompt", () => {
     expect(prompt).toContain("available skills for rules lookup");
   });
 
+  test("instructions include file tool guidance", () => {
+    const prompt = assembleSystemPrompt({
+      character: null,
+      world: null,
+      history: null,
+      systemBootstrap: null,
+      concept: null,
+    });
+
+    expect(prompt).toContain("## File Tools");
+    expect(prompt).toContain("character.md");
+    expect(prompt).toContain("world.md");
+    expect(prompt).toContain("Do not modify `adventure.md` or `history.md`");
+    expect(prompt).toContain("Files are the persistent record");
+  });
+
+  test("onboarding mentions writing to files", () => {
+    const prompt = assembleSystemPrompt({
+      character: null,
+      world: null,
+      history: null,
+      systemBootstrap: null,
+      concept: null,
+    });
+
+    expect(prompt).toContain("write them to the appropriate file");
+  });
+
   test("includes bootstrap content in Identity section when present", () => {
     const bootstrap = "You are running a Daggerheart game.\n\nUse Hope and Fear dice.";
     const prompt = assembleSystemPrompt({
