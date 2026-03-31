@@ -23,7 +23,7 @@ Source materials: existing logo, background art, favicons, the MVP spec, and the
 
 Before any color was chosen, the existing assets were examined:
 
-**Logo / apple-touch-icon:** A crow in flight, wings spread wide, talons extended, alert beak-forward posture. Parchment-toned (lch(89% 9 90)) silhouette on transparent background. The crow carries the Corvran name (crow = trickster) directly. No frame, no doorway — the bird alone. Source: `.lore/generated/crow-final-draft` (FLUX 2 Pro).
+**Logo / apple-touch-icon:** A crow in flight, wings spread wide, talons extended, alert beak-forward posture. Parchment-toned (oklch(90% 0.024 85)) silhouette on transparent background. The crow carries the Corvran name (crow = trickster) directly. No frame, no doorway — the bird alone. Source: `.lore/generated/crow-final-draft` (FLUX 2 Pro).
 
 **Previous logo (replaced):** Raven + ornate doorway in a rounded-rect badge frame. Too busy for the header at 52px height. The trickster identity lives in the crow alone.
 
@@ -32,8 +32,8 @@ Before any color was chosen, the existing assets were examined:
 **Palette extracted from the background:**
 - Base atmosphere: near-black blue-gray (`lch(7% 7 284)`) — the night sky behind the mountains
 - Surface texture: dark stone (`lch(13% 12 285)`) — cave walls, shadow areas
-- Primary accent: amber-gold (`lch(64% 60 79)` / `lch(78% 62 81)`) — the warmest portal, fire and candlelight
-- Secondary accent: muted blue (`lch(68% 24 249)`) — the cooler light of intelligence/reference
+- Primary accent: amber-gold (`oklch(65% 0.135 78)` / `lch(78% 62 81)`) — the warmest portal, fire and candlelight
+- Secondary accent: muted blue (`oklch(70% 0.075 238)`) — the cooler light of intelligence/reference
 
 These match the vision's atmosphere: "warm tavern, not sterile chat app."
 
@@ -64,9 +64,9 @@ The amber accent appears in borders, badges, and the send button: a consistent t
 These conventions are mandatory when using the palette:
 
 1. **Always use `var()` references** for colors and fonts. Never hard-code a raw `lch()` value in a component; reference the token instead.
-2. **Always use `color-mix(in lch, ...)` to derive alpha variants** from base tokens. Never hand-calculate or hard-code a translucent color.
-3. **`dim` = 15% mix.** All `-dim` tokens use `color-mix(in lch, var(--base) 15%, transparent)`. This is the standard tint for subtle backgrounds.
-4. **`border` = 30% mix.** All `-border` tokens use `color-mix(in lch, var(--base) 30%, transparent)`. This is the standard weight for hairline borders.
+2. **Always use `color-mix(in oklch, ...)` to derive alpha variants** from base tokens. Never hand-calculate or hard-code a translucent color.
+3. **`dim` = 15% mix.** All `-dim` tokens use `color-mix(in oklch, var(--base) 15%, transparent)`. This is the standard tint for subtle backgrounds.
+4. **`border` = 30% mix.** All `-border` tokens use `color-mix(in oklch, var(--base) 30%, transparent)`. This is the standard weight for hairline borders.
 
 If a new color family is added, follow the same pattern: define the base token in `lch()`, then derive `-dim` at 15% and `-border` at 30% via `color-mix`.
 
@@ -75,42 +75,42 @@ If a new color family is added, follow the same pattern: define the base token i
 | Token | Value | Use |
 |-------|-------|-----|
 | **Backgrounds** | | |
-| `--bg-base`          | `lch( 7%  7 285)`          | Page background, the deepest layer |
-| `--bg-surface`       | `lch(12% 12 285)`          | Cards, header, input area, conversation panels |
-| `--bg-elevated`      | `lch(17% 17 285)`          | Hover states, active elements |
+| `--bg-base`          | `oklch(20% 0.045 270)`          | Page background, the deepest layer |
+| `--bg-surface`       | `oklch(25% 0.045 270)`          | Cards, header, input area, conversation panels |
+| `--bg-elevated`      | `oklch(30% 0.045 270)`          | Hover states, active elements |
 | **Text** | | |
-| `--text-primary`     | `lch(89%  9  90)`          | All body text — warm off-white, aged parchment |
-| `--text-secondary`   | `lch(59%  9  90)`          | Labels, hints, meta information |
-| `--text-tertiary`    | `lch(39%  9  90)`          | Very muted — keyboard shortcuts, timestamps |
+| `--text-primary`     | `oklch(90% 0.024 85)`          | All body text — warm off-white, aged parchment |
+| `--text-secondary`   | `oklch(65% 0.024 85)`          | Labels, hints, meta information |
+| `--text-tertiary`    | `oklch(45% 0.024 85)`          | Very muted — keyboard shortcuts, timestamps |
 | **Amber (primary accent)** | | |
-| `--accent`            | `lch(64% 60  79)`          | Primary accent: send button, adventure name label, borders |
-| `--accent-hover`     | `lch(78% 60  79)`          | Hover on amber elements |
-| `--accent-dim`        | `color-mix(in lch, var(--accent) 15%, transparent)` | Subtle amber tint backgrounds |
-| `--accent-border`     | `color-mix(in lch, var(--accent) 30%, transparent)` | Hairline borders throughout, input wrapper border |
+| `--accent`            | `oklch(65% 0.135 78)`          | Primary accent: send button, adventure name label, borders |
+| `--accent-hover`     | `oklch(85% 0.135 78)`          | Hover on amber elements |
+| `--accent-dim`        | `color-mix(in oklch, var(--accent) 15%, transparent)` | Subtle amber tint backgrounds |
+| `--accent-border`     | `color-mix(in oklch, var(--accent) 30%, transparent)` | Hairline borders throughout, input wrapper border |
 | **Badges (adventure list)** | | |
-| `--badge-new`        | `lch(42% 24 142)`          | "New adventure" badge background |
-| `--badge-new-text`   | `lch(74% 35 142)`          | "New adventure" badge text |
-| `--badge-cont`       | `lch(28% 20 268)`          | "Continue" badge background |
-| `--badge-cont-text`  | `lch(68% 24 249)`          | "Continue" badge text |
+| `--badge-new`        | `oklch(45% 0.050 144)`          | "New adventure" badge background |
+| `--badge-new-text`   | `oklch(75% 0.090 144)`          | "New adventure" badge text |
+| `--badge-cont`       | `oklch(38% 0.060 238)`          | "Continue" badge background |
+| `--badge-cont-text`  | `oklch(70% 0.075 238)`          | "Continue" badge text |
 | **GM accent** | | |
-| `--gm-accent`        | `lch(68% 24 249)`          | GM message label and left border — the world's voice is cooler |
-| `--gm-accent-dim`    | `color-mix(in lch, var(--gm-accent) 15%, transparent)` | Subtle GM tint backgrounds |
-| `--gm-border`        | `color-mix(in lch, var(--gm-accent) 30%, transparent)` | GM message left border |
+| `--gm-accent`        | `oklch(70% 0.075 238)`          | GM message label and left border — the world's voice is cooler |
+| `--gm-accent-dim`    | `color-mix(in oklch, var(--gm-accent) 15%, transparent)` | Subtle GM tint backgrounds |
+| `--gm-border`        | `color-mix(in oklch, var(--gm-accent) 30%, transparent)` | GM message left border |
 | **Player** | | |
 | `--player-accent`    | `var(--accent)`              | Player message label — same as amber |
 | `--player-input`     | `var(--text-primary)`       | Player message body text (italic distinguishes it) |
 | **Tool events** | | |
-| `--tool-accent`      | `lch(60% 30 133)`          | Dice rolls, tool events — sage green, mechanical |
-| `--tool-accent-dim`  | `color-mix(in lch, var(--tool-accent) 15%, transparent)` | Tool event background tint |
-| `--tool-accent-border` | `color-mix(in lch, var(--tool-accent) 30%, transparent)` | Tool event left border |
+| `--tool-accent`      | `oklch(65% 0.079 135)`          | Dice rolls, tool events — sage green, mechanical |
+| `--tool-accent-dim`  | `color-mix(in oklch, var(--tool-accent) 15%, transparent)` | Tool event background tint |
+| `--tool-accent-border` | `color-mix(in oklch, var(--tool-accent) 30%, transparent)` | Tool event left border |
 | **Stop / Error** | | |
-| `--stop-red`         | `lch(45% 55  29)`          | Stop button base — danger-adjacent but not alarming |
-| `--stop-red-text`    | `lch(65% 55  29)`          | Stop button and error text (brighter for readability) |
-| `--stop-red-dim`     | `color-mix(in lch, var(--stop-red) 15%, transparent)` | Stop button background tint |
-| `--stop-red-border`  | `color-mix(in lch, var(--stop-red) 30%, transparent)` | Stop button border |
-| `--stop-red-highlight-bg` | `color-mix(in lch, var(--stop-red) 25%, transparent)` | Stop/error highlight background |
-| `--stop-red-hover`   | `color-mix(in lch, var(--stop-red) 25%, transparent)` | Stop button hover background |
-| `--stop-red-hover-border` | `color-mix(in lch, var(--stop-red) 75%, transparent)` | Stop button hover border |
+| `--stop-red`         | `oklch(55% 0.154 23)`          | Stop button base — danger-adjacent but not alarming |
+| `--stop-red-text`    | `oklch(72% 0.154 23)`          | Stop button and error text (brighter for readability) |
+| `--stop-red-dim`     | `color-mix(in oklch, var(--stop-red) 15%, transparent)` | Stop button background tint |
+| `--stop-red-border`  | `color-mix(in oklch, var(--stop-red) 30%, transparent)` | Stop button border |
+| `--stop-red-highlight-bg` | `color-mix(in oklch, var(--stop-red) 25%, transparent)` | Stop/error highlight background |
+| `--stop-red-hover`   | `color-mix(in oklch, var(--stop-red) 25%, transparent)` | Stop button hover background |
+| `--stop-red-hover-border` | `color-mix(in oklch, var(--stop-red) 75%, transparent)` | Stop button hover border |
 | `--error-bg`         | `var(--stop-red-dim)`       | Error message background (alias) |
 | `--error-border`     | `var(--stop-red-border)`    | Error message border (alias) |
 | `--error-text`       | `var(--stop-red-text)`      | Error message text (alias) |

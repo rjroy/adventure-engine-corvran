@@ -72,7 +72,7 @@ The MCP tool is structurally enforced. The GM either calls the tool or it doesn'
 
 ### Proposal 2: Named Presets With One Optional Hue Override
 
-**Evidence:** The issue explicitly asks: "Can the color palette change be truly dynamic by providing 1 or a few arbitrary colors?" The CSS variable structure in `globals.css:13` already uses LCH values with explicit hue angles (`lch(64% 60 79)` for amber accent, `lch(68% 24 249)` for GM blue). LCH hue rotation preserves perceptual brightness — this is why the existing colors were specified this way.
+**Evidence:** The issue explicitly asks: "Can the color palette change be truly dynamic by providing 1 or a few arbitrary colors?" The CSS variable structure in `globals.css:13` already uses LCH values with explicit hue angles (`oklch(65% 0.135 78)` for amber accent, `oklch(70% 0.075 238)` for GM blue). LCH hue rotation preserves perceptual brightness — this is why the existing colors were specified this way.
 
 **The spectrum of approaches:**
 

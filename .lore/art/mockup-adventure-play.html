@@ -12,36 +12,36 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg-base:        lch( 7%  7 285);
-      --bg-surface:     lch(12% 12 285);
-      --bg-elevated:    lch(17% 17 285);
+      --bg-base:        oklch(20% 0.045 270);
+      --bg-surface:     oklch(25% 0.045 270);
+      --bg-elevated:    oklch(30% 0.045 270);
 
-      --text-primary:   lch(89%  9  90);
-      --text-secondary: lch(59%  9  90);
-      --text-tertiary:  lch(39%  9  90);
+      --text-primary:   oklch(90% 0.024 85);
+      --text-secondary: oklch(65% 0.024 85);
+      --text-tertiary:  oklch(45% 0.024 85);
 
-      --accent:         lch(64% 60  79);
-      --accent-hover:   lch(78% 60  79);
+      --accent:         oklch(65% 0.135 78);
+      --accent-hover:   oklch(85% 0.135 78);
 
-      --gm-accent:      lch(68% 24 249);
+      --gm-accent:      oklch(70% 0.075 238);
       --player-input:     var(--text-primary);
       --player-accent:    var(--accent);
-      --tool-accent:    lch(60% 30 133);
-      --stop-red:       lch(45% 55  29);
-      --stop-red-text:  lch(65% 55  29);
+      --tool-accent:    oklch(65% 0.079 135);
+      --stop-red:       oklch(55% 0.154 23);
+      --stop-red-text:  oklch(72% 0.154 23);
       --error-bg:         var(--stop-red-dim);
 
-      --accent-dim:           color-mix(in lch, var(--accent) 15%, transparent);
-      --accent-border:        color-mix(in lch, var(--accent) 30%, transparent);
-      --gm-accent-dim:        color-mix(in lch, var(--gm-accent) 15%, transparent);
-      --gm-border:            color-mix(in lch, var(--gm-accent) 30%, transparent);
-      --tool-accent-dim:      color-mix(in lch, var(--tool-accent) 15%, transparent);
-      --tool-accent-border:   color-mix(in lch, var(--tool-accent) 30%, transparent);
-      --stop-red-dim:         color-mix(in lch, var(--stop-red) 15%, transparent);
-      --stop-red-border:      color-mix(in lch, var(--stop-red) 30%, transparent);
-      --stop-red-highlight-bg:color-mix(in lch, var(--stop-red) 25%, transparent);
-      --stop-red-hover:       color-mix(in lch, var(--stop-red) 25%, transparent);
-      --stop-red-hover-border:color-mix(in lch, var(--stop-red) 75%, transparent);
+      --accent-dim:           color-mix(in oklch, var(--accent) 15%, transparent);
+      --accent-border:        color-mix(in oklch, var(--accent) 30%, transparent);
+      --gm-accent-dim:        color-mix(in oklch, var(--gm-accent) 15%, transparent);
+      --gm-border:            color-mix(in oklch, var(--gm-accent) 30%, transparent);
+      --tool-accent-dim:      color-mix(in oklch, var(--tool-accent) 15%, transparent);
+      --tool-accent-border:   color-mix(in oklch, var(--tool-accent) 30%, transparent);
+      --stop-red-dim:         color-mix(in oklch, var(--stop-red) 15%, transparent);
+      --stop-red-border:      color-mix(in oklch, var(--stop-red) 30%, transparent);
+      --stop-red-highlight-bg:color-mix(in oklch, var(--stop-red) 25%, transparent);
+      --stop-red-hover:       color-mix(in oklch, var(--stop-red) 25%, transparent);
+      --stop-red-hover-border:color-mix(in oklch, var(--stop-red) 75%, transparent);
       --error-border:           var(--stop-red-border);
       --error-text:             var(--stop-red-text);
       --error-code-bg:          var(--stop-red-highlight-bg);
