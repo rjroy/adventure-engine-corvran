@@ -97,5 +97,6 @@ describe("generateMoodImage", () => {
     expect(capturedBody).toBeDefined();
     const parsed = JSON.parse(capturedBody!);
     expect(parsed.input.prompt).toBe("stormy battlefield");
+    expect(parsed.input.output_format).toBe("png");
   });
 });
