@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { slugify } from "../../src/services/slugify.js";
+import { slugify } from "../../src/services/slugify";
 
 describe("slugify", () => {
   test("converts name with apostrophe", () => {

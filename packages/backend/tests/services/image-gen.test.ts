@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { generateMoodImage } from "../../src/services/image-gen.js";
+import { generateMoodImage } from "../../src/services/image-gen";
 
 /** Wrap a simple async function as typeof fetch (Bun's fetch includes extra properties). */
 function asFetch(fn: (...args: Parameters<typeof fetch>) => ReturnType<typeof fetch>): typeof fetch {

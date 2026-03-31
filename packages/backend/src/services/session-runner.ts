@@ -1,10 +1,10 @@
 import type { Query, Options } from "@anthropic-ai/claude-agent-sdk";
 import { createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
 import type { MoodState } from "@corvran/shared";
-import { createDiceToolDef } from "./dice-tool.js";
-import { createMoodToolDef, type MoodEventPayload } from "./mood-tool.js";
-import { generateMoodImage } from "./image-gen.js";
-import { extractDominantHue } from "./color-extract.js";
+import { createDiceToolDef } from "./dice-tool";
+import { createMoodToolDef, type MoodEventPayload } from "./mood-tool";
+import { generateMoodImage } from "./image-gen";
+import { extractDominantHue } from "./color-extract";
 
 export type QueryFn = (params: { prompt: string; options?: Options }) => Query;
 

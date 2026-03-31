@@ -2,9 +2,9 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { resolve } from "node:path";
 import { readdir, readFile, stat } from "node:fs/promises";
-import { createApp, resolveConfig } from "./app.js";
-import { buildPluginRegistry } from "./services/plugin-registry.js";
-import type { FileOps } from "./types.js";
+import { createApp, resolveConfig } from "./app";
+import { buildPluginRegistry } from "./services/plugin-registry";
+import type { FileOps } from "./types";
 
 /** Minimal FileOps for registry building at startup */
 const registryFileOps: FileOps = {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { parseAdventureConfig } from "../../src/services/adventure-config.js";
+import { parseAdventureConfig } from "../../src/services/adventure-config";
 
 describe("parseAdventureConfig", () => {
   it("extracts system: daggerheart from valid frontmatter", () => {

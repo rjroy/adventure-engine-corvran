@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { assembleSystemPrompt } from "../src/services/prompt-service.js";
+import { assembleSystemPrompt } from "../src/services/prompt-service";
 
 describe("assembleSystemPrompt", () => {
   test("includes all sections in correct order with full state", () => {

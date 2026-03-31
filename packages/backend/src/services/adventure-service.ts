@@ -1,7 +1,7 @@
 import type { AdventureListItem, AdventureDetail, HistoryResponse, MoodState } from "@corvran/shared";
-import type { FileOps } from "../types.js";
-import { parseAdventureConfig, type AdventureConfig } from "./adventure-config.js";
-import { slugify } from "./slugify.js";
+import type { FileOps } from "../types";
+import { parseAdventureConfig, type AdventureConfig } from "./adventure-config";
+import { slugify } from "./slugify";
 
 export class DuplicateAdventureError extends Error {
   constructor() {

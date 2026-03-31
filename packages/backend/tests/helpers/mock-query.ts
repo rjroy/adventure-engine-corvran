@@ -1,5 +1,5 @@
 import type { SDKMessage, SDKResultMessage, SDKPartialAssistantMessage, SDKAssistantMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
-import type { QueryFn } from "../../src/services/session-runner.js";
+import type { QueryFn } from "../../src/services/session-runner";
 
 /**
  * Creates a mock Query object from an array of SDKMessages.

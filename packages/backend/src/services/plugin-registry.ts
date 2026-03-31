@@ -1,4 +1,4 @@
-import type { FileOps } from "../types.js";
+import type { FileOps } from "../types";
 
 export interface PluginManifest {
   name: string;

@@ -1,13 +1,13 @@
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { MessageRequestSchema, CreateAdventureRequestSchema } from "@corvran/shared";
-import { type AdventureService, DuplicateAdventureError } from "../services/adventure-service.js";
-import type { HistoryService } from "../services/history-service.js";
-import type { SessionRunner } from "../services/session-runner.js";
-import type { PluginRegistry } from "../services/plugin-registry.js";
-import { assembleSystemPrompt } from "../services/prompt-service.js";
-import { parseAdventureConfig } from "../services/adventure-config.js";
-import type { FileOps, OperationDefinition, RouteModule } from "../types.js";
+import { type AdventureService, DuplicateAdventureError } from "../services/adventure-service";
+import type { HistoryService } from "../services/history-service";
+import type { SessionRunner } from "../services/session-runner";
+import type { PluginRegistry } from "../services/plugin-registry";
+import { assembleSystemPrompt } from "../services/prompt-service";
+import { parseAdventureConfig } from "../services/adventure-config";
+import type { FileOps, OperationDefinition, RouteModule } from "../types";
 
 function isValidId(id: string): boolean {
   return !id.includes("/") && !id.includes("..");

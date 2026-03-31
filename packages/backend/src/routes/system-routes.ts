@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import type { PluginRegistry } from "../services/plugin-registry.js";
-import type { OperationDefinition, RouteModule } from "../types.js";
+import type { PluginRegistry } from "../services/plugin-registry";
+import type { OperationDefinition, RouteModule } from "../types";
 
 export function createSystemRoutes(deps: {
   pluginRegistry: PluginRegistry;

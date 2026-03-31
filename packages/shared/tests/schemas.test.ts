@@ -10,7 +10,7 @@ import {
   ToolUseEventSchema,
   DoneEventSchema,
   ErrorEventSchema,
-} from "../src/index.js";
+} from "../src/index";
 
 describe("AdventureListItemSchema", () => {
   test("accepts valid item", () => {

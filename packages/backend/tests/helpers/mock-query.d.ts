@@ -1,5 +1,5 @@
 import type { SDKMessage, SDKResultMessage, SDKPartialAssistantMessage, SDKAssistantMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
-import type { QueryFn } from "../../src/services/session-runner.js";
+import type { QueryFn } from "../../src/services/session-runner";
 /** Creates a text delta stream event */
 export declare function textDelta(text: string): SDKPartialAssistantMessage;
 /** Creates a success result message */

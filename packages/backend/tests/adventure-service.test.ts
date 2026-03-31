@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
-import { createAdventureService } from "../src/services/adventure-service.js";
-import { createMockFileOps } from "./helpers/mock-file-ops.js";
+import { createAdventureService } from "../src/services/adventure-service";
+import { createMockFileOps } from "./helpers/mock-file-ops";
 
 const ADVENTURES_ROOT = "/test/adventures";
 

@@ -4,7 +4,7 @@ import {
   createMoodToolDef,
   type MoodToolDeps,
   type MoodEventPayload,
-} from "../../src/services/mood-tool.js";
+} from "../../src/services/mood-tool";
 import type { MoodState } from "@corvran/shared";
 
 function createMockDeps(overrides?: Partial<MoodToolDeps>): MoodToolDeps {

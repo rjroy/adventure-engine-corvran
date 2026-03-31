@@ -1,6 +1,6 @@
 import { describe, expect, it, afterEach } from "bun:test";
 import { PNG } from "pngjs";
-import { extractDominantHue } from "../../src/services/color-extract.js";
+import { extractDominantHue } from "../../src/services/color-extract";
 import { join } from "node:path";
 import { unlinkSync } from "node:fs";
 

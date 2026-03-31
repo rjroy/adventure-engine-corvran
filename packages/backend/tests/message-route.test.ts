@@ -1,10 +1,10 @@
 import { describe, test, expect } from "bun:test";
 import { Hono } from "hono";
-import { createAdventureService } from "../src/services/adventure-service.js";
-import { createAdventureRoutes } from "../src/routes/adventure-routes.js";
-import { createHistoryService } from "../src/services/history-service.js";
-import { createSessionRunner } from "../src/services/session-runner.js";
-import { createMockFileOps } from "./helpers/mock-file-ops.js";
+import { createAdventureService } from "../src/services/adventure-service";
+import { createAdventureRoutes } from "../src/routes/adventure-routes";
+import { createHistoryService } from "../src/services/history-service";
+import { createSessionRunner } from "../src/services/session-runner";
+import { createMockFileOps } from "./helpers/mock-file-ops";
 import {
   createMockQueryFn,
   createThrowingQueryFn,
@@ -13,9 +13,9 @@ import {
   errorResult,
   assistantWithToolUse,
   userWithToolResult,
-} from "./helpers/mock-query.js";
-import type { QueryFn } from "../src/services/session-runner.js";
-import type { PluginRegistry, PluginEntry, SystemInfo } from "../src/services/plugin-registry.js";
+} from "./helpers/mock-query";
+import type { QueryFn } from "../src/services/session-runner";
+import type { PluginRegistry, PluginEntry, SystemInfo } from "../src/services/plugin-registry";
 
 const ADVENTURES_ROOT = "/test/adventures";
 const PLUGINS_ROOT = "/test/plugins";

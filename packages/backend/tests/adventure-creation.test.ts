@@ -1,7 +1,7 @@
 import { describe, test, expect } from "bun:test";
-import { createApp } from "../src/app.js";
-import { createMockFileOps, type MockFileOps } from "./helpers/mock-file-ops.js";
-import type { PluginRegistry } from "../src/services/plugin-registry.js";
+import { createApp } from "../src/app";
+import { createMockFileOps, type MockFileOps } from "./helpers/mock-file-ops";
+import type { PluginRegistry } from "../src/services/plugin-registry";
 
 const ADVENTURES_ROOT = "/test/adventures";
 

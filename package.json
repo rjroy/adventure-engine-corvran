@@ -7,8 +7,9 @@
     "dev": "concurrently -n daemon,web -c blue,green \"bun run daemon\" \"bun run --filter '@corvran/web' dev\"",
     "build": "bun run typecheck && bun run --filter '@corvran/web' build",
     "start": "concurrently -n daemon,web -c blue,green \"bun run daemon\" \"bun run --filter '@corvran/web' start\"",
+    "postinstall": "bunx tsc --build",
     "typecheck": "bunx tsc --build",
-    "lint": "bun run --filter '@corvran/backend' lint && bun run --filter '@corvran/web' lint"
+    "lint": "bun run --filter '@corvran/shared' lint && bun run --filter '@corvran/backend' lint && bun run --filter '@corvran/web' lint"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

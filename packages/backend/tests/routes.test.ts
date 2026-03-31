@@ -1,10 +1,10 @@
 import { describe, test, expect } from "bun:test";
 import { Hono } from "hono";
-import { createAdventureService } from "../src/services/adventure-service.js";
-import { createAdventureRoutes } from "../src/routes/adventure-routes.js";
-import { createHealthRoutes } from "../src/routes/health-routes.js";
-import { createHelpRoutes } from "../src/registry.js";
-import { createMockFileOps } from "./helpers/mock-file-ops.js";
+import { createAdventureService } from "../src/services/adventure-service";
+import { createAdventureRoutes } from "../src/routes/adventure-routes";
+import { createHealthRoutes } from "../src/routes/health-routes";
+import { createHelpRoutes } from "../src/registry";
+import { createMockFileOps } from "./helpers/mock-file-ops";
 
 const ADVENTURES_ROOT = "/test/adventures";
 

@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
-import { createHistoryService } from "../src/services/history-service.js";
-import { createMockFileOps } from "./helpers/mock-file-ops.js";
+import { createHistoryService } from "../src/services/history-service";
+import { createMockFileOps } from "./helpers/mock-file-ops";
 
 const ADVENTURE_PATH = "/test/adventures/quest";
 
