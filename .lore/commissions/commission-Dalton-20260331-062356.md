@@ -1,7 +1,7 @@
 ---
 title: "Commission: Dynamic Mood System: Phases 4-5 (MCP Mood Tool, Backend Route Wiring)"
 date: 2026-03-31
-status: pending
+status: dispatched
 type: one-shot
 tags: [commission]
 worker: Dalton
@@ -15,6 +15,11 @@ activity_timeline:
   - timestamp: 2026-03-31T13:23:56.992Z
     event: created
     reason: "Commission created"
+  - timestamp: 2026-03-31T13:31:51.892Z
+    event: status_dispatched
+    reason: "Dispatched to worker"
+    from: "pending"
+    to: "dispatched"
 current_progress: ""
 projectName: corvran
 ---

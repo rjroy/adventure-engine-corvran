@@ -1,7 +1,7 @@
 ---
 title: "Commission: Dynamic Mood System: Frontend Review (Phase 6)"
 date: 2026-03-31
-status: pending
+status: blocked
 type: one-shot
 tags: [commission]
 worker: Thorne
@@ -15,6 +15,11 @@ activity_timeline:
   - timestamp: 2026-03-31T13:24:27.232Z
     event: created
     reason: "Commission created"
+  - timestamp: 2026-03-31T13:31:51.890Z
+    event: status_blocked
+    reason: "Dependencies not satisfied"
+    from: "pending"
+    to: "blocked"
 current_progress: ""
 projectName: corvran
 ---
