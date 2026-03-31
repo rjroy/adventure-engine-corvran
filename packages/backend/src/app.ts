@@ -47,6 +47,9 @@ function createRealFileOps(): FileOps {
         return null;
       }
     },
+    async readFileBytes(path: string): Promise<Uint8Array> {
+      return new Uint8Array(await fsReadFile(path));
+    },
     resolvePath(...segments: string[]): string {
       return resolve(...segments);
     },

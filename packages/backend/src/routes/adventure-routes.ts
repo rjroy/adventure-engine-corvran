@@ -143,6 +143,7 @@ export function createAdventureRoutes(deps: {
       ? pluginRegistry.corePlugins.map((p) => p.path)
       : [];
     let systemBootstrap: string | null = null;
+    let artStyle: string | null = null;
 
     if (pluginRegistry && fileOps) {
       const adventureConfigPath = fileOps.resolvePath(adventurePath, "adventure.md");
@@ -151,6 +152,7 @@ export function createAdventureRoutes(deps: {
         const content = await fileOps.readFile(adventureConfigPath);
         const config = parseAdventureConfig(content);
         systemAlias = config.system;
+        artStyle = config.artStyle ?? null;
         if (config.warning) {
           console.warn(`[adventure-routes] ${id}: ${config.warning}`);
         }
@@ -188,26 +190,29 @@ export function createAdventureRoutes(deps: {
       concept: adventure.concept ?? null,
     });
 
-    // Set up abort for client disconnect
-    const abortController = new AbortController();
-
-    // Run the SDK query with per-adventure plugin paths (REQ-SYS-18)
-    const queryResult = sessionRunner.runQuery({
-      systemPrompt,
-      playerMessage: message,
-      adventurePath,
-      pluginPaths,
-      abortController,
-    });
-
-    // Stream SSE events
+    // Stream SSE events with runQuery inside streamSSE (Architectural Decision 2)
     return streamSSE(c, async (stream) => {
       let accumulatedText = "";
       // Track pending tool invocations so we can pair them with results
       const pendingTools = new Map<string, string>();
 
+      const abortController = new AbortController();
       stream.onAbort(() => {
         abortController.abort();
+      });
+
+      // Run the SDK query with per-adventure plugin paths (REQ-SYS-18)
+      const queryResult = sessionRunner.runQuery({
+        systemPrompt,
+        playerMessage: message,
+        adventureId: id,
+        adventurePath,
+        artStyle,
+        pluginPaths,
+        abortController,
+        setMood: (mood) => adventureService.setMood(id, mood),
+        emitMoodEvent: (payload) =>
+          stream.writeSSE({ event: "mood", data: JSON.stringify(payload) }),
       });
 
       try {
@@ -238,6 +243,8 @@ export function createAdventureRoutes(deps: {
                 if (block.type === "tool_result") {
                   const toolName = pendingTools.get(block.tool_use_id) ?? "tool";
                   pendingTools.delete(block.tool_use_id);
+                  // Suppress set_mood from tool_use SSE events (REQ-MOOD-20)
+                  if (toolName === "set_mood") continue;
                   const result = typeof block.content === "string"
                     ? block.content
                     : JSON.stringify(block.content);
@@ -288,6 +295,25 @@ export function createAdventureRoutes(deps: {
           data: JSON.stringify({ error: errorMessage }),
         });
       }
+    });
+  });
+
+  // Serve mood image for an adventure (REQ-MOOD-25)
+  routes.get("/adventures/:id/mood-image", async (c) => {
+    const id = c.req.param("id");
+    if (!isValidId(id)) return c.json({ error: "Invalid adventure ID" }, 400);
+    if (!fileOps) return c.json({ error: "File operations unavailable" }, 503);
+
+    const adventurePath = adventureService.getAdventurePath(id);
+    const moodImagePath = fileOps.resolvePath(adventurePath, "mood.png");
+
+    if (!(await fileOps.fileExists(moodImagePath))) {
+      return c.json({ error: "No mood image" }, 404);
+    }
+
+    const imageBytes = await fileOps.readFileBytes(moodImagePath);
+    return new Response(imageBytes, {
+      headers: { "Content-Type": "image/png" },
     });
   });
 
@@ -342,6 +368,17 @@ export function createAdventureRoutes(deps: {
         { name: "message", in: "body", required: true, description: "Player message text" },
       ],
       idempotent: false,
+    },
+    {
+      operationId: "adventures.moodImage.get",
+      name: "moodImage",
+      description: "Get the current mood image for an adventure",
+      invocation: { method: "GET", path: "/adventures/:id/mood-image" },
+      hierarchy: { root: "adventures", feature: "mood" },
+      parameters: [
+        { name: "id", in: "path", required: true, description: "Adventure directory name" },
+      ],
+      idempotent: true,
     },
   ];
 
