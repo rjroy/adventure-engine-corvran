@@ -4,6 +4,17 @@
    Component styles use .module.css files.
    ============================================================ */
 
+/* ── @property declarations for animated color transitions ── */
+@property --bg-base        { syntax: '<color>'; initial-value: oklch(20% 0.045 270); inherits: true; }
+@property --bg-surface     { syntax: '<color>'; initial-value: oklch(25% 0.045 270); inherits: true; }
+@property --bg-elevated    { syntax: '<color>'; initial-value: oklch(30% 0.045 270); inherits: true; }
+@property --text-primary   { syntax: '<color>'; initial-value: oklch(90% 0.024 85);  inherits: true; }
+@property --text-secondary { syntax: '<color>'; initial-value: oklch(65% 0.024 85);  inherits: true; }
+@property --text-tertiary  { syntax: '<color>'; initial-value: oklch(45% 0.024 85);  inherits: true; }
+@property --accent         { syntax: '<color>'; initial-value: oklch(65% 0.135 78);  inherits: true; }
+@property --accent-hover   { syntax: '<color>'; initial-value: oklch(85% 0.135 78);  inherits: true; }
+@property --gm-accent      { syntax: '<color>'; initial-value: oklch(70% 0.075 238); inherits: true; }
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -64,6 +75,18 @@
   --font-serif: Georgia, "Times New Roman", serif;
   --font-sans:  -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono:  "SFMono-Regular", "Cascadia Code", "Consolas", monospace;
+
+  /* ── Mood transitions ─────────────────────────────────────── */
+  transition:
+    --bg-base 2s ease,
+    --bg-surface 2s ease,
+    --bg-elevated 2s ease,
+    --text-primary 1.5s ease,
+    --text-secondary 1.5s ease,
+    --text-tertiary 1.5s ease,
+    --accent 1.5s ease,
+    --accent-hover 1.5s ease,
+    --gm-accent 1.5s ease;
 }
 
 html, body {
