@@ -93,7 +93,7 @@ export function createApp(deps?: AppDeps): Hono {
     sessionRunner = createSessionRunner({
       queryFn: deps.queryFn,
       config: {
-        model: deps.model ?? process.env.MODEL ?? "claude-sonnet-4-5-20250929",
+        model: deps.model ?? process.env.MODEL ?? "sonnet",
       },
     });
   }
