@@ -158,7 +158,7 @@ export default function AdventurePlayPage() {
         style={{
           position: "fixed",
           inset: 0,
-          zIndex: -1,
+          zIndex: 0,
           pointerEvents: "none",
           backgroundSize: "cover",
           backgroundPosition: "center",
