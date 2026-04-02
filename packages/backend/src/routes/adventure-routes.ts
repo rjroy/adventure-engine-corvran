@@ -158,6 +158,12 @@ export function createAdventureRoutes(deps: {
         }
       }
 
+      // Override art style if artstyle.md exists
+      const artstyleConfigPath = fileOps.resolvePath(adventurePath, "artstyle.md");
+      if (await fileOps.fileExists(artstyleConfigPath)) {
+        artStyle = (await fileOps.readFile(artstyleConfigPath)).trim();
+      }
+
       if (systemAlias) {
         const systemPlugin = pluginRegistry.resolveSystem(systemAlias);
         if (!systemPlugin) {
