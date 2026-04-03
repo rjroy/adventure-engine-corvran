@@ -174,14 +174,15 @@ The summarization prompt is the most important implementation detail. A bad summ
 
   1. Read adventure state (character, world, adventure.md)
   2. Read history
-  3. Check history size against threshold; if exceeded, run compaction, then re-read history
-  4. Check world size against threshold; if exceeded, run compaction, then re-read world
-  5. Append player message to history
-  6. Assemble system prompt with (possibly compacted) state + the just-appended player message
-  7. Run `query()`
-  8. Append GM response to history
+  3. Enter `streamSSE`
+  4. Check history size against threshold; if exceeded, run compaction, emit `compacted` SSE event (REQ-COMP-43), then re-read history
+  5. Check world size against threshold; if exceeded, run compaction, then re-read world (no SSE event per REQ-COMP-47)
+  6. Append player message to (possibly compacted) history
+  7. Assemble system prompt with (possibly compacted) state + the just-appended player message
+  8. Run `query()`
+  9. Append GM response to history
 
-  Note: The player message is appended (step 5) before prompt assembly (step 6) but after the threshold check (step 3). This means the threshold check does not count the player's current message. The current route implementation appends the player message early; this spec preserves that ordering. The threshold fires on the accumulated history from prior turns, not on the current turn's input.
+  Note: The threshold check (step 4) runs inside `streamSSE` so that the `compacted` event can be emitted on the active stream. The player message is appended (step 6) after the threshold check (step 4), preserving the existing ordering where the threshold fires on accumulated history from prior turns, not the current turn's input. Steps 1-2 remain outside `streamSSE` because they don't need the stream.
 
 - REQ-COMP-27: The `compact_history` MCP tool (REQ-COMP-11) is registered on the corvran MCP server alongside `roll_dice` and `set_mood`. It follows the same MCP tool definition pattern: `createCompactToolDef()` returns a tool definition, the handler calls `CompactionService.compactHistory()`. The tool's fully-qualified name (`mcp__corvran__compact_history`) must be added to the `allowedTools` array in the session runner configuration, alongside the existing `mcp__corvran__roll_dice` and `mcp__corvran__set_mood` entries. Without this, `permissionMode: 'dontAsk'` will silently deny the tool call.
 
@@ -207,7 +208,65 @@ The summarization prompt is the most important implementation detail. A bad summ
 
 - REQ-COMP-33: While compaction is running, the client shows an inline status message (e.g., "Creating recap...") in the chat area. When compaction completes, the client refreshes the displayed history by fetching `GET /adventures/:id/history`.
 
-- REQ-COMP-34: When the GM triggers compaction via the `compact_history` tool during a streaming response, no special UI treatment is needed. The compaction happens server-side as part of the GM's turn. The GM's response text (which streams to the client normally) may reference the compaction or may not. The client does not need to know that compaction happened mid-turn.
+- REQ-COMP-34: ~~When the GM triggers compaction via the `compact_history` tool during a streaming response, no special UI treatment is needed.~~ **Superseded by REQ-COMP-42 through REQ-COMP-48.** The server emits a `compacted` SSE event when server-side compaction occurs during a turn, and the client uses it to refresh the displayed history. See "Client Notification on Server-Side Compaction" below.
+
+### Client Notification on Server-Side Compaction
+
+When the threshold trigger (Phase 2) or the GM tool (Phase 4) fires, compaction runs server-side and the client's in-memory message list becomes stale. The client loaded history on page mount and has been appending messages locally since then. After server-side compaction, `history.md` contains a recap plus only the most recent exchanges, but the client still displays the full pre-compaction message list. Player-triggered compaction (Phase 3) doesn't have this problem because `handleCompact` explicitly re-fetches history after the POST succeeds.
+
+The fix follows the pattern established by mood events: the server emits a custom SSE event, the client handles it inline with the stream.
+
+- REQ-COMP-42: **`compacted` SSE event.** When compaction runs during a turn (threshold-triggered or GM tool-triggered), the server emits an SSE event on the active stream:
+
+  ```
+  event: compacted
+  data: {"archived":"past/scene-003.md","previousSize":145230,"newSize":4820}
+  ```
+
+  The payload matches the `CompactResponse` schema from REQ-COMP-15. This reuses the same shape so the client and shared package don't need a separate type.
+
+  Rationale: A dedicated event type (not overloading `tool_use` or `done`) lets the client handle compaction distinctly from other stream events. The payload gives the client enough information to show a status message. A minimal "refresh your history" signal (no payload) would work, but including the payload costs nothing and lets the client show "Scene archived to past/scene-003.md" or similar feedback without a second request.
+
+- REQ-COMP-43: **Threshold trigger emission.** When the threshold check (REQ-COMP-7) fires and compaction succeeds, the server emits the `compacted` event before proceeding with prompt assembly and the `query()` call. The event is emitted inside the `streamSSE` callback, after the stream is open.
+
+  This requires restructuring the message handler slightly: the threshold check currently runs before `streamSSE` is entered (before the stream exists). To emit an SSE event, the check must move inside the `streamSSE` callback, after the stream is open but before `runQuery`. The sequence becomes:
+
+  1. Read adventure state, read history (outside `streamSSE`, as before)
+  2. Enter `streamSSE`
+  3. Check history threshold; if exceeded, compact, emit `compacted` event on stream, re-read history
+  4. Check world threshold; if exceeded, compact, re-read world (no SSE event for world compaction; it's not visible to the player)
+  5. Append player message to (possibly compacted) history
+  6. Assemble system prompt
+  7. Run `query()`
+
+  Rationale: The SSE stream must be open to emit events. Moving the threshold check inside `streamSSE` keeps the compaction notification on the same stream the client is already reading. The alternative (emitting the event after the response completes, in the `done` payload) would delay the notification and complicate the `done` event schema.
+
+- REQ-COMP-44: **GM tool emission.** When the GM calls `compact_history` and compaction succeeds, the compaction service returns the `CompactionResult` to the tool handler. The tool handler calls an `emitCompactedEvent` callback (injected via DI, same pattern as `emitMoodEvent`) to emit the `compacted` SSE event on the active stream.
+
+  The `emitCompactedEvent` callback is defined in the adventure route's `streamSSE` block, alongside `emitMoodEvent`:
+
+  ```
+  emitCompactedEvent: (result) =>
+    stream.writeSSE({ event: "compacted", data: JSON.stringify(result) })
+  ```
+
+  The `SessionRunnerConfig` interface gains `emitCompactedEvent: (result: CompactionResult) => Promise<void>`, passed through to the compact tool definition.
+
+- REQ-COMP-45: **Client handling.** The `useAdventureStream` hook handles the `compacted` event type in its `processLine` function, alongside `text`, `tool_use`, `done`, `error`, and `mood`. When a `compacted` event arrives, the hook calls an `onCompacted` callback (new optional parameter to `useAdventureStream`).
+
+  The callback receives the parsed `CompactResponse` payload. The page component's `onCompacted` handler:
+
+  1. Fetches `GET /adventures/:id/history` to get the current (compacted) history.
+  2. Replaces the displayed message list with the parsed history from the response.
+  3. Does NOT clear the streaming message. The GM's turn is still in progress (the `compacted` event arrives mid-stream, before `done`). The streaming GM response continues to display normally.
+
+  After the turn completes and `done` fires, the GM's full response is appended to the message list as usual via `onComplete`. The result: the client shows [compacted recap messages] + [GM's current response], which matches what `history.md` will contain after the turn's GM response is appended.
+
+- REQ-COMP-46: **Failed compaction emits no event.** If compaction fails (Haiku error, concurrency rejection), no `compacted` event is emitted. The threshold trigger silently proceeds with the original history (REQ-COMP-41). The GM tool returns an error message to the AI, which may or may not surface it in narration. The client's message list remains as-is, which is correct because the server-side history didn't change.
+
+- REQ-COMP-47: **World compaction emits no event.** When the threshold check compacts `world.md` (REQ-COMP-9), no SSE event is emitted. World state is not displayed in the client's message list. The compaction is invisible to the client. If world compaction visibility becomes desirable later, it can be added as a separate event type.
+
+- REQ-COMP-48: **Shared schema.** The `CompactedEventSchema` in `@corvran/shared` validates the `compacted` SSE event payload. It reuses the same shape as `CompactResponseSchema` (from REQ-COMP-28). If the schemas are identical, they can be the same export. If they diverge later (e.g., the SSE event gains a `trigger` field), they should split. Start with a single schema.
 
 ### Edge Cases
 
@@ -235,11 +294,11 @@ This spec is designed for phased implementation. Each phase is independently use
 
 **Phase 1: Compaction mechanism and threshold trigger.** The `CompactionService`, the archive-summarize-save pipeline, and the threshold check in the message handler. This replaces REQ-MVP-13's error-and-edit failure mode with automatic compaction. No UI changes, no GM tool.
 
-**Phase 2: Player button.** The `POST /adventures/:id/compact` endpoint and the web client button. Gives the player manual control.
+**Phase 2: Player button and threshold notification.** The `POST /adventures/:id/compact` endpoint, the web client button, and the `compacted` SSE event for threshold-triggered compaction (REQ-COMP-42, REQ-COMP-43, REQ-COMP-45 through REQ-COMP-48). The client handles the `compacted` event and refreshes displayed history. This ensures the client stays in sync when the threshold fires automatically.
 
-**Phase 3: GM tool.** The `compact_history` MCP tool and the system prompt guidance. Gives the AI editorial judgment over compaction timing.
+**Phase 3: GM tool and tool notification.** The `compact_history` MCP tool, the system prompt guidance, and the `emitCompactedEvent` callback for GM-triggered compaction (REQ-COMP-44). The client already handles `compacted` events from Phase 2; Phase 3 adds the emission path from the GM tool.
 
-Phase 1 removes the wall. Phase 2 gives the player control. Phase 3 makes compaction narratively intelligent. Each phase can ship and be playtested independently.
+Phase 1 removes the wall. Phase 2 gives the player control and keeps the display in sync during automatic compaction. Phase 3 makes compaction narratively intelligent. Each phase can ship and be playtested independently.
 
 ## Exit Points
 
@@ -259,6 +318,7 @@ These criteria mix automated checks and human judgment. Criteria 1 and 3-5 are v
 - The GM uses the `compact_history` tool at narratively appropriate moments during extended play. The compaction lands at a pause point, not mid-action.
 - Archived transcripts in `past/` are readable markdown. The player can open any `scene-NNN.md` and read the verbatim transcript.
 - After compaction, `history.md` reads as a continuous story: the recap flows into new exchanges without visible seams. (Playtest criterion.)
+- When threshold or GM-triggered compaction fires during a turn, the client's displayed message list updates to show the compacted recap. The player does not need to reload the page to see the current history state.
 
 ## AI Validation
 
@@ -275,6 +335,10 @@ These criteria mix automated checks and human judgment. Criteria 1 and 3-5 are v
 - **Short history test:** Set history to < 500 characters, attempt compaction, verify it is skipped with appropriate response.
 - **Player endpoint test:** Call `POST /adventures/:id/compact`, verify response includes `archived`, `previousSize`, and `newSize`. Verify the archived file exists and the new history is shorter.
 - **MCP tool test:** Mock a `query()` call where the AI invokes `compact_history`. Verify the compaction runs and the tool returns the confirmation message.
+- **Compacted SSE event (threshold):** Create a `history.md` exceeding the threshold, send a message, parse the SSE stream. Verify a `compacted` event is emitted with `archived`, `previousSize`, and `newSize` fields before the `text` events begin.
+- **Compacted SSE event (GM tool):** Mock a `query()` call where the AI invokes `compact_history`. Parse the SSE stream. Verify a `compacted` event is emitted during the stream (between `text` events, before `done`).
+- **No compacted event on failure:** Mock the Haiku call to fail during threshold-triggered compaction. Verify no `compacted` event is emitted and the stream proceeds with `text` and `done` events normally.
+- **Client history refresh on compacted event:** In the `useAdventureStream` hook, simulate a `compacted` SSE event. Verify the `onCompacted` callback fires with the parsed payload. (The actual history re-fetch is the page component's responsibility; the hook test verifies the callback invocation.)
 
 ## Constraints
 
