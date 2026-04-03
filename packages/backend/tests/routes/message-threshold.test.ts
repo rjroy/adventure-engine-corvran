@@ -59,16 +59,18 @@ function buildTestApp(
   const fileOps = createMockFileOps(files);
   const adventureService = createAdventureService({ fileOps, adventuresPath: ADVENTURES_ROOT });
   const historyService = createHistoryService({ fileOps });
-  const sessionRunner = createSessionRunner({
-    queryFn: sessionQueryFn,
-    config: { model: "test-model" },
-  });
-
   // Build compaction service from provided queryFn, or use a pre-built service
   const compactionService = options?.compactionService ??
     (options?.compactionQueryFn
       ? createCompactionService({ fileOps, queryFn: options.compactionQueryFn })
       : undefined);
+
+  const sessionRunner = createSessionRunner({
+    queryFn: sessionQueryFn,
+    config: { model: "test-model" },
+    fileOps: compactionService ? fileOps : undefined,
+    compactionService,
+  });
 
   const compactionConfig = options?.compactionConfig ?? {
     historyThreshold: 1000,
@@ -489,7 +491,7 @@ describe("compacted SSE event emission", () => {
     expect(callCount).toBe(2);
   });
 
-  test("compacted SSE event from GM tool during streaming (REQ-COMP-44 integration)", async () => {
+  test("compact_history tool_use is suppressed from SSE events (REQ-COMP-44, Step A.4)", async () => {
     const toolId = "tool_compact_001";
 
     // Session queryFn that simulates the GM calling compact_history
@@ -535,6 +537,14 @@ describe("compacted SSE event emission", () => {
       expect(data.name).not.toBe("compact_history");
       expect(data.name).not.toBe("mcp__corvran__compact_history");
     }
+
+    // Note: The mock queryFn produces pre-fabricated SDK messages and does not
+    // execute real MCP tool handlers, so emitCompactedEvent is never invoked here.
+    // The full emission wiring is covered by:
+    //   - compact-tool.test.ts: verifies emitCompactedEvent is called on success
+    //   - threshold tests above: verify route-level SSE emission via stream.writeSSE
+    // A true end-to-end test would require the SDK to execute the MCP tool handler,
+    // which the mock infrastructure doesn't support.
 
     // Done event should exist
     const doneEvents = events.filter((e) => e.event === "done");

@@ -21,7 +21,11 @@ export function createCompactToolDef(deps: CompactToolDeps) {
       try {
         const context = await getAdventureContext();
         const result = await compactionService.compactHistory(adventurePath, context);
-        await deps.emitCompactedEvent(result);
+        try {
+          await deps.emitCompactedEvent(result);
+        } catch (err) {
+          console.error(`[compact-tool] failed to emit compacted event:`, err);
+        }
         return {
           content: [
             { type: "text", text: `History compacted. Scene archived to ${result.archived}.` },

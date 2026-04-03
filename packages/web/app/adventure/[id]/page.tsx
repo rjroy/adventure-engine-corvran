@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
-import type { AdventureDetail, HistoryResponse, ToolUseEvent } from "@corvran/shared";
+import type { AdventureDetail, HistoryResponse, ToolUseEvent, CompactResponse } from "@corvran/shared";
 import { useAdventureStream } from "@/lib/use-adventure-stream";
 import { parseHistory, type HistoryMessage } from "@/lib/parse-history";
 import { isTouchDevice, shouldSendOnEnter } from "@/lib/keyboard-handler";
@@ -30,8 +30,21 @@ export default function AdventurePlayPage() {
     setMessages((prev) => [...prev, { role: "gm", body: text }]);
   }, []);
 
+  const handleCompacted = useCallback(async (_result: CompactResponse) => {
+    try {
+      const historyRes = await fetch(`/api/daemon/adventures/${id}/history`);
+      if (historyRes.ok) {
+        const data = await historyRes.json() as { history: string | null };
+        setMessages(data.history ? parseHistory(data.history) : []);
+      }
+    } catch {
+      // History refresh failed silently; the page will show stale messages
+      // until the next reload. This is acceptable: the server state is correct.
+    }
+  }, [id]);
+
   const { isStreaming, streamingMessage, error, sendMessage, stop } =
-    useAdventureStream(id, handleStreamComplete);
+    useAdventureStream(id, handleStreamComplete, handleCompacted);
   const [isCompacting, setIsCompacting] = useState(false);
   const [compactError, setCompactError] = useState<string | null>(null);
 

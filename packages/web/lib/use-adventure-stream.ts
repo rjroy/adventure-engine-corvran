@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import type { ToolUseEvent } from "@corvran/shared";
-import { MoodEventSchema } from "@corvran/shared";
+import type { ToolUseEvent, CompactResponse } from "@corvran/shared";
+import { MoodEventSchema, CompactResponseSchema } from "@corvran/shared";
 import { applyMood } from "@/lib/apply-mood";
 import { getMoodImageUrl } from "@/lib/mood-image-url";
 
@@ -23,6 +23,7 @@ interface UseAdventureStreamReturn {
 export function useAdventureStream(
   adventureId: string,
   onComplete?: (text: string) => void,
+  onCompacted?: (result: CompactResponse) => void,
 ): UseAdventureStreamReturn {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingMessage, setStreamingMessage] =
@@ -99,6 +100,11 @@ export function useAdventureStream(
                   getMoodImageUrl(adventureId, moodParsed.data.imagePath),
                 );
               }
+            } else if (eventType === "compacted") {
+              const compactParsed = CompactResponseSchema.safeParse(parsed);
+              if (compactParsed.success) {
+                onCompacted?.(compactParsed.data);
+              }
             }
           } catch {
             // Ignore malformed JSON lines
@@ -165,7 +171,7 @@ export function useAdventureStream(
           abortControllerRef.current = null;
         });
     },
-    [adventureId, onComplete]
+    [adventureId, onComplete, onCompacted]
   );
 
   return { isStreaming, streamingMessage, error, sendMessage, stop };
