@@ -1,7 +1,7 @@
 ---
 title: "Audience with Guild Master"
 date: 2026-04-03
-status: requested
+status: declined
 tags: [meeting]
 worker: Guild Master
 workerDisplayTitle: "Guild Master"
@@ -12,4 +12,7 @@ meeting_log:
   - timestamp: 2026-04-03T04:35:44.406Z
     event: requested
     reason: "Meeting requested"
+  - timestamp: 2026-04-03T05:24:37.670Z
+    event: declined
+    reason: "User declined meeting request"
 ---

@@ -1,7 +1,7 @@
 ---
 title: "Commission: Build: Compaction System Phase 2 — Threshold Trigger"
 date: 2026-04-03
-status: failed
+status: abandoned
 type: one-shot
 tags: [commission]
 worker: Dalton
@@ -62,6 +62,11 @@ activity_timeline:
   - timestamp: 2026-04-03T04:33:58.762Z
     event: status_failed
     reason: "Squash-merge conflict on non-.lore/ files"
+  - timestamp: 2026-04-03T05:22:14.283Z
+    event: status_abandoned
+    reason: "Need to do something else. "
+    from: "failed"
+    to: "abandoned"
 current_progress: "Phase 2 implementation complete. Fixed Thorne's F1 (60s timeout), F3 (comment). Added CompactionConfig type, threshold checks in message handler, env var config in app.ts. All 6 threshold tests pass. Full suite: 480 pass, 0 fail. Submitting result."
 projectName: corvran
 ---

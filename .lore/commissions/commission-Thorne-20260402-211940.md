@@ -1,7 +1,7 @@
 ---
 title: "Commission: Review: Compaction System Phase 3"
 date: 2026-04-03
-status: blocked
+status: abandoned
 type: one-shot
 tags: [commission]
 worker: Thorne
@@ -20,6 +20,16 @@ activity_timeline:
     reason: "Dependencies not satisfied"
     from: "pending"
     to: "blocked"
+  - timestamp: 2026-04-03T05:11:01.951Z
+    event: status_cancelled
+    reason: "Commission cancelled by user"
+    from: "blocked"
+    to: "cancelled"
+  - timestamp: 2026-04-03T05:21:40.813Z
+    event: status_abandoned
+    reason: "Need to do something else. "
+    from: "cancelled"
+    to: "abandoned"
 current_progress: ""
 projectName: corvran
 ---
