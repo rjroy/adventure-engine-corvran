@@ -1,12 +1,13 @@
 import { tool } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
-import type { CompactionService } from "./compaction-service";
+import type { CompactionService, CompactionResult } from "./compaction-service";
 import { CompactionInProgressError, HistoryTooShortError } from "./compaction-service";
 
 export interface CompactToolDeps {
   compactionService: CompactionService;
   adventurePath: string;
   getAdventureContext: () => Promise<{ character?: string; world?: string }>;
+  emitCompactedEvent: (result: CompactionResult) => Promise<void>;
 }
 
 export function createCompactToolDef(deps: CompactToolDeps) {
@@ -20,6 +21,7 @@ export function createCompactToolDef(deps: CompactToolDeps) {
       try {
         const context = await getAdventureContext();
         const result = await compactionService.compactHistory(adventurePath, context);
+        await deps.emitCompactedEvent(result);
         return {
           content: [
             { type: "text", text: `History compacted. Scene archived to ${result.archived}.` },

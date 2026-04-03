@@ -4,7 +4,7 @@ import type { MoodState } from "@corvran/shared";
 import { createDiceToolDef } from "./dice-tool";
 import { createMoodToolDef, type MoodEventPayload } from "./mood-tool";
 import { createCompactToolDef } from "./compact-tool";
-import type { CompactionService } from "./compaction-service";
+import type { CompactionService, CompactionResult } from "./compaction-service";
 import type { FileOps } from "../types";
 import { generateMoodImage } from "./image-gen";
 import { extractDominantHue } from "./color-extract";
@@ -25,6 +25,7 @@ export interface RunQueryParams {
   abortController: AbortController;
   setMood: (mood: MoodState) => Promise<void>;
   emitMoodEvent: (payload: MoodEventPayload) => Promise<void>;
+  emitCompactedEvent: (result: CompactionResult) => Promise<void>;
 }
 
 const TOOLS = ["Bash", "Read", "Write", "Edit", "Grep", "Glob"];
@@ -75,6 +76,7 @@ export function createSessionRunner(deps: {
           try { world = await fileOps.readFile(worldPath); } catch { /* missing file */ }
           return { character, world };
         },
+        emitCompactedEvent: params.emitCompactedEvent,
       });
       tools.push(compactToolDef);
       toolNames.push("mcp__corvran__compact_history");

@@ -30,6 +30,7 @@ describe("compact-tool", () => {
       compactionService: service,
       adventurePath: ADVENTURE_PATH,
       getAdventureContext: async () => ({}),
+      emitCompactedEvent: async () => {},
     });
 
     expect(toolDef.name).toBe("compact_history");
@@ -45,6 +46,7 @@ describe("compact-tool", () => {
       [`${ADVENTURE_PATH}/world.md`]: "# The Wilds",
     });
     const service = makeCompactionService(fileOps, makeQueryFn(SUMMARY_TEXT));
+    let emittedResult: unknown = null;
     const toolDef = createCompactToolDef({
       compactionService: service,
       adventurePath: ADVENTURE_PATH,
@@ -52,11 +54,58 @@ describe("compact-tool", () => {
         character: "# Elara\nLevel 5 Ranger",
         world: "# The Wilds",
       }),
+      emitCompactedEvent: async (r) => { emittedResult = r; },
     });
 
     const result = await toolDef.handler({});
     const text = result.content[0].text;
     expect(text).toBe("History compacted. Scene archived to past/scene-001.md.");
+
+    // REQ-COMP-44: emitCompactedEvent called with CompactionResult
+    expect(emittedResult).not.toBeNull();
+    const emitted = emittedResult as CompactionResult;
+    expect(emitted.archived).toBe("past/scene-001.md");
+    expect(emitted.previousSize).toBe(LONG_HISTORY.length);
+    expect(typeof emitted.newSize).toBe("number");
+  });
+
+  test("emitCompactedEvent called on successful compaction (REQ-COMP-44)", async () => {
+    const fileOps = createMockFileOps({
+      [`${ADVENTURE_PATH}/history.md`]: LONG_HISTORY,
+    });
+    const service = makeCompactionService(fileOps, makeQueryFn(SUMMARY_TEXT));
+    let emittedResult: CompactionResult | null = null;
+    const toolDef = createCompactToolDef({
+      compactionService: service,
+      adventurePath: ADVENTURE_PATH,
+      getAdventureContext: async () => ({}),
+      emitCompactedEvent: async (r) => { emittedResult = r; },
+    });
+
+    await toolDef.handler({});
+
+    expect(emittedResult).not.toBeNull();
+    expect(emittedResult!.archived).toBe("past/scene-001.md");
+    expect(emittedResult!.previousSize).toBe(LONG_HISTORY.length);
+    expect(emittedResult!.newSize).toBe(SUMMARY_TEXT.length);
+  });
+
+  test("emitCompactedEvent not called on failure (REQ-COMP-46)", async () => {
+    const fileOps = createMockFileOps({
+      [`${ADVENTURE_PATH}/history.md`]: "Short.",
+    });
+    const service = makeCompactionService(fileOps, makeQueryFn(SUMMARY_TEXT));
+    let emitCalled = false;
+    const toolDef = createCompactToolDef({
+      compactionService: service,
+      adventurePath: ADVENTURE_PATH,
+      getAdventureContext: async () => ({}),
+      emitCompactedEvent: async () => { emitCalled = true; },
+    });
+
+    const result = await toolDef.handler({});
+    expect(result.content[0].text).toBe("History is too short to compact.");
+    expect(emitCalled).toBe(false);
   });
 
   test("short history returns appropriate message", async () => {
@@ -68,6 +117,7 @@ describe("compact-tool", () => {
       compactionService: service,
       adventurePath: ADVENTURE_PATH,
       getAdventureContext: async () => ({}),
+      emitCompactedEvent: async () => {},
     });
 
     const result = await toolDef.handler({});
@@ -106,6 +156,7 @@ describe("compact-tool", () => {
       compactionService: service,
       adventurePath: ADVENTURE_PATH,
       getAdventureContext: async () => ({}),
+      emitCompactedEvent: async () => {},
     });
 
     // Start compaction via the service directly to hold the lock
@@ -153,6 +204,7 @@ describe("compact-tool", () => {
       abortController: new AbortController(),
       setMood: async () => {},
       emitMoodEvent: async () => {},
+      emitCompactedEvent: async () => {},
     });
 
     expect(capturedOptions).toHaveLength(1);
@@ -187,6 +239,7 @@ describe("compact-tool", () => {
       abortController: new AbortController(),
       setMood: async () => {},
       emitMoodEvent: async () => {},
+      emitCompactedEvent: async () => {},
     });
 
     expect(capturedOptions).toHaveLength(1);

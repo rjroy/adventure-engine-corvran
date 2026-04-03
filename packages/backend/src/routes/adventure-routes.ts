@@ -143,48 +143,6 @@ export function createAdventureRoutes(deps: {
     const adventurePath = adventureService.getAdventurePath(id);
     let history = await historyService.readHistory(adventurePath);
 
-    // Threshold checks before player message append (REQ-COMP-7, REQ-COMP-26)
-    if (compactionService && compactionConfig) {
-      // History threshold (REQ-COMP-7, REQ-COMP-8)
-      if (history && history.length >= compactionConfig.historyThreshold) {
-        try {
-          await compactionService.compactHistory(adventurePath, {
-            character: adventure.character ?? undefined,
-            world: adventure.world ?? undefined,
-          });
-          history = await historyService.readHistory(adventurePath);
-        } catch (err) {
-          if (err instanceof CompactionInProgressError) {
-            // REQ-COMP-29: skip and proceed with original
-          } else {
-            // REQ-COMP-41: Haiku failure, archive reversed, proceed with original
-            console.warn(`[adventure-routes] ${id}: history compaction failed, proceeding with original`, err);
-          }
-        }
-      }
-
-      // World threshold (REQ-COMP-9, REQ-COMP-10: history-first ordering)
-      if (adventure.world && adventure.world.length >= compactionConfig.worldThreshold) {
-        try {
-          await compactionService.compactWorld(adventurePath);
-          // Re-read adventure to get compacted world
-          const refreshed = await adventureService.getAdventure(id);
-          if (refreshed) {
-            adventure = refreshed;
-          }
-        } catch (err) {
-          if (err instanceof CompactionInProgressError) {
-            // REQ-COMP-29: skip and proceed with original
-          } else {
-            console.warn(`[adventure-routes] ${id}: world compaction failed, proceeding with original`, err);
-          }
-        }
-      }
-    }
-
-    // Append player message (REQ-MVP-16 step 1)
-    await historyService.appendPlayerMessage(adventurePath, message);
-
     // Resolve plugins per-adventure (REQ-SYS-19)
     const pluginPaths: string[] = pluginRegistry
       ? pluginRegistry.corePlugins.map((p) => p.path)
@@ -234,16 +192,6 @@ export function createAdventureRoutes(deps: {
       }
     }
 
-    // Assemble system prompt (REQ-MVP-12, REQ-SYS-22, REQ-COMP-13)
-    const systemPrompt = assembleSystemPrompt({
-      character: adventure.character,
-      world: adventure.world,
-      history,
-      systemBootstrap,
-      concept: adventure.concept ?? null,
-      compactionEnabled: !!compactionService,
-    });
-
     // Stream SSE events with runQuery inside streamSSE (Architectural Decision 2)
     return streamSSE(c, async (stream) => {
       let accumulatedText = "";
@@ -253,6 +201,64 @@ export function createAdventureRoutes(deps: {
       const abortController = new AbortController();
       stream.onAbort(() => {
         abortController.abort();
+      });
+
+      // Threshold checks inside streamSSE so we can emit events (REQ-COMP-43, REQ-COMP-26)
+      if (compactionService && compactionConfig) {
+        // History threshold (REQ-COMP-7, REQ-COMP-8)
+        if (history && history.length >= compactionConfig.historyThreshold) {
+          try {
+            const result = await compactionService.compactHistory(adventurePath, {
+              character: adventure.character ?? undefined,
+              world: adventure.world ?? undefined,
+            });
+            // Emit compacted event (REQ-COMP-42, REQ-COMP-43)
+            await stream.writeSSE({
+              event: "compacted",
+              data: JSON.stringify(result),
+            });
+            history = await historyService.readHistory(adventurePath);
+          } catch (err) {
+            // REQ-COMP-46: failed compaction emits no event
+            if (err instanceof CompactionInProgressError) {
+              // REQ-COMP-29: skip and proceed with original
+            } else {
+              // REQ-COMP-41: Haiku failure, archive reversed, proceed with original
+              console.warn(`[adventure-routes] ${id}: history compaction failed, proceeding with original`, err);
+            }
+          }
+        }
+
+        // World threshold (REQ-COMP-9, REQ-COMP-10: history-first ordering)
+        // No SSE event for world compaction (REQ-COMP-47)
+        if (adventure.world && adventure.world.length >= compactionConfig.worldThreshold) {
+          try {
+            await compactionService.compactWorld(adventurePath);
+            const refreshed = await adventureService.getAdventure(id);
+            if (refreshed) {
+              adventure = refreshed;
+            }
+          } catch (err) {
+            if (err instanceof CompactionInProgressError) {
+              // REQ-COMP-29: skip and proceed with original
+            } else {
+              console.warn(`[adventure-routes] ${id}: world compaction failed, proceeding with original`, err);
+            }
+          }
+        }
+      }
+
+      // Append player message after threshold checks (REQ-COMP-26)
+      await historyService.appendPlayerMessage(adventurePath, message);
+
+      // Assemble system prompt with possibly-compacted state (REQ-COMP-13)
+      const systemPrompt = assembleSystemPrompt({
+        character: adventure.character,
+        world: adventure.world,
+        history,
+        systemBootstrap,
+        concept: adventure.concept ?? null,
+        compactionEnabled: !!compactionService,
       });
 
       // Run the SDK query with per-adventure plugin paths (REQ-SYS-18)
@@ -267,6 +273,8 @@ export function createAdventureRoutes(deps: {
         setMood: (mood) => adventureService.setMood(id, mood),
         emitMoodEvent: (payload) =>
           stream.writeSSE({ event: "mood", data: JSON.stringify(payload) }),
+        emitCompactedEvent: (result) =>
+          stream.writeSSE({ event: "compacted", data: JSON.stringify(result) }),
       });
 
       try {
@@ -297,9 +305,11 @@ export function createAdventureRoutes(deps: {
                 if (block.type === "tool_result") {
                   const toolName = pendingTools.get(block.tool_use_id) ?? "tool";
                   pendingTools.delete(block.tool_use_id);
-                  // Suppress set_mood from tool_use SSE events (REQ-MOOD-20).
+                  // Suppress set_mood and compact_history from tool_use SSE events.
+                  // These tools have dedicated SSE event channels (mood, compacted).
                   // MCP tools are prefixed as mcp__{server}__{tool} by the SDK.
                   if (toolName === "set_mood" || toolName === "mcp__corvran__set_mood") continue;
+                  if (toolName === "compact_history" || toolName === "mcp__corvran__compact_history") continue;
                   const result = typeof block.content === "string"
                     ? block.content
                     : JSON.stringify(block.content);
