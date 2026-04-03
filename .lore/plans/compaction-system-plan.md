@@ -1,7 +1,7 @@
 ---
 title: "Implementation plan: compaction-system"
 date: 2026-04-02
-status: approved
+status: executed
 tags: [plan, compaction, history, context-management, narrative, haiku, mcp]
 modules: [backend, shared, web]
 related: [.lore/specs/compaction-system-spec.md, .lore/reference/architecture-pattern.md, .lore/brainstorm/compaction-system.md, .lore/brainstorm/conversation-history.md, .lore/research/scene-boundaries.md]
