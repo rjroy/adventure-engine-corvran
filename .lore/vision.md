@@ -1,7 +1,7 @@
 ---
 title: Adventure Engine Vision
 date: 2026-03-28
-status: approved
+status: active
 tags: [vision, greenfield, collaborative-storytelling]
 last_reviewed: 2026-03-28
 review_trigger: "Review after first spec or 3 months, whichever comes first"
