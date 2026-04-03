@@ -1,6 +1,6 @@
 ---
 title: Lore Config
-status: approved
+status: active
 custom_directories:
   art: [draft, approved, archived]
   commissions: [pending, active, completed, abandoned]
