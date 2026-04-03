@@ -7,6 +7,7 @@ import type { SessionRunner } from "../services/session-runner";
 import type { PluginRegistry } from "../services/plugin-registry";
 import { assembleSystemPrompt } from "../services/prompt-service";
 import { parseAdventureConfig } from "../services/adventure-config";
+import type { CompactionService } from "../services/compaction-service";
 import type { FileOps, OperationDefinition, RouteModule } from "../types";
 
 function isValidId(id: string): boolean {
@@ -23,10 +24,11 @@ export function createAdventureRoutes(deps: {
   adventureService: AdventureService;
   historyService?: HistoryService;
   sessionRunner?: SessionRunner;
+  compactionService?: CompactionService;
   pluginRegistry?: PluginRegistry;
   fileOps?: FileOps;
 }): RouteModule {
-  const { adventureService, historyService, sessionRunner, pluginRegistry, fileOps } = deps;
+  const { adventureService, historyService, sessionRunner, compactionService, pluginRegistry, fileOps } = deps;
   const routes = new Hono();
 
   routes.get("/adventures", async (c) => {

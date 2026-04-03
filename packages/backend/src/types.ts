@@ -10,6 +10,8 @@ export interface FileOps {
   fileExists(path: string): Promise<boolean>;
   stat(path: string): Promise<{ mtime: Date } | null>;
   readFileBytes(path: string): Promise<Uint8Array>;
+  deleteFile(path: string): Promise<void>;
+  readFiles(path: string): Promise<string[]>;
   resolvePath(...segments: string[]): string;
 }
 

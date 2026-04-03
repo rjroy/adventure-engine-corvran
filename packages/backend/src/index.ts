@@ -27,6 +27,8 @@ const registryFileOps: FileOps = {
     const buf = await Bun.file(path).arrayBuffer();
     return new Uint8Array(buf);
   },
+  deleteFile() { throw new Error("not implemented"); },
+  readFiles() { throw new Error("not implemented"); },
   resolvePath(...segments: string[]) { return resolve(...segments); },
 };
 
