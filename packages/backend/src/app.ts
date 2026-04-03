@@ -85,6 +85,7 @@ export interface AppDeps {
   adventuresPath?: string;
   queryFn?: QueryFn;
   model?: string;
+  compactionModel?: string;
   pluginRegistry?: PluginRegistry;
 }
 
@@ -101,7 +102,7 @@ export function createApp(deps?: AppDeps): Hono {
   // Tests that don't need SDK integration pass their own queryFn.
   // Production passes the real SDK query function.
   // Compaction service needs queryFn for Haiku summarization calls (REQ-COMP-9a)
-  const compactionModel = process.env.COMPACTION_MODEL ?? "haiku";
+  const compactionModel = deps?.compactionModel ?? process.env.COMPACTION_MODEL ?? "haiku";
   const compactionService = deps?.queryFn
     ? createCompactionService({ fileOps, queryFn: deps.queryFn, model: compactionModel })
     : undefined;

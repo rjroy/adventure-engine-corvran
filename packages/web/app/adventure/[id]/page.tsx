@@ -119,6 +119,8 @@ export default function AdventurePlayPage() {
       if (historyRes.ok) {
         const data = await historyRes.json() as { history: string | null };
         setMessages(data.history ? parseHistory(data.history) : []);
+      } else {
+        setCompactError("Compaction succeeded but failed to refresh display. Please reload the page.");
       }
     } catch {
       setCompactError("Failed to connect to server");
