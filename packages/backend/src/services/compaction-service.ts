@@ -75,19 +75,8 @@ function buildHistorySystemPrompt(context?: { character?: string; world?: string
 async function extractQueryResult(query: ReturnType<QueryFn>): Promise<string> {
   for await (const msg of query) {
     if (msg.type === "result") {
-<<<<<<< HEAD
       if (msg.subtype === "success" && "result" in msg && typeof msg.result === "string") {
         return msg.result;
-=======
-      if (msg.subtype === "success") {
-        // SDK result messages include a `result` string on success.
-        // Type assertion required: SDK exports union types, not discriminated subtypes.
-        const result = (msg as { result?: string }).result;
-        if (typeof result !== "string") {
-          throw new Error("Haiku summarization returned non-string result");
-        }
-        return result;
->>>>>>> claude/commission/commission-Dalton-20260402-211933
       }
       const errors = "errors" in msg && Array.isArray(msg.errors) ? msg.errors : ["Unknown error"];
       throw new Error(`Haiku summarization failed: ${errors.join("; ")}`);
@@ -134,10 +123,12 @@ function formatSequenceNumber(n: number): string {
 export interface CompactionServiceDeps {
   fileOps: FileOps;
   queryFn: QueryFn;
+  model?: string;
 }
 
 export function createCompactionService(deps: CompactionServiceDeps) {
   const { fileOps, queryFn } = deps;
+  const model = deps.model ?? "haiku";
   const inFlight = new Set<string>();
 
   async function compactFile(
@@ -174,15 +165,6 @@ export function createCompactionService(deps: CompactionServiceDeps) {
       // If deleteFile fails after writeFile, two copies exist briefly. Benign: the error
       // propagates, clears the lock, and the next compaction attempt self-heals.
       await fileOps.writeFile(archivePath, content);
-<<<<<<< HEAD
-=======
-      await fileOps.deleteFile(filePath);
-
-      // Step 2: Summarize via Haiku (REQ-COMP-41: 60-second timeout)
-      let summary: string;
-      const haikusAbortController = new AbortController();
-      const haikuTimeout = setTimeout(() => haikusAbortController.abort(), 60_000);
->>>>>>> claude/commission/commission-Dalton-20260402-211933
       try {
         await fileOps.deleteFile(filePath);
       } catch (deleteError) {
@@ -196,29 +178,18 @@ export function createCompactionService(deps: CompactionServiceDeps) {
       const timeoutController = new AbortController();
       const timeoutId = setTimeout(() => timeoutController.abort(), 60_000);
       try {
-        const timeoutController = new AbortController();
-        const timeoutId = setTimeout(() => timeoutController.abort(), 60_000);
         const query = queryFn({
           prompt: content,
           options: {
             systemPrompt,
-            model: "claude-haiku-4-5-20251001",
+            model,
             persistSession: false,
             permissionMode: "dontAsk",
-<<<<<<< HEAD
             abortController: timeoutController,
-=======
-            abortController: haikusAbortController,
->>>>>>> claude/commission/commission-Dalton-20260402-211933
           },
         });
-        try {
-          summary = await extractQueryResult(query);
-        } finally {
-          clearTimeout(timeoutId);
-        }
+        summary = await extractQueryResult(query);
       } catch (error) {
-        clearTimeout(haikuTimeout);
         // Reverse the archive: restore original file, remove archive
         await fileOps.writeFile(filePath, content);
         try {
@@ -230,7 +201,6 @@ export function createCompactionService(deps: CompactionServiceDeps) {
       } finally {
         clearTimeout(timeoutId);
       }
-      clearTimeout(haikuTimeout);
 
       // Step 3: Save summary as new file
       await fileOps.writeFile(filePath, summary);

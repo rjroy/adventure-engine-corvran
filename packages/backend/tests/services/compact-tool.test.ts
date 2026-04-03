@@ -125,27 +125,74 @@ describe("compact-tool", () => {
       [`${ADVENTURE_PATH}/character.md`]: "# Test Character",
       [`${ADVENTURE_PATH}/world.md`]: "# Test World",
     });
-    const queryFn = makeQueryFn(SUMMARY_TEXT);
-    const service = makeCompactionService(fileOps, queryFn);
+
+    // Spy on queryFn to capture the options passed to it
+    const capturedOptions: Array<Record<string, unknown>> = [];
+    const spyQueryFn: QueryFn = (params) => {
+      capturedOptions.push(params.options as Record<string, unknown>);
+      return makeQueryFn(SUMMARY_TEXT)(params);
+    };
+
+    const service = makeCompactionService(fileOps, spyQueryFn);
 
     const runner = createSessionRunner({
-      queryFn,
+      queryFn: spyQueryFn,
       config: { model: "sonnet" },
       fileOps,
       compactionService: service,
     });
 
-    // runQuery returns a Query. We verify the allowedTools list includes
-    // compact_history by checking the runner was created without error
-    // and the factory accepts the compactionService + fileOps deps.
-    expect(runner).toBeDefined();
-    expect(runner.runQuery).toBeTypeOf("function");
+    // Call runQuery to capture the options
+    runner.runQuery({
+      systemPrompt: "Test prompt",
+      playerMessage: "Hello",
+      adventureId: "test",
+      adventurePath: ADVENTURE_PATH,
+      artStyle: null,
+      pluginPaths: [],
+      abortController: new AbortController(),
+      setMood: async () => {},
+      emitMoodEvent: async () => {},
+    });
 
-    // Also verify a runner without compaction still works (backward compat)
-    const runnerNoCompact = createSessionRunner({
-      queryFn,
+    expect(capturedOptions).toHaveLength(1);
+    const options = capturedOptions[0];
+    const allowedTools = options.allowedTools as string[];
+    expect(allowedTools).toContain("mcp__corvran__compact_history");
+    expect(allowedTools).toContain("mcp__corvran__roll_dice");
+    expect(allowedTools).toContain("mcp__corvran__set_mood");
+    const mcpServers = options.mcpServers as Record<string, unknown>;
+    expect(mcpServers.corvran).toBeDefined();
+  });
+
+  test("runner without compaction deps does not include compact_history in allowedTools", () => {
+    const capturedOptions: Array<Record<string, unknown>> = [];
+    const spyQueryFn: QueryFn = (params) => {
+      capturedOptions.push(params.options as Record<string, unknown>);
+      return makeQueryFn(SUMMARY_TEXT)(params);
+    };
+
+    const runner = createSessionRunner({
+      queryFn: spyQueryFn,
       config: { model: "sonnet" },
     });
-    expect(runnerNoCompact).toBeDefined();
+
+    runner.runQuery({
+      systemPrompt: "Test prompt",
+      playerMessage: "Hello",
+      adventureId: "test",
+      adventurePath: ADVENTURE_PATH,
+      artStyle: null,
+      pluginPaths: [],
+      abortController: new AbortController(),
+      setMood: async () => {},
+      emitMoodEvent: async () => {},
+    });
+
+    expect(capturedOptions).toHaveLength(1);
+    const allowedTools = capturedOptions[0].allowedTools as string[];
+    expect(allowedTools).not.toContain("mcp__corvran__compact_history");
+    expect(allowedTools).toContain("mcp__corvran__roll_dice");
+    expect(allowedTools).toContain("mcp__corvran__set_mood");
   });
 });

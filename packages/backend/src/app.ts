@@ -100,9 +100,10 @@ export function createApp(deps?: AppDeps): Hono {
   // Session runner is only created when a queryFn is provided.
   // Tests that don't need SDK integration pass their own queryFn.
   // Production passes the real SDK query function.
-  // Compaction service needs queryFn for Haiku summarization calls
+  // Compaction service needs queryFn for Haiku summarization calls (REQ-COMP-9a)
+  const compactionModel = process.env.COMPACTION_MODEL ?? "haiku";
   const compactionService = deps?.queryFn
-    ? createCompactionService({ fileOps, queryFn: deps.queryFn })
+    ? createCompactionService({ fileOps, queryFn: deps.queryFn, model: compactionModel })
     : undefined;
 
   let sessionRunner: SessionRunner | undefined;
@@ -117,13 +118,6 @@ export function createApp(deps?: AppDeps): Hono {
     });
   }
 
-<<<<<<< HEAD
-=======
-  // Compaction service needs queryFn for Haiku summarization calls
-  const compactionService = deps?.queryFn
-    ? createCompactionService({ fileOps, queryFn: deps.queryFn })
-    : undefined;
-
   const compactionConfig: CompactionConfig | undefined = compactionService
     ? {
         historyThreshold: parseInt(process.env.HISTORY_COMPACT_THRESHOLD || "150000", 10),
@@ -131,7 +125,6 @@ export function createApp(deps?: AppDeps): Hono {
       }
     : undefined;
 
->>>>>>> claude/commission/commission-Dalton-20260402-211916
   const adventureModule = createAdventureRoutes({
     adventureService,
     historyService,

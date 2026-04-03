@@ -257,4 +257,42 @@ describe("assembleSystemPrompt", () => {
     expect(characterIdx).toBeGreaterThan(conceptIdx);
     expect(worldIdx).toBeGreaterThan(characterIdx);
   });
+
+  test("includes compact_history guidance when compactionEnabled is true (REQ-COMP-13)", () => {
+    const prompt = assembleSystemPrompt({
+      character: "# Hero",
+      world: "# World",
+      history: null,
+      systemBootstrap: null,
+      concept: null,
+      compactionEnabled: true,
+    });
+
+    expect(prompt).toContain("## History Compaction");
+    expect(prompt).toContain("compact_history");
+    expect(prompt).toContain("natural pause points");
+  });
+
+  test("omits compact_history guidance when compactionEnabled is false or absent", () => {
+    const withFalse = assembleSystemPrompt({
+      character: "# Hero",
+      world: "# World",
+      history: null,
+      systemBootstrap: null,
+      concept: null,
+      compactionEnabled: false,
+    });
+    expect(withFalse).not.toContain("## History Compaction");
+    expect(withFalse).not.toContain("compact_history");
+
+    const withOmitted = assembleSystemPrompt({
+      character: "# Hero",
+      world: "# World",
+      history: null,
+      systemBootstrap: null,
+      concept: null,
+    });
+    expect(withOmitted).not.toContain("## History Compaction");
+    expect(withOmitted).not.toContain("compact_history");
+  });
 });

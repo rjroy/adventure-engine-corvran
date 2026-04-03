@@ -172,12 +172,12 @@ describe("threshold-triggered compaction", () => {
 
     let callCount = 0;
     // Compaction queryFn returns different summaries for history vs world calls
-    const compactionQueryFn: QueryFn = () => {
+    const compactionQueryFn: QueryFn = (params) => {
       callCount++;
       if (callCount === 1) {
-        return createMockQueryFn([successResult(historySummary)])();
+        return createMockQueryFn([successResult(historySummary)])(params);
       }
-      return createMockQueryFn([successResult(worldSummary)])();
+      return createMockQueryFn([successResult(worldSummary)])(params);
     };
 
     const sessionQueryFn = createMockQueryFn([

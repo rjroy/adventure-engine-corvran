@@ -59,7 +59,7 @@ export function createSessionRunner(deps: {
       emitMoodEvent: params.emitMoodEvent,
     });
 
-    const tools = [diceToolDef, moodToolDef];
+    const tools: Array<ReturnType<typeof createDiceToolDef | typeof createMoodToolDef | typeof createCompactToolDef>> = [diceToolDef, moodToolDef];
     const toolNames = ["mcp__corvran__roll_dice", "mcp__corvran__set_mood"];
 
     if (compactionService && fileOps) {

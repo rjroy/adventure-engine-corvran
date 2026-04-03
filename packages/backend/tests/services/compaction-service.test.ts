@@ -212,8 +212,8 @@ describe("CompactionService", () => {
       expect(systemPrompt).toContain("## World Reference");
       expect(systemPrompt).toContain(world);
 
-      // Should use Haiku model
-      expect(calls[0].options?.model).toBe("claude-haiku-4-5-20251001");
+      // Should use Haiku model (short name, SDK resolves to latest)
+      expect(calls[0].options?.model).toBe("haiku");
       expect(calls[0].options?.persistSession).toBe(false);
       expect(calls[0].options?.permissionMode).toBe("dontAsk");
     });

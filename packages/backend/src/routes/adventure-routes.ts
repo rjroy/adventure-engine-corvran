@@ -7,11 +7,7 @@ import type { SessionRunner } from "../services/session-runner";
 import type { PluginRegistry } from "../services/plugin-registry";
 import { assembleSystemPrompt } from "../services/prompt-service";
 import { parseAdventureConfig } from "../services/adventure-config";
-<<<<<<< HEAD
-import { type CompactionService, CompactionInProgressError } from "../services/compaction-service";
-=======
 import { type CompactionService, CompactionInProgressError, HistoryTooShortError } from "../services/compaction-service";
->>>>>>> claude/commission/commission-Dalton-20260402-211933
 import type { FileOps, OperationDefinition, RouteModule } from "../types";
 
 export interface CompactionConfig {
@@ -238,13 +234,14 @@ export function createAdventureRoutes(deps: {
       }
     }
 
-    // Assemble system prompt (REQ-MVP-12, REQ-SYS-22)
+    // Assemble system prompt (REQ-MVP-12, REQ-SYS-22, REQ-COMP-13)
     const systemPrompt = assembleSystemPrompt({
       character: adventure.character,
       world: adventure.world,
       history,
       systemBootstrap,
       concept: adventure.concept ?? null,
+      compactionEnabled: !!compactionService,
     });
 
     // Stream SSE events with runQuery inside streamSSE (Architectural Decision 2)
