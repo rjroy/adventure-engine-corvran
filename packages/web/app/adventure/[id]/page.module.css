@@ -349,6 +349,41 @@
   line-height: 1.6;
 }
 
+/* ── Compact button ─────────────────────────────────────── */
+.btnCompact {
+  background: transparent;
+  color: var(--text-tertiary);
+  border: 1px solid var(--accent-border);
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  letter-spacing: 0.02em;
+}
+
+.btnCompact:hover:not(:disabled) {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border-color: var(--text-tertiary);
+}
+
+.btnCompact:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Compaction status ─────────────────────────────────── */
+.compactingStatus {
+  text-align: center;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  font-style: italic;
+  font-family: var(--font-serif);
+}
+
 .loading {
   text-align: center;
   padding: 80px 0;

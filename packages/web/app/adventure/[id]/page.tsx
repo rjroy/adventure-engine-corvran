@@ -32,6 +32,8 @@ export default function AdventurePlayPage() {
 
   const { isStreaming, streamingMessage, error, sendMessage, stop } =
     useAdventureStream(id, handleStreamComplete);
+  const [isCompacting, setIsCompacting] = useState(false);
+  const [compactError, setCompactError] = useState<string | null>(null);
 
   // Load adventure detail and history
   useEffect(() => {
@@ -98,6 +100,32 @@ export default function AdventurePlayPage() {
     sendMessage(text);
   }, [inputValue, isStreaming, sendMessage]);
 
+  const handleCompact = useCallback(async () => {
+    if (!window.confirm(
+      "Archive the current history and create a recap? The full transcript will be saved in the past/ folder.",
+    )) return;
+
+    setIsCompacting(true);
+    setCompactError(null);
+    try {
+      const res = await fetch(`/api/daemon/adventures/${id}/compact`, { method: "POST" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: "Compaction failed" }));
+        setCompactError(body.error || "Compaction failed");
+        return;
+      }
+      // Refresh history after successful compaction
+      const historyRes = await fetch(`/api/daemon/adventures/${id}/history`);
+      if (historyRes.ok) {
+        const data = await historyRes.json() as { history: string | null };
+        setMessages(data.history ? parseHistory(data.history) : []);
+      }
+    } catch {
+      setCompactError("Failed to connect to server");
+    } finally {
+      setIsCompacting(false);
+    }
+  }, [id]);
 
   const isMobile = useMemo(() => isTouchDevice(), []);
 
@@ -202,6 +230,14 @@ export default function AdventurePlayPage() {
             </div>
           )}
 
+          {isCompacting && (
+            <div className={styles.compactingStatus}>Creating recap...</div>
+          )}
+
+          {compactError && (
+            <div className={styles.errorMessage}>{compactError}</div>
+          )}
+
           <div ref={bottomRef} />
         </div>
       </div>
@@ -222,6 +258,17 @@ export default function AdventurePlayPage() {
               rows={1}
             />
           </div>
+          {hasHistory && (
+            <button
+              className={styles.btnCompact}
+              onClick={handleCompact}
+              disabled={isStreaming || isCompacting}
+              type="button"
+              title="Archive current history and create a recap"
+            >
+              {isCompacting ? "..." : "Compact"}
+            </button>
+          )}
           {isStreaming ? (
             <button className={styles.btnStop} onClick={stop} type="button">
               <div className={styles.btnStopIcon} />

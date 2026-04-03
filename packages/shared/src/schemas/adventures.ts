@@ -97,3 +97,14 @@ export const CreateAdventureRequestSchema = z.object({
 export const CreateAdventureResponseSchema = z.object({
   adventure: AdventureListItemSchema,
 });
+
+// Compaction endpoint (REQ-COMP-15, REQ-COMP-28)
+export const CompactResponseSchema = z.object({
+  archived: z.string(),
+  previousSize: z.number(),
+  newSize: z.number(),
+});
+
+export const CompactErrorSchema = z.object({
+  error: z.string(),
+});

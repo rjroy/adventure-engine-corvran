@@ -7,7 +7,11 @@ import type { SessionRunner } from "../services/session-runner";
 import type { PluginRegistry } from "../services/plugin-registry";
 import { assembleSystemPrompt } from "../services/prompt-service";
 import { parseAdventureConfig } from "../services/adventure-config";
+<<<<<<< HEAD
 import { type CompactionService, CompactionInProgressError } from "../services/compaction-service";
+=======
+import { type CompactionService, CompactionInProgressError, HistoryTooShortError } from "../services/compaction-service";
+>>>>>>> claude/commission/commission-Dalton-20260402-211933
 import type { FileOps, OperationDefinition, RouteModule } from "../types";
 
 export interface CompactionConfig {
@@ -376,6 +380,41 @@ export function createAdventureRoutes(deps: {
     });
   });
 
+  // POST /adventures/:id/compact (REQ-COMP-15, REQ-COMP-28)
+  routes.post("/adventures/:id/compact", async (c) => {
+    const id = c.req.param("id");
+    if (!isValidId(id)) {
+      return c.json({ error: "Invalid adventure ID" }, 400);
+    }
+
+    if (!compactionService) {
+      return c.json({ error: "Compaction not configured" }, 503);
+    }
+
+    const adventure = await adventureService.getAdventure(id);
+    if (!adventure) {
+      return c.json({ error: "Adventure not found" }, 404);
+    }
+
+    const adventurePath = adventureService.getAdventurePath(id);
+    try {
+      const result = await compactionService.compactHistory(adventurePath, {
+        character: adventure.character ?? undefined,
+        world: adventure.world ?? undefined,
+      });
+      return c.json(result);
+    } catch (err) {
+      if (err instanceof HistoryTooShortError) {
+        return c.json({ error: "History is empty or too short to compact." }, 400);
+      }
+      if (err instanceof CompactionInProgressError) {
+        return c.json({ error: "Compaction is already running for this adventure." }, 409);
+      }
+      const reason = err instanceof Error ? err.message : "Unknown error";
+      return c.json({ error: `Compaction failed: ${reason}` }, 500);
+    }
+  });
+
   const operations: OperationDefinition[] = [
     {
       operationId: "adventures.list",
@@ -438,6 +477,17 @@ export function createAdventureRoutes(deps: {
         { name: "id", in: "path", required: true, description: "Adventure directory name" },
       ],
       idempotent: true,
+    },
+    {
+      operationId: "adventures.compact",
+      name: "compact",
+      description: "Compact adventure history (archive and create recap)",
+      invocation: { method: "POST", path: "/adventures/:id/compact" },
+      hierarchy: { root: "adventures", feature: "compaction" },
+      parameters: [
+        { name: "id", in: "path", required: true, description: "Adventure directory name" },
+      ],
+      idempotent: false,
     },
   ];
 
