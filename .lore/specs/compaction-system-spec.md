@@ -1,7 +1,7 @@
 ---
 title: Compaction System
 date: 2026-04-02
-status: draft
+status: approved 
 tags: [compaction, history, context-management, narrative, haiku, scene-boundaries]
 modules: [backend, shared, web]
 related: [.lore/specs/mvp.md, .lore/brainstorm/compaction-system.md, .lore/brainstorm/conversation-history.md, .lore/research/scene-boundaries.md, .lore/vision.md]
