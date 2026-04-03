@@ -7,8 +7,13 @@ import type { SessionRunner } from "../services/session-runner";
 import type { PluginRegistry } from "../services/plugin-registry";
 import { assembleSystemPrompt } from "../services/prompt-service";
 import { parseAdventureConfig } from "../services/adventure-config";
-import type { CompactionService } from "../services/compaction-service";
+import { type CompactionService, CompactionInProgressError } from "../services/compaction-service";
 import type { FileOps, OperationDefinition, RouteModule } from "../types";
+
+export interface CompactionConfig {
+  historyThreshold: number;
+  worldThreshold: number;
+}
 
 function isValidId(id: string): boolean {
   return !id.includes("/") && !id.includes("..");
@@ -25,10 +30,11 @@ export function createAdventureRoutes(deps: {
   historyService?: HistoryService;
   sessionRunner?: SessionRunner;
   compactionService?: CompactionService;
+  compactionConfig?: CompactionConfig;
   pluginRegistry?: PluginRegistry;
   fileOps?: FileOps;
 }): RouteModule {
-  const { adventureService, historyService, sessionRunner, compactionService, pluginRegistry, fileOps } = deps;
+  const { adventureService, historyService, sessionRunner, compactionService, compactionConfig, pluginRegistry, fileOps } = deps;
   const routes = new Hono();
 
   routes.get("/adventures", async (c) => {
@@ -128,14 +134,53 @@ export function createAdventureRoutes(deps: {
     const { message } = parsed.data;
 
     // Verify adventure exists
-    const adventure = await adventureService.getAdventure(id);
+    let adventure = await adventureService.getAdventure(id);
     if (!adventure) {
       return c.json({ error: "Adventure not found" }, 404);
     }
 
     // Read adventure state (fresh each turn per REQ-MVP-17)
     const adventurePath = adventureService.getAdventurePath(id);
-    const history = await historyService.readHistory(adventurePath);
+    let history = await historyService.readHistory(adventurePath);
+
+    // Threshold checks before player message append (REQ-COMP-7, REQ-COMP-26)
+    if (compactionService && compactionConfig) {
+      // History threshold (REQ-COMP-7, REQ-COMP-8)
+      if (history && history.length >= compactionConfig.historyThreshold) {
+        try {
+          await compactionService.compactHistory(adventurePath, {
+            character: adventure.character ?? undefined,
+            world: adventure.world ?? undefined,
+          });
+          history = await historyService.readHistory(adventurePath);
+        } catch (err) {
+          if (err instanceof CompactionInProgressError) {
+            // REQ-COMP-29: skip and proceed with original
+          } else {
+            // REQ-COMP-41: Haiku failure, archive reversed, proceed with original
+            console.warn(`[adventure-routes] ${id}: history compaction failed, proceeding with original`, err);
+          }
+        }
+      }
+
+      // World threshold (REQ-COMP-9, REQ-COMP-10: history-first ordering)
+      if (adventure.world && adventure.world.length >= compactionConfig.worldThreshold) {
+        try {
+          await compactionService.compactWorld(adventurePath);
+          // Re-read adventure to get compacted world
+          const refreshed = await adventureService.getAdventure(id);
+          if (refreshed) {
+            adventure = refreshed;
+          }
+        } catch (err) {
+          if (err instanceof CompactionInProgressError) {
+            // REQ-COMP-29: skip and proceed with original
+          } else {
+            console.warn(`[adventure-routes] ${id}: world compaction failed, proceeding with original`, err);
+          }
+        }
+      }
+    }
 
     // Append player message (REQ-MVP-16 step 1)
     await historyService.appendPlayerMessage(adventurePath, message);

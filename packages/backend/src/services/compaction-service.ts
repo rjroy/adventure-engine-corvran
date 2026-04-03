@@ -160,6 +160,8 @@ export function createCompactionService(deps: CompactionServiceDeps) {
       const archivePath = fileOps.resolvePath(pastDir, archiveName);
 
       // Step 1: Archive (write-then-delete)
+      // If deleteFile fails after writeFile, two copies exist briefly. Benign: the error
+      // propagates, clears the lock, and the next compaction attempt self-heals.
       await fileOps.writeFile(archivePath, content);
       try {
         await fileOps.deleteFile(filePath);
@@ -174,6 +176,8 @@ export function createCompactionService(deps: CompactionServiceDeps) {
       const timeoutController = new AbortController();
       const timeoutId = setTimeout(() => timeoutController.abort(), 60_000);
       try {
+        const timeoutController = new AbortController();
+        const timeoutId = setTimeout(() => timeoutController.abort(), 60_000);
         const query = queryFn({
           prompt: content,
           options: {
@@ -184,7 +188,11 @@ export function createCompactionService(deps: CompactionServiceDeps) {
             abortController: timeoutController,
           },
         });
-        summary = await extractQueryResult(query);
+        try {
+          summary = await extractQueryResult(query);
+        } finally {
+          clearTimeout(timeoutId);
+        }
       } catch (error) {
         // Reverse the archive: restore original file, remove archive
         await fileOps.writeFile(filePath, content);

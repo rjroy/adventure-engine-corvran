@@ -12,6 +12,7 @@ import { createHistoryService } from "./services/history-service";
 import { createSessionRunner, type QueryFn, type SessionRunner } from "./services/session-runner";
 import type { PluginRegistry } from "./services/plugin-registry";
 import { createCompactionService } from "./services/compaction-service";
+import type { CompactionConfig } from "./routes/adventure-routes";
 import { createSystemRoutes } from "./routes/system-routes";
 
 /** Production FileOps backed by node:fs/promises */
@@ -116,11 +117,27 @@ export function createApp(deps?: AppDeps): Hono {
     });
   }
 
+<<<<<<< HEAD
+=======
+  // Compaction service needs queryFn for Haiku summarization calls
+  const compactionService = deps?.queryFn
+    ? createCompactionService({ fileOps, queryFn: deps.queryFn })
+    : undefined;
+
+  const compactionConfig: CompactionConfig | undefined = compactionService
+    ? {
+        historyThreshold: parseInt(process.env.HISTORY_COMPACT_THRESHOLD || "150000", 10),
+        worldThreshold: parseInt(process.env.WORLD_COMPACT_THRESHOLD || "200000", 10),
+      }
+    : undefined;
+
+>>>>>>> claude/commission/commission-Dalton-20260402-211916
   const adventureModule = createAdventureRoutes({
     adventureService,
     historyService,
     sessionRunner,
     compactionService,
+    compactionConfig,
     pluginRegistry: deps?.pluginRegistry,
     fileOps,
   });
