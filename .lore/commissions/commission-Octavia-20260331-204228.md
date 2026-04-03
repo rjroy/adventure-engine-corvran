@@ -1,7 +1,7 @@
 ---
 title: "Commission: Spec: Compaction System for Adventure Engine"
 date: 2026-04-01
-status: failed
+status: dispatched
 type: one-shot
 tags: [commission]
 worker: Octavia
@@ -26,6 +26,16 @@ activity_timeline:
   - timestamp: 2026-04-01T03:47:04.211Z
     event: status_failed
     reason: "Session error: Claude Code returned an error result: You've hit your limit · resets Apr 2, 8pm (America/Los_Angeles)"
+  - timestamp: 2026-04-03T03:30:01.070Z
+    event: status_pending
+    reason: "Redispatched for retry"
+    from: "failed"
+    to: "pending"
+  - timestamp: 2026-04-03T03:30:01.072Z
+    event: status_dispatched
+    reason: "Dispatched to worker"
+    from: "pending"
+    to: "dispatched"
 current_progress: ""
 projectName: corvran
 ---
