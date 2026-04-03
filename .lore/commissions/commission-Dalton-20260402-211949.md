@@ -1,7 +1,7 @@
 ---
 title: "Commission: Build: Compaction System Phase 4 — GM Compact Tool"
 date: 2026-04-03
-status: pending
+status: dispatched
 type: one-shot
 tags: [commission]
 worker: Dalton
@@ -25,6 +25,11 @@ activity_timeline:
     reason: "Dependencies satisfied"
     from: "blocked"
     to: "pending"
+  - timestamp: 2026-04-03T04:27:26.121Z
+    event: status_dispatched
+    reason: "Dispatched to worker"
+    from: "pending"
+    to: "dispatched"
 current_progress: ""
 projectName: corvran
 ---
