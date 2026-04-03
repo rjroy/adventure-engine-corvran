@@ -28,6 +28,7 @@ Requirements addressed:
 | REQ-COMP-7 | 2 | Threshold check in message handler before prompt assembly |
 | REQ-COMP-8 | 2 | Default 150K char threshold, `HISTORY_COMPACT_THRESHOLD` env var |
 | REQ-COMP-9 | 2 | World threshold: 200K default, `WORLD_COMPACT_THRESHOLD` env var |
+| REQ-COMP-9a | 1 | Configurable compaction model via `COMPACTION_MODEL` env var (default `"haiku"`) |
 | REQ-COMP-10 | 2 | History-first ordering when both thresholds exceeded |
 | REQ-COMP-11 | 4 | `compact_history` MCP tool on corvran server |
 | REQ-COMP-12 | 4 | Tool returns confirmation with archive path |
@@ -102,7 +103,7 @@ The daemon uses a route/service split with DI factories (`.lore/reference/archit
 
 ### QueryFn for Compaction
 
-REQ-COMP-25 specifies that compaction uses the same `QueryFn` with minimal options: `model: 'claude-haiku-4-5-20251001'`, `systemPrompt`, `persistSession: false`, `permissionMode: 'dontAsk'`. No `cwd`, `plugins`, `tools`, `allowedTools`, or `mcpServers`. The compaction service receives `queryFn` as a dependency (same as session runner) and calls it directly. The session runner is not involved in compaction calls.
+REQ-COMP-25 specifies that compaction uses the same `QueryFn` with minimal options: `model` (from config, default `"haiku"`), `systemPrompt`, `persistSession: false`, `permissionMode: 'dontAsk'`. No `cwd`, `plugins`, `tools`, `allowedTools`, or `mcpServers`. The Claude Agent SDK resolves short model names (`"haiku"`, `"sonnet"`, `"opus"`) to the latest available version automatically. Never hardcode a versioned model ID. The compaction service receives `queryFn` and a `model` config string as dependencies (same DI pattern as session runner) and calls `queryFn` directly. The session runner is not involved in compaction calls.
 
 ## Implementation Steps
 
@@ -116,7 +117,7 @@ Build the core mechanism in isolation. No route changes, no UI. Everything is te
 #### Step 1.1: Create `compaction-service.ts`
 
 **Files**: `packages/backend/src/services/compaction-service.ts` (new)
-**Addresses**: REQ-COMP-1, REQ-COMP-2, REQ-COMP-3, REQ-COMP-4, REQ-COMP-5, REQ-COMP-6, REQ-COMP-22, REQ-COMP-23, REQ-COMP-24, REQ-COMP-25, REQ-COMP-29, REQ-COMP-36, REQ-COMP-37, REQ-COMP-38, REQ-COMP-39
+**Addresses**: REQ-COMP-1, REQ-COMP-2, REQ-COMP-3, REQ-COMP-4, REQ-COMP-5, REQ-COMP-6, REQ-COMP-9a, REQ-COMP-22, REQ-COMP-23, REQ-COMP-24, REQ-COMP-25, REQ-COMP-29, REQ-COMP-36, REQ-COMP-37, REQ-COMP-38, REQ-COMP-39
 
 **Prerequisite**: Add `deleteFile(path: string): Promise<void>` and `readFiles(path: string): Promise<string[]>` to the `FileOps` interface in `types.ts`. Add implementations in `app.ts` (production: `fs.unlink` and `readdir` filtered for `isFile()`) and `tests/helpers/mock-file-ops.ts` (mock: delete from in-memory store, scan keys for files in directory). This is required because the existing `readDir` returns only subdirectories (filters `isDirectory()`), and there is no delete operation.
 
@@ -126,6 +127,7 @@ Create `createCompactionService(deps)` factory following the DI pattern. Depende
 {
   fileOps: FileOps,
   queryFn: QueryFn,
+  model?: string,  // default "haiku"; SDK resolves to latest version
 }
 ```
 
@@ -145,7 +147,7 @@ Implementation for `compactHistory`:
 4. Determine next sequence number: use `fileOps.readFiles()` on the `past/` directory (not `readDir`, which returns only subdirectories), filter for files matching `scene-NNN.md`, find highest NNN, add 1. If `past/` doesn't exist, start at 1.
 5. Create `past/` directory if needed (REQ-COMP-5). Use `fileOps.writeFile` on a placeholder, or add `mkdir` to FileOps. Simplest: writing the archive file to `past/scene-NNN.md` will need the directory to exist. Check if the directory exists first; if not, create it. (Bun's `Bun.write` creates intermediate directories, but the FileOps abstraction should be explicit about this.)
 6. Move `history.md` to `past/scene-NNN.md`: write the content to the archive path, then `deleteFile` the original (REQ-COMP-2, REQ-COMP-23). Write-then-delete, not copy, per the spec's rationale about avoiding two copies on disk.
-7. Call `queryFn` with the history summarization prompt and the archived content as the user message. Include character.md and world.md as context in the system prompt if provided (REQ-COMP-19). Use `model: 'claude-haiku-4-5-20251001'`, `persistSession: false`, `permissionMode: 'dontAsk'` (REQ-COMP-25). Set a 60-second timeout via `AbortSignal.timeout(60_000)` passed as `abortController` (REQ-COMP-41). No other options.
+7. Call `queryFn` with the history summarization prompt and the archived content as the user message. Include character.md and world.md as context in the system prompt if provided (REQ-COMP-19). Use `model: deps.model ?? "haiku"` (REQ-COMP-9a, REQ-COMP-25), `persistSession: false`, `permissionMode: 'dontAsk'`. Set a 60-second timeout via `AbortSignal.timeout(60_000)` passed as `abortController` (REQ-COMP-41). No other options. The SDK resolves `"haiku"` to the latest Haiku version automatically.
 8. Extract the text result from the query response. Write it as the new `history.md` (REQ-COMP-4, REQ-COMP-22).
 9. Clear concurrency lock.
 10. Return `{ archived: "past/scene-NNN.md", previousSize, newSize }`.
@@ -180,7 +182,7 @@ Two prompt constants in the compaction service module:
 #### Step 1.3: Extract Query Result Text
 
 **Files**: `packages/backend/src/services/compaction-service.ts`
-**Addresses**: REQ-COMP-25
+**Addresses**: REQ-COMP-25, REQ-COMP-9a
 
 The `queryFn` returns a `Query` (async iterable of SDK messages). The compaction service needs to iterate the query result and extract the final text. This is different from the streaming path in adventure routes, which emits SSE events as they arrive. Compaction consumes the full result:
 
@@ -219,9 +221,11 @@ Required test cases (from spec's AI Validation section plus edge cases):
 #### Step 1.5: Wire CompactionService into DI
 
 **Files**: `packages/backend/src/app.ts`
-**Addresses**: REQ-COMP-24
+**Addresses**: REQ-COMP-24, REQ-COMP-9a
 
-Create the CompactionService in `createApp()` alongside the other services. It needs `fileOps` and `queryFn`. Pass it to `createAdventureRoutes(deps)` as a new optional dependency (same pattern as `historyService` and `sessionRunner`).
+Create the CompactionService in `createApp()` alongside the other services. It needs `fileOps`, `queryFn`, and `model`. The model config follows the same DI chain as the session runner: `deps.compactionModel ?? process.env.COMPACTION_MODEL ?? "haiku"`. Add `compactionModel?: string` to `AppDeps`. Pass the resolved value to `createCompactionService({ fileOps, queryFn, model })`.
+
+Pass the CompactionService to `createAdventureRoutes(deps)` as a new optional dependency (same pattern as `historyService` and `sessionRunner`).
 
 This step is small but must happen before Phase 2 can integrate the threshold checks.
 
@@ -486,6 +490,28 @@ Phases 2, 3, and 4 all depend on Phase 1 but are independent of each other. They
 - **Phase 2**: Message handler flow ordering (threshold check before player message append), Haiku failure fallback path, concurrent compaction skip path.
 - **Phase 3**: Error response codes match spec (400/404/409/500), confirmation dialog text matches spec, button disable states, proxy route forwarding.
 - **Phase 4**: Tool registered in allowedTools, adventure context reading, prompt text matches spec verbatim.
+
+## Cleanup Before Remaining Phases
+
+Abandoned Phase 2/3 implementation commissions left merge conflicts in `packages/backend/src/app.ts` and `packages/backend/src/services/compaction-service.ts`. Before implementing Phases 2 and 3, Dalton needs a cleanup commission that:
+
+1. **Resolves all merge conflict markers** in `app.ts` and `compaction-service.ts`. The HEAD side has Phase 1 code (reviewed and approved); the incoming side has unreviewed Phase 2/3 code that should be discarded. Keep HEAD, remove conflict markers and the incoming blocks.
+
+2. **Applies Thorne's Phase 1 review findings**:
+   - F1: Add 60-second timeout on Haiku calls (`AbortSignal.timeout(60_000)`)
+   - F2: Replace type assertions with proper typing
+   - F3: Add rollback comment explaining the `deleteFile` reversal pattern
+
+3. **Applies Thorne's Phase 4 review findings**:
+   - F1: `compactionEnabled` flag is defined in prompt-service but never wired from the route
+   - F2: No test verifying the prompt includes compaction guidance
+   - F3: `allowedTools` array needs verification that `mcp__corvran__compact_history` is included
+
+4. **Fixes model config** to use the updated spec pattern: the compaction service factory receives `model` as a config string (default `"haiku"`) via DI, following `deps.compactionModel ?? process.env.COMPACTION_MODEL ?? "haiku"` in `app.ts`. See REQ-COMP-9a and REQ-COMP-25.
+
+5. **Then implements Phases 2 and 3 cleanly** on a conflict-free codebase.
+
+This ordering is critical. Implementing new phases on top of conflict markers guarantees cascading merge problems. Clean first, build second.
 
 ## Spec Ambiguities and Pre-Implementation Decisions
 
