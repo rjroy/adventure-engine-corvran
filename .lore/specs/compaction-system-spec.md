@@ -56,6 +56,10 @@ The daemon checks file sizes before prompt assembly on each turn. This is a safe
 
 - REQ-COMP-9: The daemon also checks `world.md` against a separate threshold (default: 200,000 characters, configurable via `WORLD_COMPACT_THRESHOLD`). World state is denser than conversation, so the threshold is higher. If exceeded, the daemon runs compaction on `world.md` using the world-specific summarization prompt (REQ-COMP-20).
 
+- REQ-COMP-9a: The model used for compaction summarization is configurable via environment variable `COMPACTION_MODEL` (default: `"haiku"`). This is read in `app.ts` alongside the existing `MODEL` env var for the session runner and passed to the compaction service via DI. The value is a short model name (`"haiku"`, `"sonnet"`, `"opus"`), not a versioned model ID.
+
+  Rationale: Parallels `MODEL` for the session runner, `HISTORY_COMPACT_THRESHOLD`, and `WORLD_COMPACT_THRESHOLD`. The `AppDeps` interface gains a `compactionModel?: string` field. The DI chain in `app.ts` resolves as: `deps.compactionModel ?? process.env.COMPACTION_MODEL ?? "haiku"`.
+
 - REQ-COMP-10: If both `history.md` and `world.md` exceed their thresholds on the same turn, the daemon compacts history first, then world. Sequential, not parallel. Each compaction is an independent Haiku call.
 
 ### Trigger 2: GM Tool (AI-Owned)
@@ -156,11 +160,15 @@ The summarization prompt is the most important implementation detail. A bad summ
 
 - REQ-COMP-24: Compaction runs as a service within the daemon, following the route/service split from the architecture pattern. A `CompactionService` exposes `compactHistory(adventurePath)` and `compactWorld(adventurePath)`. The adventure routes call the service; the service handles archival, Haiku calls, and file writes.
 
-- REQ-COMP-25: The Haiku summarization call uses the same `QueryFn` interface as the session runner (see `session-runner.ts`). The compaction service receives a `queryFn` dependency via DI. No separate API client. The Agent SDK's OAuth routing applies to compaction calls the same as gameplay calls.
+- REQ-COMP-25: The Haiku summarization call uses the same `QueryFn` interface as the session runner (see `session-runner.ts`). The compaction service receives a `queryFn` dependency and a `model` config via DI. No separate API client. The Agent SDK's OAuth routing applies to compaction calls the same as gameplay calls.
 
-  The compaction `query()` call uses a minimal options set: `model: 'claude-haiku-4-5-20251001'`, `systemPrompt` (the summarization prompt), `persistSession: false`, `permissionMode: 'dontAsk'`. It does not set `cwd`, `plugins`, `tools`, `allowedTools`, or `mcpServers`. Haiku is summarizing text, not interacting with files or tools.
+  The compaction service receives its model as a config string (default: `"haiku"`). The Claude Agent SDK resolves short names (`"haiku"`, `"sonnet"`, `"opus"`) to the latest available version automatically. Never hardcode a versioned model ID (e.g., `claude-haiku-4-5-20251001`); the short name ensures compaction always uses the latest Haiku without code changes.
 
-  Rationale: One entry point for SDK calls (architecture pattern). Compaction is an AI call like any other. Using the same `queryFn` means tests can mock compaction the same way they mock gameplay queries. The minimal options set avoids giving Haiku capabilities it doesn't need.
+  The compaction `query()` call uses a minimal options set: `model` (from config), `systemPrompt` (the summarization prompt), `persistSession: false`, `permissionMode: 'dontAsk'`. It does not set `cwd`, `plugins`, `tools`, `allowedTools`, or `mcpServers`. Haiku is summarizing text, not interacting with files or tools.
+
+  This follows the same pattern as the session runner's `SessionRunnerConfig.model`, which receives its value from `deps.model ?? process.env.MODEL ?? "sonnet"` in `app.ts`. The compaction service's model follows the same DI chain: `deps.compactionModel ?? process.env.COMPACTION_MODEL ?? "haiku"`.
+
+  Rationale: One entry point for SDK calls (architecture pattern). Compaction is an AI call like any other. Using the same `queryFn` means tests can mock compaction the same way they mock gameplay queries. The minimal options set avoids giving Haiku capabilities it doesn't need. Configurable model lets operators upgrade or swap models without code changes, and short names track the latest version automatically.
 
 - REQ-COMP-26: The threshold check (REQ-COMP-7) runs in the adventure route's message handler. The full sequence for `POST /adventures/:id/message` becomes:
 
