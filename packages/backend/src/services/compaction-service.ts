@@ -67,14 +67,18 @@ function buildHistorySystemPrompt(context?: { character?: string; world?: string
 /**
  * Extracts the final text result from a Query async iterable.
  * Compaction only cares about the final result text, not streaming events.
+ *
+ * The SDK's message type hierarchy doesn't export narrowed subtypes for
+ * discriminated union branches, so we access `.result` and `.errors` via
+ * property checks after narrowing on `type` and `subtype`.
  */
 async function extractQueryResult(query: ReturnType<QueryFn>): Promise<string> {
   for await (const msg of query) {
     if (msg.type === "result") {
-      if (msg.subtype === "success") {
-        return (msg as { result: string }).result;
+      if (msg.subtype === "success" && "result" in msg && typeof msg.result === "string") {
+        return msg.result;
       }
-      const errors = (msg as { errors?: string[] }).errors ?? ["Unknown error"];
+      const errors = "errors" in msg && Array.isArray(msg.errors) ? msg.errors : ["Unknown error"];
       throw new Error(`Haiku summarization failed: ${errors.join("; ")}`);
     }
   }
@@ -157,10 +161,18 @@ export function createCompactionService(deps: CompactionServiceDeps) {
 
       // Step 1: Archive (write-then-delete)
       await fileOps.writeFile(archivePath, content);
-      await fileOps.deleteFile(filePath);
+      try {
+        await fileOps.deleteFile(filePath);
+      } catch (deleteError) {
+        // Rollback archive to prevent two copies on disk
+        try { await fileOps.deleteFile(archivePath); } catch { /* best effort */ }
+        throw deleteError;
+      }
 
-      // Step 2: Summarize via Haiku
+      // Step 2: Summarize via Haiku (REQ-COMP-41: 60-second timeout)
       let summary: string;
+      const timeoutController = new AbortController();
+      const timeoutId = setTimeout(() => timeoutController.abort(), 60_000);
       try {
         const query = queryFn({
           prompt: content,
@@ -169,6 +181,7 @@ export function createCompactionService(deps: CompactionServiceDeps) {
             model: "claude-haiku-4-5-20251001",
             persistSession: false,
             permissionMode: "dontAsk",
+            abortController: timeoutController,
           },
         });
         summary = await extractQueryResult(query);
@@ -181,6 +194,8 @@ export function createCompactionService(deps: CompactionServiceDeps) {
           // Best effort cleanup
         }
         throw error;
+      } finally {
+        clearTimeout(timeoutId);
       }
 
       // Step 3: Save summary as new file

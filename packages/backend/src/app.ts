@@ -99,6 +99,11 @@ export function createApp(deps?: AppDeps): Hono {
   // Session runner is only created when a queryFn is provided.
   // Tests that don't need SDK integration pass their own queryFn.
   // Production passes the real SDK query function.
+  // Compaction service needs queryFn for Haiku summarization calls
+  const compactionService = deps?.queryFn
+    ? createCompactionService({ fileOps, queryFn: deps.queryFn })
+    : undefined;
+
   let sessionRunner: SessionRunner | undefined;
   if (deps?.queryFn) {
     sessionRunner = createSessionRunner({
@@ -106,13 +111,10 @@ export function createApp(deps?: AppDeps): Hono {
       config: {
         model: deps.model ?? process.env.MODEL ?? "sonnet",
       },
+      fileOps,
+      compactionService,
     });
   }
-
-  // Compaction service needs queryFn for Haiku summarization calls
-  const compactionService = deps?.queryFn
-    ? createCompactionService({ fileOps, queryFn: deps.queryFn })
-    : undefined;
 
   const adventureModule = createAdventureRoutes({
     adventureService,
