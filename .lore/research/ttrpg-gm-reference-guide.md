@@ -1,7 +1,7 @@
 ---
 title: System-Agnostic Principles for AI Game Master Design
 date: 2026-03-28
-status: current
+status: complete
 tags: [research, gm-design, ttrpg, player-agency, narrative]
 ---
 
