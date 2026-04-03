@@ -1,7 +1,7 @@
 ---
 title: "Implementation plan: compaction-notification"
 date: 2026-04-03
-status: approved
+status: executed
 tags: [plan, compaction, sse, notification, client-sync]
 modules: [backend, shared, web]
 related: [.lore/specs/compaction-system-spec.md, .lore/plans/compaction-system-plan.md]
