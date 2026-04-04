@@ -1,5 +1,5 @@
 ---
-title: Keyword RPG System
+title: Apocrypha
 date: 2026-04-03
 status: draft
 tags: [rpg-system, keyword, game-design, plugin, hallucination-resistant, apocrypha]
@@ -8,15 +8,13 @@ related: [.lore/research/llm-optimized-rpg-systems.md, .lore/research/llm-integr
 req-prefix: KW
 ---
 
-# Spec: Keyword RPG System
+# Spec: Apocrypha
 
 ## Overview
 
 A rules-light RPG system designed from the ground up for LLM game masters. Characters are defined entirely by natural-language keywords with numeric modifiers. There are no classes, no spell lists, no predefined features, no canonical content for the LLM to hallucinate about. The LLM's creative interpretation of keywords IS the mechanic.
 
 The system uses 2d12 with a hope/fear duality for resolution, a token economy that gives the GM mechanical permission to create adversity, keyword-targeted stress as the consequence system, and act-based progression tied to narrative structure.
-
-Working title: **Apocrypha**. Referred to as "the keyword system" throughout this spec.
 
 ## Entry Points
 
