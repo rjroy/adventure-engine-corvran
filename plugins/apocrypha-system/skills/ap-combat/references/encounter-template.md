@@ -32,8 +32,8 @@ Fear: ○○○○○○○○○○○○ (0/12)
 | - | - | - | 0 |
 
 <!-- Example:
-| Round 2 | 2 | Deep stress on "Pyromancer's Fury" | 5 |
-| Round 3 | 1 | Complication: bridge crumbles | 4 |
+| Action 2 | 2 | Deep stress on "Pyromancer's Fury" | 5 |
+| Action 3 | 1 | Complication: bridge crumbles | 4 |
 -->
 
 ---

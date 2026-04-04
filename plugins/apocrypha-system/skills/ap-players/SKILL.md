@@ -80,6 +80,7 @@ A keyword like "Commander of the Thornwall Garrison" is inherently specific:
 - Only apply a keyword when the action clearly falls within its positive scope
 - When scope is unclear, default to NOT applying the bonus
 - Keywords are bounded permissions, not general traits
+- Exclusions prevent the keyword's applicability from gradually expanding beyond its intended scope
 
 ## Recording the Character
 

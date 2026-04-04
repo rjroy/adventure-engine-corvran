@@ -76,7 +76,7 @@ When a player succeeds against an adversary:
 
 When an adversary's total stress meets or exceeds its stress threshold, it is defeated.
 
-### Player-Rolls-Everything Combat
+## Player-Rolls-Everything Combat
 
 The player always rolls. There are no adversary turns and no initiative. When the player acts against an adversary, they roll. On success, the adversary takes stress. On failure, the adversary's response IS the failure consequence. Adversary Fear abilities are activated by you spending Fear at any point. When an adversary surprises the player, the player still rolls their reaction.
 

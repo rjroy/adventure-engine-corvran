@@ -110,7 +110,7 @@ Fear above 6 that isn't being spent is a missed narrative beat.
 
 1. Player declares action and relevant keyword
 2. GM declares difficulty and stakes
-3. Player rolls (or GM rolls for environment/trap effects that the player reacts to)
+3. Player rolls (if the trigger is a trap or environment effect, the player rolls their reaction to it)
 4. Resolve outcome: tokens, stress, narrative
 5. If failure, narrate the adversary's response
 6. If Fear available, consider spending on complications or abilities

@@ -21,7 +21,7 @@ Every Apocrypha adversary is defined by:
 
 ## Tier Reference
 
-| Tier | Keywords | Stress Threshold | Fear Abilities | Difficulty |
+| Tier | Keywords | Stress Threshold | Fear Abilities | Typical Difficulty |
 |------|----------|-----------------|----------------|------------|
 | Minor | 2-3 | 2-3 | 0-1 (cost 1 each) | 10-14 |
 | Standard | 3-4 | 4-6 | 1-2 (cost 1-2 each) | 14-17 |
@@ -68,11 +68,11 @@ Choose a threshold within the tier's range. Higher thresholds make the fight lon
 
 ### Step 5: Set Difficulty
 
-The difficulty is the target number for player rolls against this adversary. Choose based on the adversary's tier and the desired challenge level.
+The difficulty is the target number for player rolls against this adversary. The tier's typical range is a starting point; adjust based on the fiction and the specific action.
 
-- Minor: 10-14
-- Standard: 14-17
-- Major: 17-20
+- Minor: typically 10-14
+- Standard: typically 14-17
+- Major: typically 17-20
 
 ### Step 6: Design Fear Abilities
 
