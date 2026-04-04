@@ -1,3 +1,6 @@
+---
+status: active
+---
 # Heartbeat
 
 This file controls what the guild does autonomously. Every hour (configurable),
