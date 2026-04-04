@@ -57,7 +57,7 @@ describe("compact-tool", () => {
       emitCompactedEvent: async (r) => { emittedResult = r; },
     });
 
-    const result = await toolDef.handler({});
+    const result = await toolDef.handler({ _unused: undefined }, {});
     const text = result.content[0].text;
     expect(text).toBe("History compacted. Scene archived to past/scene-001.md.");
 
@@ -82,7 +82,7 @@ describe("compact-tool", () => {
       emitCompactedEvent: async (r) => { emittedResult = r; },
     });
 
-    await toolDef.handler({});
+    await toolDef.handler({ _unused: undefined }, {});
 
     expect(emittedResult).not.toBeNull();
     expect(emittedResult!.archived).toBe("past/scene-001.md");
@@ -103,7 +103,7 @@ describe("compact-tool", () => {
       emitCompactedEvent: async () => { emitCalled = true; },
     });
 
-    const result = await toolDef.handler({});
+    const result = await toolDef.handler({ _unused: undefined }, {});
     expect(result.content[0].text).toBe("History is too short to compact.");
     expect(emitCalled).toBe(false);
   });
@@ -120,7 +120,7 @@ describe("compact-tool", () => {
       emitCompactedEvent: async () => {},
     });
 
-    const result = await toolDef.handler({});
+    const result = await toolDef.handler({ _unused: undefined }, {});
     const text = result.content[0].text;
     expect(text).toBe("History is too short to compact.");
   });
@@ -164,7 +164,7 @@ describe("compact-tool", () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
 
     // Tool call while lock is held
-    const result = await toolDef.handler({});
+    const result = await toolDef.handler({ _unused: undefined }, {});
     const text = result.content[0].text;
     expect(text).toBe("Compaction is already in progress.");
 

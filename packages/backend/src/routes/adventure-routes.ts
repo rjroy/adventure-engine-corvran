@@ -134,7 +134,7 @@ export function createAdventureRoutes(deps: {
     const { message } = parsed.data;
 
     // Verify adventure exists
-    let adventure = await adventureService.getAdventure(id);
+    const adventure = await adventureService.getAdventure(id);
     if (!adventure) {
       return c.json({ error: "Adventure not found" }, 404);
     }
@@ -194,6 +194,8 @@ export function createAdventureRoutes(deps: {
 
     // Stream SSE events with runQuery inside streamSSE (Architectural Decision 2)
     return streamSSE(c, async (stream) => {
+      // Re-bind inside callback so TS narrows after the null guard above
+      let currentAdventure = adventure;
       let accumulatedText = "";
       // Track pending tool invocations so we can pair them with results
       const pendingTools = new Map<string, string>();
@@ -209,8 +211,8 @@ export function createAdventureRoutes(deps: {
         if (history && history.length >= compactionConfig.historyThreshold) {
           try {
             const result = await compactionService.compactHistory(adventurePath, {
-              character: adventure.character ?? undefined,
-              world: adventure.world ?? undefined,
+              character: currentAdventure.character ?? undefined,
+              world: currentAdventure.world ?? undefined,
             });
             // Emit compacted event (REQ-COMP-42, REQ-COMP-43)
             await stream.writeSSE({
@@ -231,12 +233,12 @@ export function createAdventureRoutes(deps: {
 
         // World threshold (REQ-COMP-9, REQ-COMP-10: history-first ordering)
         // No SSE event for world compaction (REQ-COMP-47)
-        if (adventure.world && adventure.world.length >= compactionConfig.worldThreshold) {
+        if (currentAdventure.world && currentAdventure.world.length >= compactionConfig.worldThreshold) {
           try {
             await compactionService.compactWorld(adventurePath);
             const refreshed = await adventureService.getAdventure(id);
             if (refreshed) {
-              adventure = refreshed;
+              currentAdventure = refreshed;
             }
           } catch (err) {
             if (err instanceof CompactionInProgressError) {
@@ -253,11 +255,11 @@ export function createAdventureRoutes(deps: {
 
       // Assemble system prompt with possibly-compacted state (REQ-COMP-13)
       const systemPrompt = assembleSystemPrompt({
-        character: adventure.character,
-        world: adventure.world,
+        character: currentAdventure.character,
+        world: currentAdventure.world,
         history,
         systemBootstrap,
-        concept: adventure.concept ?? null,
+        concept: currentAdventure.concept ?? null,
         compactionEnabled: !!compactionService,
       });
 

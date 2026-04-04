@@ -30,7 +30,7 @@ export default function AdventurePlayPage() {
     setMessages((prev) => [...prev, { role: "gm", body: text }]);
   }, []);
 
-  const handleCompacted = useCallback(async (_result: CompactResponse) => {
+  const handleCompacted = useCallback(async (_: CompactResponse) => {
     try {
       const historyRes = await fetch(`/api/daemon/adventures/${id}/history`);
       if (historyRes.ok) {
