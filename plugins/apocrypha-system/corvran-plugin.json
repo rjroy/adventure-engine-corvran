@@ -1,0 +1,7 @@
+{
+  "name": "apocrypha-system",
+  "type": "system",
+  "alias": "apocrypha",
+  "description": "A keyword-driven RPG where characters are defined by natural-language phrases, not classes or spell lists",
+  "bootstrap": "bootstrap.md"
+}
