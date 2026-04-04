@@ -1,7 +1,7 @@
 ---
 title: "Commission: Make commission view sidebar collapsible"
 date: 2026-04-04
-status: dispatched
+status: abandoned
 type: one-shot
 tags: [commission]
 worker: Dalton
@@ -22,6 +22,14 @@ activity_timeline:
     reason: "Dispatched to worker"
     from: "pending"
     to: "dispatched"
+  - timestamp: 2026-04-04T14:58:37.453Z
+    event: status_cancelled
+    reason: "Commission cancelled by user"
+  - timestamp: 2026-04-04T14:59:24.770Z
+    event: status_abandoned
+    reason: "This was sent to the wrong project."
+    from: "cancelled"
+    to: "abandoned"
 current_progress: ""
 projectName: corvran
 ---
