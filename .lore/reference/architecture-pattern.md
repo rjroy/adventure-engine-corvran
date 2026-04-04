@@ -2,7 +2,7 @@
 title: Daemon-First Architecture Pattern
 status: current
 tags: [architecture, reference, portable]
-date: 2026-03-26
+date: 2026-04-04
 ---
 
 # Daemon-First Architecture Pattern
@@ -59,9 +59,40 @@ Tests provide mock deps. The app can start with a fallback if production setup f
 
 All LLM interaction flows through a single session runner that wraps `@anthropic-ai/claude-agent-sdk`. No direct SDK calls from routes, services, or domain logic.
 
-The runner handles session preparation (tool resolution, prompt assembly, model selection) and iteration (streaming events back to the caller). Callers describe what they need. The runner decides how to talk to the SDK.
+The runner owns tool resolution, prompt assembly, model selection, and MCP server composition. Callers describe what they need. The runner decides how to talk to the SDK.
 
 This isn't about abstraction for its own sake. When SDK calls scatter across the codebase, every caller reinvents error handling, streaming, and tool resolution. One entry point means one place to fix, observe, and evolve. It also enforces the constraint that all AI interaction goes through the Agent SDK (see "Hard Constraint" above).
+
+### Tool Definitions as DI Factories
+
+Custom tools follow the same factory pattern as routes and services: `createXToolDef(deps) → ToolDefinition`. Each tool factory receives only the callbacks and services it needs. Pure logic is extracted from the tool handler and exported separately for direct testing.
+
+```typescript
+// Pure logic, tested without MCP overhead
+export function rollDice(input: RollDiceInput, random: () => number): RollDiceOutput { ... }
+
+// Factory wraps pure logic in the SDK's tool() wrapper
+export function createDiceToolDef(deps?: { random?: () => number }) {
+  return tool("roll_dice", "...", InputSchema, async (args) => {
+    const result = rollDice(args, deps?.random ?? Math.random);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  });
+}
+```
+
+The session runner composes tool definitions into an MCP server using `createSdkMcpServer()` and passes it to the Agent SDK query. This is how custom tools get surfaced to the AI without scattering SDK integration across tool files.
+
+```typescript
+const corvranServer = createSdkMcpServer({
+  name: "corvran",
+  tools: [diceToolDef, moodToolDef, compactToolDef],
+});
+
+return queryFn({
+  prompt: playerMessage,
+  options: { mcpServers: { corvran: corvranServer }, ... },
+});
+```
 
 ## Operations Registry and CLI Discovery
 
@@ -90,11 +121,13 @@ mycli project status get      → Operation details
 
 The CLI binary contains no operation catalog. The daemon is the source of truth.
 
-## EventBus and SSE
+## SSE Streaming
 
-Simple set-based pub/sub. Services emit events on state transitions. SSE route streams events to the browser (or any client that listens).
+Route handlers use Hono's `streamSSE` helper to stream events directly to clients. There is no intermediate EventBus or pub/sub layer. The route handler owns the SSE stream lifecycle: it opens the stream, runs the session query, writes events as they arrive, and closes the stream when the query completes or the client disconnects.
 
-Socket idle timeout must be disabled (`idleTimeout: 0`) for long-lived SSE connections.
+This inline approach works when there's a single consumer per stream (the HTTP client that initiated the request). If you need multiple subscribers or cross-request event delivery, introduce a bus then, not before.
+
+Socket idle timeout must be disabled (`idleTimeout: 0`) for long-lived SSE connections. Bun's type definition for this is overly strict; a type assertion (`0 as never`) may be needed.
 
 ## State Model
 
@@ -105,20 +138,29 @@ Humans can inspect and edit state files directly. This is a feature, not a limit
 ## Type Boundaries
 
 - **Shared types** live in a common package. Never import from daemon or web packages.
-- **Daemon types** stay in the daemon. Branded types (e.g., `ProjectId`, `SessionId`) prevent mixing ID namespaces at compile time.
+- **Daemon types** stay in the daemon. Consider branded types (e.g., `ProjectId`, `SessionId`) when multiple ID namespaces coexist and could be confused at call sites.
 - **Web types** derive from API responses, not from daemon internals.
 
 ## Testing Seams
 
 DI factories are the primary testing seam. Every external dependency is injectable:
 
-- `queryFn`: Mock LLM responses (return test event generators)
-- `gitOps`: Mock git subprocess calls
-- `recordOps`: Mock file I/O
-- `createLog`: Inject collecting or null loggers
-- Hono's `app.request()` test client with injected deps
-- `fs.mkdtemp()` for temp directories, env vars for path isolation
+- **`fileOps`**: A single interface wrapping all filesystem operations (`readFile`, `writeFile`, `readDir`, `fileExists`, `stat`, etc.). Tests provide in-memory implementations. This is the dominant DI seam in practice: most services need filesystem access, and a single interface keeps the injection surface narrow.
+- **`queryFn`**: Mock LLM responses (return test event generators that yield the message types your code handles).
+- **Service interfaces**: Services like `adventureService`, `historyService`, `compactionService` are injected into route factories. Tests can stub individual service methods without replacing the filesystem layer.
+- Hono's `app.request()` test client with injected deps for integration-level route testing.
+- `fs.mkdtemp()` for temp directories, env vars for path isolation when testing against real filesystems.
 
-Export interfaces, not concrete implementations. Concrete types are internal; public contracts are interfaces.
+**Type export conventions:** Services export an explicit interface (`AdventureService`) plus a factory function (`createAdventureService`). For simpler services where the interface would duplicate the return type, `ReturnType<typeof createX>` is a valid shorthand. Both patterns coexist; pick the one that communicates the contract clearly.
 
 Never `mock.module()` (causes infinite loops in bun). Design for dependency injection instead.
+
+### Config Resolution
+
+Config resolution (`resolveConfig()`) lives in the app factory module, not in the entry point. The factory conditionally resolves environment config only when DI deps don't provide the needed values. This avoids env coupling in tests: test callers pass paths and functions directly, and the factory never touches `process.env`.
+
+```typescript
+// Only resolves env config when deps don't provide what we need
+const config = (!deps?.adventuresPath || !deps?.queryFn) ? resolveConfig() : undefined;
+const adventuresPath = deps?.adventuresPath ?? config!.adventuresPath;
+```
