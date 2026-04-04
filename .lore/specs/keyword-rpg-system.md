@@ -2,7 +2,7 @@
 title: Keyword RPG System
 date: 2026-04-03
 status: draft
-tags: [rpg-system, keyword, game-design, plugin, hallucination-resistant]
+tags: [rpg-system, keyword, game-design, plugin, hallucination-resistant, apocrypha]
 modules: [plugins]
 related: [.lore/research/llm-optimized-rpg-systems.md, .lore/research/llm-integration-notes-daggerheart.md, .lore/specs/adventure-system-integration.md, .lore/specs/engine-dice-tool.md]
 req-prefix: KW
@@ -14,10 +14,9 @@ req-prefix: KW
 
 A rules-light RPG system designed from the ground up for LLM game masters. Characters are defined entirely by natural-language keywords with numeric modifiers. There are no classes, no spell lists, no predefined features, no canonical content for the LLM to hallucinate about. The LLM's creative interpretation of keywords IS the mechanic.
 
-The system uses 2d6 with a hope/fear duality for resolution, a token economy that gives the GM mechanical permission to create adversity, keyword-targeted stress as the consequence system, and act-based progression tied to narrative structure.
+The system uses 2d12 with a hope/fear duality for resolution, a token economy that gives the GM mechanical permission to create adversity, keyword-targeted stress as the consequence system, and act-based progression tied to narrative structure.
 
-Working title: TBD. Referred to as "the keyword system" throughout this spec.
-USER NOTE: title: Apocrypha 
+Working title: **Apocrypha**. Referred to as "the keyword system" throughout this spec.
 
 ## Entry Points
 
@@ -54,15 +53,13 @@ USER NOTE: title: Apocrypha
 
 ### Dice Resolution
 
-- REQ-KW-12: Resolution uses 2d6 labeled "hope" and "fear", plus the applicable keyword's modifier, compared against a difficulty set by the GM. The engine dice tool (`mcp__corvran__roll_dice`) handles the roll and returns which die rolled higher.
-
-> USER NOTE: 2d6 is going to result in too many crtical successes. There's a reason Daggerheart uses 2d12. We should use the same. This will also change the difficulty scale of REQ-KW-13.
+- REQ-KW-12: Resolution uses 2d12 labeled "hope" and "fear", plus the applicable keyword's modifier, compared against a difficulty set by the GM. The engine dice tool (`mcp__corvran__roll_dice`) handles the roll and returns which die rolled higher. 2d12 (not 2d6) keeps critical frequency manageable: doubles occur on ~8.3% of rolls rather than ~16.7%.
 
 - REQ-KW-13: Difficulty scale:
-  - Routine (6): Most competent people could do this
-  - Moderate (8): Requires real skill or effort
-  - Hard (10): Serious challenge even for the skilled
-  - Desperate (12): Nearly impossible without mastery
+  - Routine (10): Most competent people could do this
+  - Moderate (14): Requires real skill or effort
+  - Hard (17): Serious challenge even for the skilled
+  - Desperate (20): Nearly impossible without mastery
 
   The GM declares difficulty before the roll. The player knows what they're up against.
 
@@ -72,43 +69,31 @@ USER NOTE: title: Apocrypha
   - **Failure with Hope** (below difficulty, hope die higher): Failure, but the character gains something (information, positioning, or a Hope token). The failure isn't total.
   - **Failure with Fear** (below difficulty, fear die higher): Hard failure. GM gains a Fear token. Something gets worse beyond the failed action.
 
-- REQ-KW-15: On ties between the hope and fear dice, the player chooses which token is generated.
-> USER NOTE: Isn't a "tie" the same as "doubles"? This a conflict and confusiong with REQ-KW-16
+- REQ-KW-15: On doubles (both dice show the same number), the result is a critical. No tokens are generated on a critical, either direction. If the roll succeeds, it's an extraordinary success: the outcome exceeds what was attempted. The critical success IS the reward. If the roll fails, it's a dramatic failure: the situation shifts fundamentally. The dramatic consequences ARE the punishment. The token economy stays at its current levels; criticals affect the fiction, not the budget.
 
-- REQ-KW-16: On doubles (both dice show the same number), the result is a critical. Doubles supersede the tie rule (REQ-KW-15): the token type is determined by the critical outcome, not player choice. If the roll succeeds, it's an extraordinary success: the player gains a Hope token AND achieves something beyond what was attempted. If the roll fails, it's a dramatic failure: the GM gains a Fear token AND the situation shifts fundamentally.
-
-> **OPEN: Doubles token interaction.** On a critical success, the player gains Hope (from the critical). Should they also gain a second token from the normal hope/fear flow, or does the critical replace it entirely? Current intent: the critical replaces it. One token per roll, critical just makes the outcome bigger. 
-> USER NOTE: I'm not sure how this is not just a roll? My suggestion for this is simple. No tokens gained at all. Critical success is the reward. By trying to call a `tie` and `double` different things even though they are the same you have confused the situation. So as I said, critical success is the reward, no tokens.
+- REQ-KW-16: [Removed. Merged into REQ-KW-15. Ties and doubles are the same thing on 2d12.]
 
 - REQ-KW-17: The GM declares stakes before every roll: what success looks like, what failure risks. This makes the GM's judgment visible and challengeable. The player can negotiate stakes before committing to the roll.
 
 ### Hope/Fear Economy
 
-- REQ-KW-18: Hope is a player resource. Maximum 6 tokens. Gained when the hope die is higher on a roll or on critical successes. Hope can be spent to:
+- REQ-KW-18: Hope is a player resource. Maximum 6 tokens. Gained when the hope die is higher on a non-critical roll. Hope can be spent to:
   - Reroll one die (1 Hope)
   - Clear one level of light stress from a keyword (1 Hope)
   - Force a narrative moment: declare something true about the scene that the GM must honor, within reason (2 Hope)
 
-- REQ-KW-19: Fear is a GM resource. Maximum 12 tokens. Gained when the fear die is higher on a roll or on critical failures. Fear can be spent to:
+- REQ-KW-19: Fear is a GM resource. Maximum 12 tokens. Gained when the fear die is higher on a non-critical roll. Fear can be spent to:
   - Inflict light stress on a keyword (1 Fear)
   - Inflict deep stress on a keyword (2 Fear)
   - Introduce a complication outside of a roll (1 Fear)
   - Activate an adversary's Fear ability (cost defined per ability)
   - Interrupt the current scene with an external threat (3 Fear)
 
-- REQ-KW-20: The token economy gives the LLM mechanical permission to create adversity. "I have 4 Fear, I'm spending 2 to inflict deep stress on your Pyromancer's Fury" is a concrete, budget-constrained action. The LLM doesn't have to judge whether it's being fair. The budget IS the fairness.
-
-> USER NOTE: It's important for these to not just be mechanical, but add to the narrative.
+- REQ-KW-20: The token economy gives the LLM mechanical permission to create adversity. "I have 4 Fear, I'm spending 2 to inflict deep stress on your Pyromancer's Fury" is a concrete, budget-constrained action. The LLM doesn't have to judge whether it's being fair. The budget IS the fairness. Token spending must always be narrated in the fiction, never announced as a bare mechanic. "The dragon's flames wash over you, and for a moment your fire falters" (spending 2 Fear to deep-stress Pyromancer's Fury), not "I spend 2 Fear to stress your keyword."
 
 - REQ-KW-21: The GM should spend Fear actively. A Fear pool above 6 that isn't being spent is a missed narrative beat. The bootstrap instructs the GM to look for opportunities to spend Fear on complications, stress, and adversary abilities.
 
-> **OPEN: Where does Fear live?** Fear is a GM (session-level) resource, not a player resource. It doesn't belong on the character sheet. Options:
-> 1. **In the conversation.** The GM tracks Fear in its working memory. Simple, but risks the LLM losing count over long sessions.
-> 2. **In `adventure.md` frontmatter.** Session-level state like Fear count persists between messages. The engine could track it here alongside mood.
-> 3. **In `history.md`.** Appended as part of the session state.
->
-> Leaning toward option 2 (adventure.md frontmatter). It's already where the mood system persists session state. Fear is session state, not character state.
-> USER NOTE: That's a good place for it.
+- REQ-KW-21A: Fear is tracked in `adventure.md` frontmatter as session-level state, alongside mood. Fear is a GM resource, not a player resource, and does not belong on the character sheet.
 
 ### Stress System
 
@@ -124,16 +109,9 @@ USER NOTE: title: Apocrypha
 
 - REQ-KW-26: The GM chooses which keyword to stress based on what makes narrative sense. Combat stress targets action-oriented keywords. Social failure targets identity and relationship keywords. The choice follows the fiction, not mechanical optimization.
 
-> **OPEN: Player character defeat.** The system needs a budget-constrained answer to "can this character die?" Crisis (REQ-KW-25) is explicitly not a mechanical state. But if ALL keywords are at negative effective modifiers, the character is non-functional. Options:
-> 1. **Defeat trigger**: When all keywords are negative, the character is defeated. Player and GM negotiate the outcome: death, capture, transformation, or retreat. The player always chooses whether death is on the table.
-> 2. **No mechanical defeat**: Crisis is the floor. The GM can't stress a character into a death state. Death only happens when the player opts into it as a dramatic choice (borrowing Daggerheart's "death is a player decision" model).
-> 3. **Graduated defeat**: Crisis triggers a "last stand" moment where the character gets one final action at full keyword values before the outcome is determined.
->
-> Leaning toward option 2: death is always a player choice, not a mechanical inevitability. The stress system creates pressure and narrative consequence, but the terminal state is collaborative. This is consistent with Vision Principle 3 (player agency is sacred).
-> USER NOTE: I completely agree. Option 2. Besides, if we don't do this I suspect the GM will be reluctant to even cause stress.
+- REQ-KW-25A: Death is always a player choice, never a mechanical inevitability. Crisis (REQ-KW-25) is the floor. The GM cannot stress a character into a death state. The stress system creates pressure and narrative consequence, but the terminal state is collaborative: death happens only when the player opts into it as a dramatic choice. This also keeps the GM willing to spend Fear on stress. If stress could kill, the GM would pull punches. With death off the mechanical table, the GM can stress freely and let the narrative pressure do its work.
 
-> **OPEN: Stress stacking cap.** Can a keyword that already has both light and deep stress (-3 total) be stressed further? Current spec is silent. Proposal: -3 is the floor. Additional stress on a maxed keyword has no further mechanical effect but should be narrated as compounding pressure. The GM should target unstressed keywords instead, spreading the pain.
-> USER NOTE: I think just having these two is sufficient. Couple this with a max of `+3` on a keyword. It makes sense to me. When a player starts to have "too many" and the GM spreads it out, that's fine. Just find a way for it to make sense. Why is your "mechanical wiz" keyword effected when you got hit with the bat for the fourth time? Because it broke your arm. Hard to be a mechanical wiz without full use of your arms.
+- REQ-KW-26A: A keyword's stress caps at -3 (light + deep). A keyword cannot be stressed beyond this. When a maxed keyword would take additional stress, the GM targets a different keyword instead, finding a narrative reason for the connection. A fourth bat swing doesn't stress "Cutthroat Reflexes" again; it breaks the character's arm, stressing "Mechanical Wiz" because you can't tinker without both hands. The GM spreads stress across the character's keyword set, using fiction to justify the connections.
 
 ### Dealing Stress to Adversaries
 
@@ -145,14 +123,9 @@ USER NOTE: title: Apocrypha
 
 - REQ-KW-29: Stressed adversary keywords lose effectiveness the same way player keywords do. A bandit with "Pack Tactics (+2)" at 1 stress fights at effective +1. The adversary degrades narratively as it takes damage.
 
-> **OPEN: Adversary stress tracking model.** Two interpretations exist and the spec needs to pick one:
-> 1. **Per-keyword tracking** (like player characters): Stress is allocated to specific adversary keywords. Each keyword degrades independently. Total stress across all keywords counts toward the threshold. The adversary block needs per-keyword stress markers.
-> 2. **Aggregate pool**: Stress threshold is a single damage counter. Keyword degradation is a narrative overlay: the GM narrates which keyword is affected, but mechanically it's just a number ticking up.
->
-> Per-keyword tracking is more consistent with how player stress works and makes adversary degradation feel real (their +3 keyword dropping to +1 mid-fight changes the fiction). But it's more tracking for the LLM to manage. For minor adversaries (2-3 stress threshold), aggregate is fine. For major adversaries (8-12 stress), per-keyword matters.
->
-> Proposal: Per-keyword for standard and major adversaries. Aggregate for minor adversaries (they go down too fast for keyword degradation to matter).
-> USER NOTE: Your proposal is sound.
+- REQ-KW-29A: Adversary stress tracking scales with tier:
+  - **Minor adversaries**: Aggregate stress pool. Stress is a single counter ticking toward the threshold. The GM narrates which capability is degrading, but tracking is a single number.
+  - **Standard and major adversaries**: Per-keyword tracking, same as player characters. Stress is allocated to specific keywords, each degrades independently, and total stress across all keywords counts toward the threshold. A dragon's "Impenetrable Scales (+3)" dropping to effective +1 mid-fight changes the fiction in ways that matter.
 
 ### Dealing Stress to Players
 
@@ -164,19 +137,11 @@ USER NOTE: title: Apocrypha
 
 ### Combat Procedure
 
-> **OPEN: How do adversaries act?** The spec defines what player rolls produce and what tokens buy, but never defines the adversary's "turn." Three models:
->
-> **Model A: Player-rolls-everything (PbtA-style).** The player always rolls. There are no "adversary turns." When the player acts against an adversary, they roll. On success, the adversary takes stress. On failure, the adversary's response IS the failure consequence (the GM narrates the adversary attacking, the environment shifting, etc.). Adversary Fear abilities are activated by GM spending Fear at any point, not on a "turn." This is the simplest model and the most LLM-friendly: the GM never needs to track initiative or turn order.
->
-> **Model B: Alternating spotlight.** Borrowed from Daggerheart. When a player roll generates Fear or fails, the GM takes spotlight: adversaries act (narrated by the GM, no roll), then spotlight returns to the player. Fear spending happens during GM spotlight. This creates a rhythm but requires the LLM to track whose spotlight it is.
->
-> **Model C: Fear-driven adversary actions.** Adversaries can ONLY act when the GM spends Fear. Every adversary action costs at least 1 Fear. No Fear = adversaries are passive, reacting to the player. This makes the economy load-bearing: the adversary's threat is directly proportional to the GM's Fear budget.
->
-> Leaning toward **Model A** (player-rolls-everything). It's the simplest, maps naturally to conversation (the player says what they do, rolls, gets a result), and the GM's adversity budget is Fear spending + failure consequences. The adversary doesn't need its own initiative or action economy. This is how PbtA works and it's proven with LLMs.
->
-> Sub-question: In Model A, when the player ISN'T acting against the adversary (e.g., trying to pick a lock while a dragon is in the room), does the adversary get to act as a failure consequence? "You fail to pick the lock, and the dragon closes the distance" feels right as a 6- result. The adversary acts THROUGH the player's roll outcomes, not independently.
->
-> USER NOTE: I agree the player-rolls-everything. There can be story cases where its necessary for the advesary to surprise the player and they need to react. This would still be a roll by the player. Failure consequences are also a good reason for the GM to spend fear to cause stress.
+- REQ-KW-30A: **Player-rolls-everything (PbtA-style).** The player always rolls. There are no "adversary turns" and no initiative. When the player acts against an adversary, they roll. On success, the adversary takes stress. On failure, the adversary's response IS the failure consequence: the GM narrates the adversary attacking, the environment shifting, etc. Adversary Fear abilities are activated by GM spending Fear at any point, not on a "turn."
+
+- REQ-KW-30B: When the player isn't acting directly against an adversary (picking a lock while a dragon is in the room), the adversary acts through failure consequences. "You fail to pick the lock, and the dragon closes the distance" is a valid failure result. The GM may also spend Fear to inflict stress as part of failure narration.
+
+- REQ-KW-30C: When an adversary surprises the player or forces a reaction, the player still rolls. The GM narrates the threat, the player declares their response, and the roll determines the outcome. No situation bypasses the player's roll.
 
 ### Adversaries
 
@@ -203,23 +168,13 @@ USER NOTE: title: Apocrypha
 
 ### Progression
 
-USER NOTE: OKAY ... this is all over complicated. What I was trying to imply by talking about story arcs is that level up is based on story progression. Just gut the math, its confusing you and not the point. Level up happens when it makes sense. A major milestone that has narrative weight. Something that is typically an act in a story. But trying to add all this math into it is completely over doing it. To say again, the point of the 'act' reference is just about a major milestone. Being jumped by thugs is just a scene, unless those thugs are outside the church you are bringing the challice you spent 3 weeks finding and was stolen and must be returned by midnight. 
+- REQ-KW-37: Characters level up when the story earns it. A level-up is a major narrative milestone: completing an act, resolving a defining conflict, surviving a transformative ordeal. The GM and player agree when a milestone has the weight to justify leveling. Not every scene or encounter qualifies. A bar fight is just a scene. Escorting the stolen chalice through a gauntlet to reach the church before midnight, and making it, is a milestone. The three-act structure (introduce, complicate, resolve) is a useful frame for what constitutes an arc of play, but it is not a formula. There is no fixed number of arcs, acts, or sessions to reach a given level.
 
-- REQ-KW-37: Characters level up after completing an act of the story. A complete story arc has three acts. Six complete arcs bring a character from level 1 to level 18.
-
-> **OPEN: Off-by-one in progression math.** Starting at level 1 with 6 arcs x 3 acts = 18 level-ups = level 19, not 18. The character sheet progression log shows level 1 as the starting state (Arc 1, Act "-"), confirming level 1 is pre-arc. Options:
-> 1. **Cap is 19.** Accept 19 levels. 19 x 3 = 57 max keywords. A little odd but functional.
-> 2. **Cap is 18, start at level 0.** Character creation produces a "level 0" character. First act completion = level 1. Six arcs = 18 acts = level 18. But "level 0" feels bad narratively.
-> 3. **The last arc has 2 acts.** Five arcs of 3 acts + one arc of 2 acts = 17 level-ups from level 1 = level 18. The final arc's compressed structure could be a narrative feature (the climactic arc is shorter, more intense).
-> 4. **Reframe: 3 keywords per arc, not per level.** Each arc awards 9 keywords (3 per act). Six arcs = 54 keywords. Levels are just the act count (1-18). This changes nothing mechanically but reframes the progression as arc-driven.
->
-> The exact number matters less than being internally consistent. Need to pick one and walk through the full progression table.
-
-- REQ-KW-38: Each act has a dramatic question that defines it. Act 1 introduces the question. Act 2 complicates it. Act 3 resolves it. The GM and player agree when an act concludes. This is a collaborative judgment, not a mechanical trigger.
+- REQ-KW-38: Story arcs naturally follow a three-act shape: introduce the dramatic question, complicate it, resolve it. The GM and player agree when a milestone concludes. This is a collaborative judgment, not a mechanical trigger. Not every arc maps cleanly to three acts, and that's fine. The structure is a lens for recognizing when growth has been earned, not a formula to follow.
 
 - REQ-KW-39: On level-up, the character gains up to 3 new keywords at +1. New keywords must emerge from the story just completed. "I survived the Siege of Thornwall" becomes "Siege Survivor (+1)." The player proposes keywords, the GM confirms they're grounded in the fiction.
 
-- REQ-KW-40: Between acts, existing keywords can deepen (modifier increases by 1, to a maximum of +3) if the story provided a narrative milestone for that keyword. The player and GM agree on which keywords deepened and why. Deepening is separate from the 3 new keywords gained on level-up.
+- REQ-KW-40: At any level-up, existing keywords can deepen (modifier increases by 1, to a maximum of +3) if the story provided a narrative milestone for that keyword. The player and GM agree on which keywords deepened and why. Deepening is separate from the 3 new keywords gained on level-up.
 
 - REQ-KW-41: Keywords can split during level-up (per REQ-KW-10). A split counts against the 3 new keyword slots: if "Scarred Veteran (+2)" splits into "Battlefield Commander (+2)" and "Old Wounds (+1)", that uses one of the three slots (the original is replaced, and one new keyword is added).
 
@@ -247,8 +202,7 @@ USER NOTE: OKAY ... this is all over complicated. What I was trying to imply by 
 
 - REQ-KW-48: A montage (passage of time between story beats) clears all light stress and resets Hope to 1 and Fear to 1. Montages do not clear deep stress. Deep stress persists until addressed.
 
-> **OPEN: Deep stress resolution criteria.** "The player and GM agree when deep stress is resolved" is intentionally collaborative but gives the LLM no criteria for what "resolved" means. This is probably fine: the system uses collaborative judgment for act conclusions and keyword deepening too. Deep stress recovery IS a narrative mechanic, not a mechanical one. But worth noting: if playtesting reveals the LLM clears deep stress too easily (over-compliance again), a harder constraint might be needed, like "deep stress resolution requires a dedicated scene where the keyword is tested and the player rolls for it."
-> USER NOTE: This sounds fair. And feels like we should record this somewhere ... just in the middle of the spec isn't quite right.
+- REQ-KW-48A: Deep stress resolution is collaborative judgment: the player and GM agree when a scene has adequately addressed the source of the stress. This is consistent with how the system handles act conclusions and keyword deepening. The bootstrap prompt should instruct the GM that deep stress resolution requires a genuine narrative scene, not a passing mention, and that clearing deep stress too easily undermines the system's tension. If playtesting reveals over-compliance (the GM clears deep stress on a single line of dialogue), the bootstrap should be tightened to require a dedicated scene where the keyword is tested and the player rolls for it.
 
 ### Session and Act Structure
 
@@ -294,15 +248,14 @@ Hope: 2/6
 ## Level
 
 **Current Level**: [N]
-**Current Arc**: [N] / Act [1-3]
 **Max Keywords**: [3 x Level]
 
 ## Progression Log
 
-| Arc | Act | Level | Keywords Gained | Keywords Deepened |
-|-----|-----|-------|-----------------|-------------------|
-| 1   | -   | 1     | [starting three] | -                |
-| 1   | 1   | 2     | [from act 1]    | [if any]          |
+| Level | Milestone | Keywords Gained | Keywords Deepened |
+|-------|-----------|-----------------|-------------------|
+| 1     | Character creation | [starting three] | -          |
+| 2     | [milestone description] | [from milestone] | [if any] |
 
 ## Notes
 
@@ -336,8 +289,7 @@ Written into `world.md` when introduced.
 - [Ability description] (Cost: [N] Fear)
 ```
 
-> **OPEN: Fear tracking in session state.** The adversary block tracks adversary stress. But the GM's Fear pool also needs to be tracked somewhere visible. If Fear lives in `adventure.md` frontmatter (per the Hope/Fear open question), the adversary block and the session state are in different files. This is probably fine since they serve different purposes (adversary state vs session economy), but worth confirming the LLM can manage both without losing track.
-> USER NOTE: Don't worry about this right now. There's a general problem with the app for showing this type of information. i.e. secondary concern.
+*Note: Fear pool display is a secondary concern. The app has a general problem with surfacing this type of state information. Fear lives in `adventure.md` frontmatter (REQ-KW-21A); adversary stress lives in `world.md` adversary blocks. The split is fine for now. Revisit when the app's state display is addressed.*
 
 ## Exit Points
 
@@ -348,7 +300,7 @@ Written into `world.md` when introduced.
 ## Success Criteria
 
 - [ ] A player can create a character through conversation using only these rules
-- [ ] Resolution uses a single dice roll (2d6) with clear outcome determination
+- [ ] Resolution uses a single dice roll (2d12) with clear outcome determination
 - [ ] The GM has mechanical permission (Fear tokens) to create adversity without relying on prompt instructions alone
 - [ ] Consequences (stress) create tactical choices, not just narrative flavor
 - [ ] Progression emerges from the story, not from a level-up table
@@ -375,21 +327,28 @@ Written into `world.md` when introduced.
 - All mechanics taught via documents, not code (Vision Principle 2: Teach, Don't Code)
 - Player agency inviolable (Vision Principle 3: Player Agency is Sacred)
 
-## Open Questions Index
+## Resolved Questions
 
-All open questions are inline in their relevant sections. This index collects them for tracking.
+All open questions from the initial draft have been resolved. This index records what was decided and where the resolution lives.
 
-| # | Section | Question | Leaning |
-|---|---------|----------|---------|
-| 1 | Dice Resolution | Doubles token interaction: one token or two? | One token, critical replaces normal flow |
-| 2 | Stress System | Player character defeat: can a character die? | Death is always a player choice, not mechanical |
-| 3 | Stress System | Stress stacking cap: can stress exceed -3 on one keyword? | -3 is the floor, spread to other keywords |
-| 4 | Hope/Fear Economy | Where does Fear (GM resource) live in file state? | `adventure.md` frontmatter |
-| 5 | Dealing Stress to Adversaries | Per-keyword vs aggregate stress tracking for adversaries? | Per-keyword for standard/major, aggregate for minor |
-| 6 | Combat Procedure | How do adversaries act? Player-rolls-everything, spotlight, or Fear-driven? | Model A: player-rolls-everything (PbtA-style) |
-| 7 | Progression | Off-by-one: 18 acts from level 1 = level 19, not 18 | Need to pick and walk through the table |
-| 8 | Rest and Recovery | Deep stress resolution criteria: is collaborative judgment enough? | Yes, but may need hardening if LLM clears too easily |
-| 9 | Adversary Block Format | Fear pool and adversary stress in different files: manageable? | Probably fine, confirm with playtesting |
+| # | Section | Question | Resolution |
+|---|---------|----------|------------|
+| 1 | Dice Resolution | Doubles token interaction | No tokens on criticals. Critical success is its own reward; critical failure is its own punishment. (REQ-KW-15) |
+| 2 | Stress System | Player character defeat | Death is always a player choice, never mechanical. Crisis is the floor. (REQ-KW-25A) |
+| 3 | Stress System | Stress stacking cap | -3 is the floor. GM spreads additional stress to other keywords with narrative justification. (REQ-KW-26A) |
+| 4 | Hope/Fear Economy | Where does Fear live? | `adventure.md` frontmatter, alongside mood. (REQ-KW-21A) |
+| 5 | Adversary Stress | Per-keyword vs aggregate tracking | Per-keyword for standard/major adversaries. Aggregate for minor. (REQ-KW-29A) |
+| 6 | Combat Procedure | How do adversaries act? | Player-rolls-everything (PbtA-style). No initiative, no adversary turns. Surprise = player rolls reaction. (REQ-KW-30A/B/C) |
+| 7 | Progression | Off-by-one math | Eliminated. No fixed formula. Level up on narrative milestones. (REQ-KW-37) |
+| 8 | Rest and Recovery | Deep stress resolution criteria | Collaborative judgment is sufficient. Bootstrap should instruct against clearing too easily. Tighten if playtesting reveals over-compliance. (REQ-KW-48A) |
+| 9 | Adversary Block Format | Fear/adversary state split across files | Deferred. Secondary concern pending app-level state display work. |
+
+## Deferred Concerns
+
+Items that are acknowledged but not blocking spec approval:
+
+- **Fear pool display UX**: The app needs a general solution for surfacing session-level state (Fear count, adversary stress). Not a game design question; it's an app design question.
+- **Deep stress over-compliance hardening**: If playtesting shows the LLM clears deep stress too easily, the bootstrap should require a dedicated resolution scene with a roll. Monitor during implementation.
 
 ## Context
 
