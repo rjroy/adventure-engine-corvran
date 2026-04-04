@@ -17,6 +17,7 @@ A rules-light RPG system designed from the ground up for LLM game masters. Chara
 The system uses 2d6 with a hope/fear duality for resolution, a token economy that gives the GM mechanical permission to create adversity, keyword-targeted stress as the consequence system, and act-based progression tied to narrative structure.
 
 Working title: TBD. Referred to as "the keyword system" throughout this spec.
+USER NOTE: title: Apocrypha 
 
 ## Entry Points
 
