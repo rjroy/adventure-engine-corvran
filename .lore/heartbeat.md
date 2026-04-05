@@ -26,3 +26,8 @@ Workers can also add entries to this file during their sessions.
 ## Context Notes
 
 ## Recent Activity
+- 09:24 commission-Octavia-20260405-092119 result: Plan written to `.lore/plans/adventure-file-structure-plan.md`.
+
+Two phases, single Dalton commission. The change is contained to `prompt-service.ts` (replace File Tools instruction text with two-laye...
+
+- 09:24 commission-Octavia-20260405-092119 completed
