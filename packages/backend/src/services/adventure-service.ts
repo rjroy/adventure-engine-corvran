@@ -31,6 +31,7 @@ export function createAdventureService(deps: {
   const { fileOps, adventuresPath } = deps;
 
   function isValidAdventureId(id: string): boolean {
+    if (id.startsWith(".")) return false;
     if (id.includes("/") || id.includes("..")) return false;
     const resolved = fileOps.resolvePath(adventuresPath, id);
     const normalizedRoot = fileOps.resolvePath(adventuresPath);
