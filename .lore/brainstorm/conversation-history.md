@@ -1,7 +1,7 @@
 ---
 title: Conversation History for Adventure Engine MVP
 date: 2026-03-28
-status: open
+status: resolved
 tags: [conversation-history, mvp, agent-sdk, state-management, architecture]
 related: [.lore/vision.md, .lore/brainstorm/mvp-scope.md, .lore/reference/architecture-pattern.md]
 ---

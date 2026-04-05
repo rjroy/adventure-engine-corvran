@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { resolve } from "node:path";
-import { readdir, readFile as fsReadFile, writeFile as fsWriteFile, appendFile as fsAppendFile, stat, mkdir } from "node:fs/promises";
+import { readdir, readFile as fsReadFile, writeFile as fsWriteFile, appendFile as fsAppendFile, stat, mkdir, unlink } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { FileOps, RouteModule } from "./types";
 import { createAdventureService } from "./services/adventure-service";
@@ -11,6 +11,8 @@ import { createHelpRoutes } from "./registry";
 import { createHistoryService } from "./services/history-service";
 import { createSessionRunner, type QueryFn, type SessionRunner } from "./services/session-runner";
 import type { PluginRegistry } from "./services/plugin-registry";
+import { createCompactionService } from "./services/compaction-service";
+import type { CompactionConfig } from "./routes/adventure-routes";
 import { createSystemRoutes } from "./routes/system-routes";
 
 /** Production FileOps backed by node:fs/promises */
@@ -50,6 +52,13 @@ function createRealFileOps(): FileOps {
     async readFileBytes(path: string): Promise<Uint8Array> {
       return new Uint8Array(await fsReadFile(path));
     },
+    async deleteFile(path: string): Promise<void> {
+      await unlink(path);
+    },
+    async readFiles(path: string): Promise<string[]> {
+      const entries = await readdir(path, { withFileTypes: true });
+      return entries.filter((e) => e.isFile()).map((e) => e.name);
+    },
     resolvePath(...segments: string[]): string {
       return resolve(...segments);
     },
@@ -76,6 +85,7 @@ export interface AppDeps {
   adventuresPath?: string;
   queryFn?: QueryFn;
   model?: string;
+  compactionModel?: string;
   pluginRegistry?: PluginRegistry;
 }
 
@@ -91,6 +101,12 @@ export function createApp(deps?: AppDeps): Hono {
   // Session runner is only created when a queryFn is provided.
   // Tests that don't need SDK integration pass their own queryFn.
   // Production passes the real SDK query function.
+  // Compaction service needs queryFn for Haiku summarization calls (REQ-COMP-9a)
+  const compactionModel = deps?.compactionModel ?? process.env.COMPACTION_MODEL ?? "haiku";
+  const compactionService = deps?.queryFn
+    ? createCompactionService({ fileOps, queryFn: deps.queryFn, model: compactionModel })
+    : undefined;
+
   let sessionRunner: SessionRunner | undefined;
   if (deps?.queryFn) {
     sessionRunner = createSessionRunner({
@@ -98,13 +114,24 @@ export function createApp(deps?: AppDeps): Hono {
       config: {
         model: deps.model ?? process.env.MODEL ?? "sonnet",
       },
+      fileOps,
+      compactionService,
     });
   }
+
+  const compactionConfig: CompactionConfig | undefined = compactionService
+    ? {
+        historyThreshold: parseInt(process.env.HISTORY_COMPACT_THRESHOLD || "150000", 10),
+        worldThreshold: parseInt(process.env.WORLD_COMPACT_THRESHOLD || "200000", 10),
+      }
+    : undefined;
 
   const adventureModule = createAdventureRoutes({
     adventureService,
     historyService,
     sessionRunner,
+    compactionService,
+    compactionConfig,
     pluginRegistry: deps?.pluginRegistry,
     fileOps,
   });

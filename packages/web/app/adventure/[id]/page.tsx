@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
-import type { AdventureDetail, HistoryResponse, ToolUseEvent } from "@corvran/shared";
+import type { AdventureDetail, HistoryResponse, ToolUseEvent, CompactResponse } from "@corvran/shared";
 import { useAdventureStream } from "@/lib/use-adventure-stream";
 import { parseHistory, type HistoryMessage } from "@/lib/parse-history";
 import { isTouchDevice, shouldSendOnEnter } from "@/lib/keyboard-handler";
@@ -30,8 +30,23 @@ export default function AdventurePlayPage() {
     setMessages((prev) => [...prev, { role: "gm", body: text }]);
   }, []);
 
+  const handleCompacted = useCallback(async (_: CompactResponse) => {
+    try {
+      const historyRes = await fetch(`/api/daemon/adventures/${id}/history`);
+      if (historyRes.ok) {
+        const data = await historyRes.json() as { history: string | null };
+        setMessages(data.history ? parseHistory(data.history) : []);
+      }
+    } catch {
+      // History refresh failed silently; the page will show stale messages
+      // until the next reload. This is acceptable: the server state is correct.
+    }
+  }, [id]);
+
   const { isStreaming, streamingMessage, error, sendMessage, stop } =
-    useAdventureStream(id, handleStreamComplete);
+    useAdventureStream(id, handleStreamComplete, handleCompacted);
+  const [isCompacting, setIsCompacting] = useState(false);
+  const [compactError, setCompactError] = useState<string | null>(null);
 
   // Load adventure detail and history
   useEffect(() => {
@@ -98,6 +113,34 @@ export default function AdventurePlayPage() {
     sendMessage(text);
   }, [inputValue, isStreaming, sendMessage]);
 
+  const handleCompact = useCallback(async () => {
+    if (!window.confirm(
+      "Archive the current history and create a recap? The full transcript will be saved in the past/ folder.",
+    )) return;
+
+    setIsCompacting(true);
+    setCompactError(null);
+    try {
+      const res = await fetch(`/api/daemon/adventures/${id}/compact`, { method: "POST" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: "Compaction failed" }));
+        setCompactError(body.error || "Compaction failed");
+        return;
+      }
+      // Refresh history after successful compaction
+      const historyRes = await fetch(`/api/daemon/adventures/${id}/history`);
+      if (historyRes.ok) {
+        const data = await historyRes.json() as { history: string | null };
+        setMessages(data.history ? parseHistory(data.history) : []);
+      } else {
+        setCompactError("Compaction succeeded but failed to refresh display. Please reload the page.");
+      }
+    } catch {
+      setCompactError("Failed to connect to server");
+    } finally {
+      setIsCompacting(false);
+    }
+  }, [id]);
 
   const isMobile = useMemo(() => isTouchDevice(), []);
 
@@ -158,7 +201,7 @@ export default function AdventurePlayPage() {
         style={{
           position: "fixed",
           inset: 0,
-          zIndex: -1,
+          zIndex: 0,
           pointerEvents: "none",
           backgroundSize: "cover",
           backgroundPosition: "center",
@@ -202,6 +245,14 @@ export default function AdventurePlayPage() {
             </div>
           )}
 
+          {isCompacting && (
+            <div className={styles.compactingStatus}>Creating recap...</div>
+          )}
+
+          {compactError && (
+            <div className={styles.errorMessage}>{compactError}</div>
+          )}
+
           <div ref={bottomRef} />
         </div>
       </div>
@@ -222,6 +273,17 @@ export default function AdventurePlayPage() {
               rows={1}
             />
           </div>
+          {hasHistory && (
+            <button
+              className={styles.btnCompact}
+              onClick={handleCompact}
+              disabled={isStreaming || isCompacting}
+              type="button"
+              title="Archive current history and create a recap"
+            >
+              {isCompacting ? "..." : "Compact"}
+            </button>
+          )}
           {isStreaming ? (
             <button className={styles.btnStop} onClick={stop} type="button">
               <div className={styles.btnStopIcon} />

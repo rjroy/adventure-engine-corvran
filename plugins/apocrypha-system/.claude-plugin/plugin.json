@@ -1,0 +1,11 @@
+{
+  "name": "apocrypha-system",
+  "version": "1.0.0",
+  "author": {
+    "name": "Ronald Roy",
+    "email": "gsdwig@gmail.com"
+  },
+  "description": "Apocrypha RPG mechanics for Adventure Engine adventures. Provides keyword-based character creation, 2d12 hope/fear resolution, keyword-targeted stress, adversary management, and progression through narrative milestones. An original LLM-native system with no external reference material.",
+  "repository": "https://github.com/rjroy/adventure-engine-corvran.git",
+  "license": "MIT"
+}

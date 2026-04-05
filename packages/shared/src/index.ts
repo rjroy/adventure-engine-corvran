@@ -15,6 +15,8 @@ export {
   CreateAdventureResponseSchema,
   MoodStateSchema,
   MoodEventSchema,
+  CompactResponseSchema,
+  CompactErrorSchema,
 } from "./schemas/adventures";
 
 export type {
@@ -34,4 +36,6 @@ export type {
   CreateAdventureResponse,
   MoodState,
   MoodEvent,
+  CompactResponse,
+  CompactError,
 } from "./types";

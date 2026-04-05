@@ -238,6 +238,75 @@ describe("SSE cross-chunk parsing", () => {
   });
 });
 
+describe("compacted event parsing", () => {
+  test("compacted event is parsed with correct payload", () => {
+    const chunk = [
+      `event: text\ndata: {"text":"Before compact. "}`,
+      `event: compacted\ndata: {"archived":"past/scene-003.md","previousSize":145230,"newSize":4820}`,
+      `event: text\ndata: {"text":"After compact."}`,
+      `event: done\ndata: {"fullResponse":"Before compact. After compact."}`,
+    ].join("\n\n");
+
+    const events = parseSSEChunk(chunk);
+    expect(events).toHaveLength(4);
+
+    const compactedEvent = events.find((e) => e.type === "compacted");
+    expect(compactedEvent).toBeDefined();
+    expect(compactedEvent!.data).toEqual({
+      archived: "past/scene-003.md",
+      previousSize: 145230,
+      newSize: 4820,
+    });
+  });
+
+  test("compacted event does not disrupt text accumulation", () => {
+    const chunk = [
+      `event: text\ndata: {"text":"Hello "}`,
+      `event: compacted\ndata: {"archived":"past/scene-001.md","previousSize":5000,"newSize":500}`,
+      `event: text\ndata: {"text":"world"}`,
+      `event: done\ndata: {"fullResponse":"Hello world"}`,
+    ].join("\n\n");
+
+    const events = parseSSEChunk(chunk);
+
+    // Text events are still present and correct around the compacted event
+    const textEvents = events.filter((e) => e.type === "text");
+    expect(textEvents).toHaveLength(2);
+    expect(textEvents[0].data.text).toBe("Hello ");
+    expect(textEvents[1].data.text).toBe("world");
+
+    // Done event has the full response
+    const doneEvent = events.find((e) => e.type === "done");
+    expect(doneEvent!.data.fullResponse).toBe("Hello world");
+  });
+
+  test("compacted event with invalid payload is ignored", () => {
+    const chunk = `event: compacted\ndata: {"not":"valid"}\n\n`;
+    const events = parseSSEChunk(chunk);
+    // The event is parsed as JSON, but won't pass CompactResponseSchema.safeParse
+    // in the hook. At the parsing level, it's still a valid event.
+    expect(events).toHaveLength(1);
+    expect(events[0].type).toBe("compacted");
+  });
+
+  test("compacted event split across chunks is reassembled", () => {
+    const chunks = [
+      `event: text\ndata: {"text":"Hi"}\n\nevent: compact`,
+      `ed\ndata: {"archived":"past/scene-001.md","previousSize":5000,"newSize":500}\n\nevent: done\ndata: {"fullResponse":"Hi"}\n\n`,
+    ];
+    const events = parseSSEChunks(chunks);
+    expect(events).toHaveLength(3);
+    expect(events[0].type).toBe("text");
+    expect(events[1].type).toBe("compacted");
+    expect(events[1].data).toEqual({
+      archived: "past/scene-001.md",
+      previousSize: 5000,
+      newSize: 500,
+    });
+    expect(events[2].type).toBe("done");
+  });
+});
+
 describe("SSE stream integration via mock API", () => {
   let originalFetch: typeof globalThis.fetch;
 

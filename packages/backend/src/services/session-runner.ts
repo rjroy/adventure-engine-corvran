@@ -3,6 +3,9 @@ import { createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
 import type { MoodState } from "@corvran/shared";
 import { createDiceToolDef } from "./dice-tool";
 import { createMoodToolDef, type MoodEventPayload } from "./mood-tool";
+import { createCompactToolDef } from "./compact-tool";
+import type { CompactionService, CompactionResult } from "./compaction-service";
+import type { FileOps } from "../types";
 import { generateMoodImage } from "./image-gen";
 import { extractDominantHue } from "./color-extract";
 
@@ -22,6 +25,7 @@ export interface RunQueryParams {
   abortController: AbortController;
   setMood: (mood: MoodState) => Promise<void>;
   emitMoodEvent: (payload: MoodEventPayload) => Promise<void>;
+  emitCompactedEvent: (result: CompactionResult) => Promise<void>;
 }
 
 const TOOLS = ["Bash", "Read", "Write", "Edit", "Grep", "Glob"];
@@ -36,8 +40,10 @@ async function downloadImage(url: string, destPath: string): Promise<void> {
 export function createSessionRunner(deps: {
   queryFn: QueryFn;
   config: SessionRunnerConfig;
+  fileOps?: FileOps;
+  compactionService?: CompactionService;
 }) {
-  const { queryFn, config } = deps;
+  const { queryFn, config, fileOps, compactionService } = deps;
 
   function runQuery(params: RunQueryParams): Query {
     const { systemPrompt, playerMessage, adventurePath, abortController } = params;
@@ -53,9 +59,32 @@ export function createSessionRunner(deps: {
       setMood: params.setMood,
       emitMoodEvent: params.emitMoodEvent,
     });
+
+    const tools: Array<ReturnType<typeof createDiceToolDef | typeof createMoodToolDef | typeof createCompactToolDef>> = [diceToolDef, moodToolDef];
+    const toolNames = ["mcp__corvran__roll_dice", "mcp__corvran__set_mood"];
+
+    if (compactionService && fileOps) {
+      const compactToolDef = createCompactToolDef({
+        compactionService,
+        adventurePath,
+        getAdventureContext: async () => {
+          const characterPath = fileOps.resolvePath(adventurePath, "character.md");
+          const worldPath = fileOps.resolvePath(adventurePath, "world.md");
+          let character: string | undefined;
+          let world: string | undefined;
+          try { character = await fileOps.readFile(characterPath); } catch { /* missing file */ }
+          try { world = await fileOps.readFile(worldPath); } catch { /* missing file */ }
+          return { character, world };
+        },
+        emitCompactedEvent: params.emitCompactedEvent,
+      });
+      tools.push(compactToolDef);
+      toolNames.push("mcp__corvran__compact_history");
+    }
+
     const corvranServer = createSdkMcpServer({
       name: "corvran",
-      tools: [diceToolDef, moodToolDef],
+      tools,
     });
 
     return queryFn({
@@ -65,7 +94,7 @@ export function createSessionRunner(deps: {
         cwd: adventurePath,
         plugins: params.pluginPaths.map((p) => ({ type: "local" as const, path: p })),
         tools: TOOLS,
-        allowedTools: [...TOOLS, "mcp__corvran__roll_dice", "mcp__corvran__set_mood"],
+        allowedTools: [...TOOLS, ...toolNames],
         mcpServers: {
           corvran: corvranServer,
         },

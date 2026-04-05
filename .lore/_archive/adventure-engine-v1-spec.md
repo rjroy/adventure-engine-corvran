@@ -1,7 +1,7 @@
 ---
 title: Adventure Engine specification
 date: 2025-12-20
-status: implemented
+status: abandoned
 tags: [spec, reverse-engineered, backend, frontend, shared, corvran]
 modules: [backend, frontend, shared, corvran]
 ---

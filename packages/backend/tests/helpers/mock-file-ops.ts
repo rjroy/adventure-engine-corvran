@@ -81,6 +81,28 @@ export function createMockFileOps(files: Record<string, string> = {}): MockFileO
       return { mtime };
     },
 
+    async deleteFile(path: string): Promise<void> {
+      if (!store.has(path)) {
+        throw new Error(`ENOENT: no such file: ${path}`);
+      }
+      store.delete(path);
+    },
+
+    async readFiles(path: string): Promise<string[]> {
+      const prefix = path.endsWith("/") ? path : path + "/";
+      const files = new Set<string>();
+      for (const key of store.keys()) {
+        if (key.startsWith(prefix)) {
+          const rest = key.slice(prefix.length);
+          // Only direct children (no deeper path segments)
+          if (!rest.includes("/")) {
+            files.add(rest);
+          }
+        }
+      }
+      return [...files].sort();
+    },
+
     resolvePath(...segments: string[]): string {
       return resolve(...segments);
     },

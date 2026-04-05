@@ -4,6 +4,7 @@ export interface AdventureState {
   history: string | null;
   systemBootstrap: string | null;
   concept: string | null;
+  compactionEnabled?: boolean;
 }
 
 /**
@@ -102,6 +103,19 @@ export function assembleSystemPrompt(state: AdventureState): string {
     "When something changes (a character levels up, a new NPC is introduced, an item is acquired), " +
     "update the relevant file."
   );
+
+  if (state.compactionEnabled) {
+    sections.push(
+      "## History Compaction\n\n" +
+      "You have a `compact_history` tool. Use it at natural pause points in the narrative: " +
+      "after a major confrontation resolves, when the party travels to a new location, " +
+      "when a significant conversation or negotiation concludes, or when the player takes a rest. " +
+      "You don't need to use it at every pause. Use your judgment about when the story has " +
+      "accumulated enough that a consolidation would help. When you use it, the current history " +
+      "is archived and replaced with a narrative recap. Your next response should pick up " +
+      "naturally from where the story left off."
+    );
+  }
 
   return sections.join("\n\n");
 }
