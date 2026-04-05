@@ -4,7 +4,7 @@ date: 2026-04-02
 status: executed
 tags: [plan, compaction, history, context-management, narrative, haiku, mcp]
 modules: [backend, shared, web]
-related: [.lore/specs/compaction-system-spec.md, .lore/reference/architecture-pattern.md, .lore/brainstorm/compaction-system.md, .lore/brainstorm/conversation-history.md, .lore/research/scene-boundaries.md]
+related: [.lore/specs/compaction-system.md, .lore/reference/architecture-pattern.md, .lore/brainstorm/compaction-system.md, .lore/brainstorm/conversation-history.md, .lore/research/scene-boundaries.md]
 ---
 
 # Plan: Compaction System
@@ -13,7 +13,7 @@ Four phases, matching the spec's incremental delivery but splitting Phase 1 into
 
 ## Spec Reference
 
-**Spec**: `.lore/specs/compaction-system-spec.md`
+**Spec**: `.lore/specs/compaction-system.md`
 
 Requirements addressed:
 

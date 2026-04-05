@@ -4,7 +4,7 @@ date: 2026-04-03
 status: executed
 tags: [plan, compaction, sse, notification, client-sync]
 modules: [backend, shared, web]
-related: [.lore/specs/compaction-system-spec.md, .lore/plans/compaction-system-plan.md]
+related: [.lore/specs/compaction-system.md, .lore/plans/compaction-system.md]
 ---
 
 # Plan: Compaction Notification
@@ -15,7 +15,7 @@ Two phases. Phase A handles the server-side emission and the shared schema. Phas
 
 ## Spec Reference
 
-**Spec**: `.lore/specs/compaction-system-spec.md`
+**Spec**: `.lore/specs/compaction-system.md`
 
 | Requirement | Phase | Description |
 |-------------|-------|-------------|

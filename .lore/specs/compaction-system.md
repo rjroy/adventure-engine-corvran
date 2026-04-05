@@ -4,7 +4,7 @@ date: 2026-04-02
 status: implemented 
 tags: [compaction, history, context-management, narrative, haiku, scene-boundaries]
 modules: [backend, shared, web]
-related: [.lore/specs/mvp.md, .lore/brainstorm/compaction-system.md, .lore/brainstorm/conversation-history.md, .lore/research/scene-boundaries.md, .lore/vision.md]
+related: [.lore/plans/compaction-system.md, .lore/plans/compaction-notification.md, .lore/specs/mvp.md, .lore/brainstorm/compaction-system.md, .lore/brainstorm/conversation-history.md, .lore/research/scene-boundaries.md, .lore/vision.md]
 req-prefix: COMP
 ---
 

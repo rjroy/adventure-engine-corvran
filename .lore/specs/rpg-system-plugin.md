@@ -1,7 +1,7 @@
 ---
 title: RPG System Plugin Specification
 date: 2026-04-04
-status: active
+status: implemented
 tags: [plugins, game-systems, skills, bootstrap-prompts, claude-plugin]
 modules: [backend]
 related: [.lore/specs/adventure-system-integration.md, .lore/specs/engine-dice-tool.md]

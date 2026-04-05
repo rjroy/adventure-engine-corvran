@@ -4,7 +4,7 @@ date: 2026-03-30
 status: resolved
 tags: [mood, themes, ux, atmosphere, visual, gm-tools, sse, mcp, image-generation, color]
 modules: [backend, web, shared]
-related: [.lore/issues/dynamic-mood-themes.md, .lore/vision.md, .lore/research/dynamic-color-palettes.md, .lore/research/replicate-image-generation.md]
+related: [.lore/specs/dynamic-mood-system.md, .lore/issues/dynamic-mood-themes.md, .lore/vision.md, .lore/research/dynamic-color-palettes.md, .lore/research/replicate-image-generation.md]
 ---
 
 # Brainstorm: Dynamic Mood System

@@ -1,8 +1,8 @@
 ---
 title: Apocrypha
 date: 2026-04-03
-status: Active
-tags: [rpg-system, keyword, game-design, plugin, hallucination-resistant, apocrypha]
+status: approved
+tags: [rpg-systems, keyword, game-design, plugins, hallucination-resistant, apocrypha]
 modules: [plugins]
 related: [.lore/research/llm-optimized-rpg-systems.md, .lore/research/llm-integration-notes-daggerheart.md, .lore/specs/adventure-system-integration.md, .lore/specs/engine-dice-tool.md]
 req-prefix: KW
