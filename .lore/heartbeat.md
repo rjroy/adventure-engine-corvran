@@ -26,3 +26,9 @@ Workers can also add entries to this file during their sessions.
 ## Context Notes
 
 ## Recent Activity
+- 08:39 commission-Dalton-20260405-083833 result: Fixed bug where hidden directories (`.git`, `.env`, `.github`, etc.) were being picked up as adventures.
+
+**Implementation:**
+- Modified `isValidAdventureId()` in `packages/backend/src/services/advent...
+
+- 08:39 commission-Dalton-20260405-083833 completed
