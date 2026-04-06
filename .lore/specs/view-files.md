@@ -1,7 +1,7 @@
 ---
 title: View Files
 date: 2026-04-06
-status: draft
+status: approved 
 tags: [ux, file-browser, adventure-view, markdown]
 modules: [backend, web, shared]
 req-prefix: VF
