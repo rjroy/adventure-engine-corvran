@@ -48,3 +48,8 @@ The plan covers five phases mapped to all 27 spec requirements:
 - 16:47 commission-Dalton-20260406-164304 completed
 - 16:51 commission-Thorne-20260406-164314 result: Phase 1-3 implementation review complete. 19 tests pass, all spec requirements addressed. Two findings: one defect (directory requests treated as binary files), one test coverage gap (no directory edg...
 - 16:51 commission-Thorne-20260406-164314 completed
+- 16:59 commission-Dalton-20260406-164329 result: Implemented Phases 4 and 5 of the View Files feature, plus addressed all of Thorne's review findings.
+
+**Thorne's defect fixed:**
+- Directory requests to `GET /adventures/:id/file?path=...` now return...
+- 16:59 commission-Dalton-20260406-164329 completed
