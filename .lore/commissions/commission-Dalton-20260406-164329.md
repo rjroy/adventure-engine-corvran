@@ -1,7 +1,7 @@
 ---
 title: "Commission: View Files: Phases 4-5 (tab bar + FilesView components)"
 date: 2026-04-06
-status: blocked
+status: dispatched
 tags: [commission]
 worker: Dalton
 workerDisplayTitle: "Guild Artificer"
@@ -22,6 +22,16 @@ activity_timeline:
     reason: "Dependencies not satisfied"
     from: "pending"
     to: "blocked"
+  - timestamp: 2026-04-06T23:51:08.447Z
+    event: status_pending
+    reason: "Dependencies satisfied"
+    from: "blocked"
+    to: "pending"
+  - timestamp: 2026-04-06T23:51:08.450Z
+    event: status_dispatched
+    reason: "Dispatched to worker"
+    from: "pending"
+    to: "dispatched"
 current_progress: ""
 projectName: corvran
 ---
