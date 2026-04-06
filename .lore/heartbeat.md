@@ -35,3 +35,9 @@ The spec covers:
 - Re...
 
 - 16:26 commission-Octavia-20260406-162222 completed
+- 16:34 commission-Octavia-20260406-163038 result: Wrote the implementation plan to `.lore/plans/view-files-plan.md`.
+
+The plan covers five phases mapped to all 27 spec requirements:
+
+1. **Phase 1: FileOps extension** — Add `readDirEntries` to the int...
+- 16:34 commission-Octavia-20260406-163038 completed
