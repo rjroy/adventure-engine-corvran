@@ -71,10 +71,14 @@ export function assembleSystemPrompt(state: AdventureState): string {
       "# Onboarding\n\n" +
       `The player hasn't set up a ${missing} yet. ` +
       "You can help them create one through conversation. " +
-      "Ask what kind of adventure they want to play, then use your skills " +
-      "to guide character creation and world building. Let the player drive the choices. " +
-      "Once details are established, write them to the appropriate file " +
-      "(character.md for the character, world.md for the world)."
+      "Ask what kind of adventure they want to play, then guide character creation and world building. " +
+      "Let the player drive the choices.\n\n" +
+      "When creating a character, write both a bootstrap summary to `character.md` " +
+      "(identity, short description, pointer to full sheet) and a full character sheet " +
+      "to `characters/<name>.md`.\n\n" +
+      "When creating the world, write an index to `world.md` " +
+      "(orientation, major powers, active threats, directory of reference files) " +
+      "and at least one reference file for the starting location in `locations/`."
     );
   }
 
@@ -91,17 +95,24 @@ export function assembleSystemPrompt(state: AdventureState): string {
     "include the meaningful result in your narrative (e.g., \"You rolled 14 + 3 = 17, a success!\") " +
     "but not the raw tool invocation.\n\n" +
     "## File Tools\n\n" +
-    "You have file tools (Read, Write, Edit, Glob, Grep) with access to the adventure directory. " +
-    "Use them to maintain persistent records:\n\n" +
-    "- **`character.md`** — Write character data here when creating or updating a character. " +
-    "The chat carries the narrative; this file is the structured record (stats, inventory, abilities, background).\n" +
-    "- **`world.md`** — Write world details here when establishing or updating locations, NPCs, factions, or lore. " +
-    "The chat carries the story; this file is the reference material.\n" +
-    "- Read these files to recall state rather than relying solely on conversation context.\n" +
-    "- Do not modify `adventure.md` or `history.md` — those are managed by the system.\n\n" +
-    "Files are the persistent record. Chat is the live interaction. " +
-    "When something changes (a character levels up, a new NPC is introduced, an item is acquired), " +
-    "update the relevant file."
+    "You have file tools (Read, Write, Edit, Glob, Grep) with access to the adventure directory.\n\n" +
+    "The adventure directory uses a two-layer structure:\n\n" +
+    "**Bootstrap files** (loaded into this prompt):\n" +
+    "- `character.md` -- A summary of the player character. Not the full sheet.\n" +
+    "- `world.md` -- An index of the world: orientation, active threats, and a directory of reference files.\n\n" +
+    "**Reference files** (read on demand):\n" +
+    "- Detailed content lives in typed subdirectories: `characters/`, `locations/`, `quests/`, and any other types the adventure needs.\n" +
+    "- Each entry is a single file: `<type>/<name>.md` (e.g., `characters/sister-marne.md`, `locations/crossroads-inn.md`).\n" +
+    "- Read reference files when you need detail. The index tells you what exists and where.\n\n" +
+    "**When state changes:**\n" +
+    "- Write or update the reference file in the appropriate directory.\n" +
+    "- Update `world.md` to add or revise the index entry.\n" +
+    "- If the player character changed, update `characters/<name>.md` (full sheet) and `character.md` (summary) if the change affects the summary.\n\n" +
+    "**When introducing new elements:**\n" +
+    "- Write a reference file: `<type>/<name>.md`\n" +
+    "- Add an index entry to `world.md` with the path and a one-line description.\n" +
+    "- Create a new type directory if nothing existing fits.\n\n" +
+    "Do not modify `adventure.md` or `history.md` -- those are managed by the system."
   );
 
   if (state.compactionEnabled) {
