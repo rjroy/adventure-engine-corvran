@@ -1,7 +1,7 @@
 ---
 title: "Implementation plan: adventure-file-structure"
 date: 2026-04-05
-status: approved
+status: executed 
 tags: [plan, prompt-service, file-structure, gm-behavior]
 modules: [backend]
 related: [.lore/specs/adventure-file-structure.md, .lore/reference/architecture-pattern.md]
