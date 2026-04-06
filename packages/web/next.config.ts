@@ -6,7 +6,7 @@ const tailscaleHostname =
 const nextConfig: NextConfig = {
   transpilePackages: ["@corvran/shared"],
   allowedDevOrigins: [
-    `http://${tailscaleHostname}:3000`,
+    `http://${tailscaleHostname}:3030`,
     `https://${tailscaleHostname}`,
   ],
 };
