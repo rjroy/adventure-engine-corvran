@@ -1,7 +1,7 @@
 ---
 title: "View Files"
 date: 2026-04-05
-status: open
+status: approved
 tags: [ux, file-browser, adventure-view, markdown]
 ---
 
