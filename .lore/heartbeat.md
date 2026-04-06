@@ -26,3 +26,12 @@ Workers can also add entries to this file during their sessions.
 ## Context Notes
 
 ## Recent Activity
+- 16:26 commission-Octavia-20260406-162222 result: Wrote spec to `.lore/specs/view-files.md`.
+
+The spec covers:
+
+**Backend:**
+- Two new endpoints: `GET /adventures/:id/files` (recursive tree) and `GET /adventures/:id/file?path=...` (file content)
+- Re...
+
+- 16:26 commission-Octavia-20260406-162222 completed
