@@ -1,7 +1,7 @@
 ---
 title: "Implementation plan: view-files"
 date: 2026-04-06
-status: draft
+status: approved 
 tags: [plan, file-browser, adventure-view, markdown, ux]
 modules: [backend, shared, web]
 related:
