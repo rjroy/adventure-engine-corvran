@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { MessageRequestSchema, CreateAdventureRequestSchema } from "@corvran/shared";
+import type { FileTreeNode } from "@corvran/shared";
 import { type AdventureService, DuplicateAdventureError } from "../services/adventure-service";
 import type { HistoryService } from "../services/history-service";
 import type { SessionRunner } from "../services/session-runner";
@@ -9,6 +10,41 @@ import { assembleSystemPrompt } from "../services/prompt-service";
 import { parseAdventureConfig } from "../services/adventure-config";
 import { type CompactionService, CompactionInProgressError, HistoryTooShortError } from "../services/compaction-service";
 import type { FileOps, OperationDefinition, RouteModule } from "../types";
+
+const TEXT_EXTENSIONS = new Set([".md", ".txt", ".json", ".yaml", ".yml", ".toml", ".csv"]);
+
+export function isBinaryPath(filePath: string): boolean {
+  const ext = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
+  return !TEXT_EXTENSIONS.has(ext);
+}
+
+export async function buildFileTree(
+  fileOps: FileOps,
+  dirPath: string,
+  relativePath: string,
+): Promise<FileTreeNode[]> {
+  const entries = await fileOps.readDirEntries(dirPath);
+
+  // Sort: directories first (alpha), then files (alpha)
+  const dirs = entries.filter((e) => e.type === "directory").sort((a, b) => a.name.localeCompare(b.name));
+  const files = entries.filter((e) => e.type === "file").sort((a, b) => a.name.localeCompare(b.name));
+
+  const nodes: FileTreeNode[] = [];
+
+  for (const dir of dirs) {
+    const childRelPath = relativePath ? `${relativePath}/${dir.name}` : dir.name;
+    const childAbsPath = fileOps.resolvePath(dirPath, dir.name);
+    const children = await buildFileTree(fileOps, childAbsPath, childRelPath);
+    nodes.push({ name: dir.name, path: childRelPath, type: "directory", children });
+  }
+
+  for (const file of files) {
+    const childRelPath = relativePath ? `${relativePath}/${file.name}` : file.name;
+    nodes.push({ name: file.name, path: childRelPath, type: "file" });
+  }
+
+  return nodes;
+}
 
 export interface CompactionConfig {
   historyThreshold: number;
@@ -68,6 +104,66 @@ export function createAdventureRoutes(deps: {
 
     const history = await adventureService.getHistory(id);
     return c.json(history);
+  });
+
+  routes.get("/adventures/:id/files", async (c) => {
+    const id = c.req.param("id");
+    if (!isValidId(id)) {
+      return c.json({ error: "Invalid adventure ID" }, 400);
+    }
+    if (!fileOps) {
+      return c.json({ error: "File operations unavailable" }, 503);
+    }
+
+    const adventure = await adventureService.getAdventure(id);
+    if (!adventure) {
+      return c.json({ error: "Adventure not found" }, 404);
+    }
+
+    const adventurePath = adventureService.getAdventurePath(id);
+    const tree = await buildFileTree(fileOps, adventurePath, "");
+    return c.json({ tree });
+  });
+
+  routes.get("/adventures/:id/file", async (c) => {
+    const id = c.req.param("id");
+    if (!isValidId(id)) {
+      return c.json({ error: "Invalid adventure ID" }, 400);
+    }
+    if (!fileOps) {
+      return c.json({ error: "File operations unavailable" }, 503);
+    }
+
+    const relativePath = c.req.query("path");
+    if (!relativePath) {
+      return c.json({ error: "Missing required query parameter: path" }, 400);
+    }
+
+    const adventure = await adventureService.getAdventure(id);
+    if (!adventure) {
+      return c.json({ error: "Adventure not found" }, 404);
+    }
+
+    // Path traversal check (REQ-VF-7)
+    const adventurePath = adventureService.getAdventurePath(id);
+    const resolvedPath = fileOps.resolvePath(adventurePath, relativePath);
+    const normalizedRoot = fileOps.resolvePath(adventurePath);
+    if (!resolvedPath.startsWith(normalizedRoot + "/") && resolvedPath !== normalizedRoot) {
+      return c.json({ error: "Invalid path" }, 400);
+    }
+
+    // Binary classification (REQ-VF-9)
+    if (isBinaryPath(relativePath)) {
+      return c.json({ path: relativePath, content: null, binary: true });
+    }
+
+    // File existence check (REQ-VF-8)
+    if (!(await fileOps.fileExists(resolvedPath))) {
+      return c.json({ error: "File not found" }, 404);
+    }
+
+    const content = await fileOps.readFile(resolvedPath);
+    return c.json({ path: relativePath, content, binary: false });
   });
 
   routes.post("/adventures", async (c) => {
@@ -497,6 +593,29 @@ export function createAdventureRoutes(deps: {
         { name: "id", in: "path", required: true, description: "Adventure directory name" },
       ],
       idempotent: false,
+    },
+    {
+      operationId: "adventures.files.list",
+      name: "files",
+      description: "Get the complete file tree for an adventure",
+      invocation: { method: "GET", path: "/adventures/:id/files" },
+      hierarchy: { root: "adventures", feature: "files" },
+      parameters: [
+        { name: "id", in: "path", required: true, description: "Adventure directory name" },
+      ],
+      idempotent: true,
+    },
+    {
+      operationId: "adventures.file.get",
+      name: "file",
+      description: "Get the content of a single adventure file",
+      invocation: { method: "GET", path: "/adventures/:id/file" },
+      hierarchy: { root: "adventures", feature: "files" },
+      parameters: [
+        { name: "id", in: "path", required: true, description: "Adventure directory name" },
+        { name: "path", in: "query", required: true, description: "Relative path to file" },
+      ],
+      idempotent: true,
     },
   ];
 

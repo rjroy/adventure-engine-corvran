@@ -29,6 +29,7 @@ const registryFileOps: FileOps = {
   },
   deleteFile() { throw new Error("not implemented"); },
   readFiles() { throw new Error("not implemented"); },
+  readDirEntries() { throw new Error("not implemented"); },
   resolvePath(...segments: string[]) { return resolve(...segments); },
 };
 

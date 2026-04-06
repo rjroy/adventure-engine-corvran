@@ -12,6 +12,7 @@ export interface FileOps {
   readFileBytes(path: string): Promise<Uint8Array>;
   deleteFile(path: string): Promise<void>;
   readFiles(path: string): Promise<string[]>;
+  readDirEntries(path: string): Promise<{ name: string; type: "file" | "directory" }[]>;
   resolvePath(...segments: string[]): string;
 }
 

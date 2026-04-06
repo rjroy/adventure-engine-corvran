@@ -103,6 +103,23 @@ export function createMockFileOps(files: Record<string, string> = {}): MockFileO
       return [...files].sort();
     },
 
+    async readDirEntries(path: string): Promise<{ name: string; type: "file" | "directory" }[]> {
+      const prefix = path.endsWith("/") ? path : path + "/";
+      const seen = new Map<string, "file" | "directory">();
+      for (const key of store.keys()) {
+        if (!key.startsWith(prefix)) continue;
+        const rest = key.slice(prefix.length);
+        const firstSegment = rest.split("/")[0];
+        // If there's more path after the first segment, it's a directory
+        const type: "file" | "directory" = rest.includes("/") ? "directory" : "file";
+        // Directories win over files if the same name appears both ways
+        if (!seen.has(firstSegment) || type === "directory") {
+          seen.set(firstSegment, type);
+        }
+      }
+      return [...seen.entries()].map(([name, type]) => ({ name, type }));
+    },
+
     resolvePath(...segments: string[]): string {
       return resolve(...segments);
     },

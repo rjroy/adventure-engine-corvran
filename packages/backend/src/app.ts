@@ -59,6 +59,13 @@ function createRealFileOps(): FileOps {
       const entries = await readdir(path, { withFileTypes: true });
       return entries.filter((e) => e.isFile()).map((e) => e.name);
     },
+    async readDirEntries(path: string): Promise<{ name: string; type: "file" | "directory" }[]> {
+      const entries = await readdir(path, { withFileTypes: true });
+      return entries.map((e) => ({
+        name: e.name,
+        type: e.isDirectory() ? "directory" : "file",
+      }));
+    },
     resolvePath(...segments: string[]): string {
       return resolve(...segments);
     },
