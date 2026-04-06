@@ -1,7 +1,7 @@
 ---
 title: Adventure file structure and GM interaction model
 date: 2026-04-05
-status: approved
+status: implemented 
 tags: [adventure, file-structure, gm-behavior, prompt-assembly]
 modules: [prompt-service, adventure-service]
 req-prefix: AFS
