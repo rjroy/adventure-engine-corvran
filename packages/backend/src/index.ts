@@ -21,7 +21,7 @@ const registryFileOps: FileOps = {
     try { await stat(path); return true; } catch { return false; }
   },
   async stat(path: string) {
-    try { const s = await stat(path); return { mtime: s.mtime }; } catch { return null; }
+    try { const s = await stat(path); return { mtime: s.mtime, isDirectory: s.isDirectory() }; } catch { return null; }
   },
   async readFileBytes(path: string) {
     const buf = await Bun.file(path).arrayBuffer();

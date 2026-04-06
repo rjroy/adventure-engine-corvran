@@ -41,10 +41,10 @@ function createRealFileOps(): FileOps {
         return false;
       }
     },
-    async stat(path: string): Promise<{ mtime: Date } | null> {
+    async stat(path: string): Promise<{ mtime: Date; isDirectory: boolean } | null> {
       try {
         const s = await stat(path);
-        return { mtime: s.mtime };
+        return { mtime: s.mtime, isDirectory: s.isDirectory() };
       } catch {
         return null;
       }

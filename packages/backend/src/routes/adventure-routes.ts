@@ -148,8 +148,14 @@ export function createAdventureRoutes(deps: {
     const adventurePath = adventureService.getAdventurePath(id);
     const resolvedPath = fileOps.resolvePath(adventurePath, relativePath);
     const normalizedRoot = fileOps.resolvePath(adventurePath);
-    if (!resolvedPath.startsWith(normalizedRoot + "/") && resolvedPath !== normalizedRoot) {
+    if (!resolvedPath.startsWith(normalizedRoot + "/")) {
       return c.json({ error: "Invalid path" }, 400);
+    }
+
+    // Reject directory requests (REQ-VF-5 — endpoint returns content of a single file)
+    const pathStat = await fileOps.stat(resolvedPath);
+    if (pathStat?.isDirectory) {
+      return c.json({ error: "File not found" }, 404);
     }
 
     // Binary classification (REQ-VF-9)

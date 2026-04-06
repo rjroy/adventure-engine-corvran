@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
-import type { AdventureDetail, HistoryResponse, ToolUseEvent, CompactResponse } from "@corvran/shared";
+import type { AdventureDetail, HistoryResponse, ToolUseEvent, CompactResponse, FileTreeNode, FileTreeResponse, FileContentResponse } from "@corvran/shared";
 import { useAdventureStream } from "@/lib/use-adventure-stream";
 import { parseHistory, type HistoryMessage } from "@/lib/parse-history";
 import { isTouchDevice, shouldSendOnEnter } from "@/lib/keyboard-handler";
@@ -46,6 +46,8 @@ export default function AdventurePlayPage() {
   const { isStreaming, streamingMessage, error, sendMessage, stop } =
     useAdventureStream(id, handleStreamComplete, handleCompacted);
   const [isCompacting, setIsCompacting] = useState(false);
+  const [activeTab, setActiveTab] = useState<"play" | "files">("play");
+  const hasActivatedFilesTab = useRef(false);
   const [compactError, setCompactError] = useState<string | null>(null);
 
   // Load adventure detail and history
@@ -210,6 +212,27 @@ export default function AdventurePlayPage() {
       />
       <PlayHeader name={adventure.name} />
 
+      <div className={styles.tabBar}>
+        <button
+          className={`${styles.tabBtn} ${activeTab === "play" ? styles.tabBtnActive : ""}`}
+          onClick={() => setActiveTab("play")}
+          type="button"
+        >
+          Play
+        </button>
+        <button
+          className={`${styles.tabBtn} ${activeTab === "files" ? styles.tabBtnActive : ""}`}
+          onClick={() => {
+            hasActivatedFilesTab.current = true;
+            setActiveTab("files");
+          }}
+          type="button"
+        >
+          Files
+        </button>
+      </div>
+
+      {activeTab === "play" && (
       <div className={styles.conversation} ref={conversationRef}>
         <div className={styles.conversationInner}>
           {error && (
@@ -256,7 +279,13 @@ export default function AdventurePlayPage() {
           <div ref={bottomRef} />
         </div>
       </div>
+      )}
 
+      {activeTab === "files" && (
+        <FilesView adventureId={id} triggered={hasActivatedFilesTab.current} />
+      )}
+
+      {activeTab === "play" && (
       <div className={styles.inputArea}>
         <div className={styles.inputAreaInner}>
           <div
@@ -308,6 +337,7 @@ export default function AdventurePlayPage() {
               : "Enter to send \u00b7 Shift+Enter for new line"}
         </div>
       </div>
+      )}
     </div>
   );
 }
@@ -407,5 +437,144 @@ function NewAdventureState() {
         conversation.
       </p>
     </div>
+  );
+}
+
+function FilesView({ adventureId, triggered }: { adventureId: string; triggered: boolean }) {
+  const [tree, setTree] = useState<FileTreeNode[] | null>(null);
+  const [treeError, setTreeError] = useState<string | null>(null);
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [fileContent, setFileContent] = useState<FileContentResponse | null>(null);
+  const [fileLoading, setFileLoading] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const hasFetched = useRef(false);
+
+  // Fetch tree on first activation (lazy, not on page load — REQ-VF-16)
+  useEffect(() => {
+    if (!triggered || hasFetched.current) return;
+    hasFetched.current = true;
+
+    fetch(`/api/daemon/adventures/${adventureId}/files`)
+      .then((r) => r.json() as Promise<FileTreeResponse>)
+      .then((data) => setTree(data.tree))
+      .catch(() => setTreeError("Failed to load file tree"));
+  }, [triggered, adventureId]);
+
+  const handleSelectFile = useCallback((path: string) => {
+    if (path === selectedPath) return; // REQ-VF-19: no re-fetch on same file
+    setSelectedPath(path);
+    setFileContent(null);
+    setFileError(null);
+    setFileLoading(true);
+
+    fetch(`/api/daemon/adventures/${adventureId}/file?path=${encodeURIComponent(path)}`)
+      .then((r) => r.json() as Promise<FileContentResponse>)
+      .then((data) => setFileContent(data))
+      .catch(() => setFileError("Failed to load file"))
+      .finally(() => setFileLoading(false));
+  }, [selectedPath, adventureId]);
+
+  return (
+    <div className={styles.filesView}>
+      <div className={styles.filesTree}>
+        {treeError && <div className={styles.filesError}>{treeError}</div>}
+        {!tree && !treeError && <div className={styles.filesLoading}>Loading...</div>}
+        {tree && (
+          <FileTree
+            nodes={tree}
+            selectedPath={selectedPath}
+            onSelectFile={handleSelectFile}
+          />
+        )}
+      </div>
+      <div className={styles.filesContent}>
+        {!selectedPath && (
+          <div className={styles.filesEmpty}>Select a file to view its contents.</div>
+        )}
+        {selectedPath && fileLoading && (
+          <div className={styles.filesLoading}>Loading...</div>
+        )}
+        {selectedPath && fileError && (
+          <div className={styles.filesError}>{fileError}</div>
+        )}
+        {fileContent && !fileLoading && (
+          fileContent.binary
+            ? <div className={styles.filesEmpty}>Binary file — preview not available.</div>
+            : <div className={styles.fileMarkdown}>
+                <ReactMarkdown>{fileContent.content ?? ""}</ReactMarkdown>
+              </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FileTree({
+  nodes,
+  selectedPath,
+  onSelectFile,
+}: {
+  nodes: FileTreeNode[];
+  selectedPath: string | null;
+  onSelectFile: (path: string) => void;
+}) {
+  return (
+    <ul className={styles.treeList}>
+      {nodes.map((node) => (
+        <FileTreeNode
+          key={node.path}
+          node={node}
+          selectedPath={selectedPath}
+          onSelectFile={onSelectFile}
+        />
+      ))}
+    </ul>
+  );
+}
+
+function FileTreeNode({
+  node,
+  selectedPath,
+  onSelectFile,
+}: {
+  node: FileTreeNode;
+  selectedPath: string | null;
+  onSelectFile: (path: string) => void;
+}) {
+  const [collapsed, setCollapsed] = useState(false); // default: expanded (REQ-VF-18)
+
+  if (node.type === "directory") {
+    return (
+      <li className={styles.treeItem}>
+        <button
+          className={styles.treeDirBtn}
+          onClick={() => setCollapsed((c) => !c)}
+          type="button"
+        >
+          <span className={styles.treeDirIcon}>{collapsed ? "\u25B6" : "\u25BC"}</span>
+          {node.name}
+        </button>
+        {!collapsed && node.children && (
+          <FileTree
+            nodes={node.children}
+            selectedPath={selectedPath}
+            onSelectFile={onSelectFile}
+          />
+        )}
+      </li>
+    );
+  }
+
+  const isSelected = node.path === selectedPath;
+  return (
+    <li className={styles.treeItem}>
+      <button
+        className={`${styles.treeFileBtn} ${isSelected ? styles.treeFileBtnSelected : ""}`}
+        onClick={() => onSelectFile(node.path)}
+        type="button"
+      >
+        {node.name}
+      </button>
+    </li>
   );
 }

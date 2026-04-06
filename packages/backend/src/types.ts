@@ -8,7 +8,7 @@ export interface FileOps {
   writeFile(path: string, content: string): Promise<void>;
   appendFile(path: string, content: string): Promise<void>;
   fileExists(path: string): Promise<boolean>;
-  stat(path: string): Promise<{ mtime: Date } | null>;
+  stat(path: string): Promise<{ mtime: Date; isDirectory: boolean } | null>;
   readFileBytes(path: string): Promise<Uint8Array>;
   deleteFile(path: string): Promise<void>;
   readFiles(path: string): Promise<string[]>;

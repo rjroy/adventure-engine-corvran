@@ -75,10 +75,20 @@ export function createMockFileOps(files: Record<string, string> = {}): MockFileO
       return false;
     },
 
-    async stat(path: string): Promise<{ mtime: Date } | null> {
-      if (!store.has(path)) return null;
-      const mtime = mtimes.get(path) ?? new Date(0);
-      return { mtime };
+    async stat(path: string): Promise<{ mtime: Date; isDirectory: boolean } | null> {
+      if (store.has(path) || bytesStore.has(path)) {
+        const mtime = mtimes.get(path) ?? new Date(0);
+        return { mtime, isDirectory: false };
+      }
+      // A directory exists if any store key starts with path as a prefix
+      const prefix = path.endsWith("/") ? path : path + "/";
+      for (const key of store.keys()) {
+        if (key.startsWith(prefix)) return { mtime: new Date(0), isDirectory: true };
+      }
+      for (const key of bytesStore.keys()) {
+        if (key.startsWith(prefix)) return { mtime: new Date(0), isDirectory: true };
+      }
+      return null;
     },
 
     async deleteFile(path: string): Promise<void> {

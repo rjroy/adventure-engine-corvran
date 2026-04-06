@@ -217,4 +217,13 @@ describe("GET /adventures/:id/file", () => {
     const res = await app.request("/adventures/..%2Fevil/file?path=character.md");
     expect(res.status).toBe(400);
   });
+
+  test("returns 404 for directory path", async () => {
+    const { app } = buildTestApp({
+      [`${ADVENTURES_ROOT}/quest/adventure.md`]: "---\nname: Quest\n---",
+      [`${ADVENTURES_ROOT}/quest/characters/dwig.md`]: "dwig",
+    });
+    const res = await app.request("/adventures/quest/file?path=characters");
+    expect(res.status).toBe(404);
+  });
 });
