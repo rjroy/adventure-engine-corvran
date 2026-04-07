@@ -4,7 +4,7 @@ date: 2026-03-29
 status: implemented
 tags: [plugins, game-systems, bootstrap-prompts, adventure-config, prompt-service, api]
 modules: [backend, shared]
-related: [.lore/vision.md, .lore/specs/mvp.md, .lore/brainstorm/rpg-system-loading.md]
+related: [.lore/plans/adventure-system-integration.md, .lore/vision.md, .lore/specs/mvp.md, .lore/brainstorm/rpg-system-loading.md]
 req-prefix: SYS
 ---
 

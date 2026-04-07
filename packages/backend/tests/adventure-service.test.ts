@@ -21,6 +21,30 @@ describe("isValidAdventureId", () => {
     expect(service.isValidAdventureId("foo/../../bar")).toBe(false);
   });
 
+  test("rejects IDs starting with . (.git)", () => {
+    const service = createAdventureService({
+      fileOps: createMockFileOps(),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+    expect(service.isValidAdventureId(".git")).toBe(false);
+  });
+
+  test("rejects IDs starting with . (.env)", () => {
+    const service = createAdventureService({
+      fileOps: createMockFileOps(),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+    expect(service.isValidAdventureId(".env")).toBe(false);
+  });
+
+  test("rejects IDs starting with . (.github)", () => {
+    const service = createAdventureService({
+      fileOps: createMockFileOps(),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+    expect(service.isValidAdventureId(".github")).toBe(false);
+  });
+
   test("accepts valid IDs", () => {
     const service = createAdventureService({
       fileOps: createMockFileOps(),
@@ -31,6 +55,25 @@ describe("isValidAdventureId", () => {
 });
 
 describe("listAdventures", () => {
+  test("excludes hidden directories like .git from listing", async () => {
+    const files: Record<string, string> = {
+      [`${ADVENTURES_ROOT}/real-adventure/character.md`]: "# Hero",
+      [`${ADVENTURES_ROOT}/real-adventure/.keep`]: "",
+      [`${ADVENTURES_ROOT}/.git/config`]: "git config",
+      [`${ADVENTURES_ROOT}/.env`]: "SECRET_KEY=hidden",
+      [`${ADVENTURES_ROOT}/.github/workflows/test.yml`]: "workflow",
+    };
+
+    const service = createAdventureService({
+      fileOps: createMockFileOps(files),
+      adventuresPath: ADVENTURES_ROOT,
+    });
+
+    const result = await service.listAdventures();
+    expect(result).toHaveLength(1);
+    expect(result[0]?.id).toBe("real-adventure");
+  });
+
   test("returns empty array when no adventures exist", async () => {
     const service = createAdventureService({
       fileOps: createMockFileOps(),

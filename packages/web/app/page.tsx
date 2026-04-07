@@ -136,9 +136,6 @@ function Header({ onNewAdventure }: { onNewAdventure: () => void }) {
         </div>
         <span className={styles.appName}>Adventure Engine of Corvran</span>
       </div>
-      <button className={styles.headerNewBtn} onClick={onNewAdventure}>
-        + New
-      </button>
     </header>
   );
 }

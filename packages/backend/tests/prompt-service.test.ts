@@ -141,8 +141,12 @@ describe("assembleSystemPrompt", () => {
     expect(prompt).toContain("## File Tools");
     expect(prompt).toContain("character.md");
     expect(prompt).toContain("world.md");
+    expect(prompt).toContain("two-layer structure");
+    expect(prompt).toContain("Bootstrap files");
+    expect(prompt).toContain("Reference files");
+    expect(prompt).toContain("characters/");
+    expect(prompt).toContain("locations/");
     expect(prompt).toContain("Do not modify `adventure.md` or `history.md`");
-    expect(prompt).toContain("Files are the persistent record");
   });
 
   test("onboarding mentions writing to files", () => {
@@ -154,7 +158,11 @@ describe("assembleSystemPrompt", () => {
       concept: null,
     });
 
-    expect(prompt).toContain("write them to the appropriate file");
+    expect(prompt).toContain("bootstrap summary to `character.md`");
+    expect(prompt).toContain("full character sheet");
+    expect(prompt).toContain("characters/<name>.md");
+    expect(prompt).toContain("world.md");
+    expect(prompt).toContain("locations/");
   });
 
   test("includes bootstrap content in Identity section when present", () => {
@@ -294,5 +302,99 @@ describe("assembleSystemPrompt", () => {
     });
     expect(withOmitted).not.toContain("## History Compaction");
     expect(withOmitted).not.toContain("compact_history");
+  });
+
+  test("file tool instructions describe two-layer convention (REQ-AFS-12)", () => {
+    const prompt = assembleSystemPrompt({
+      character: "# Character",
+      world: "# World",
+      history: null,
+      systemBootstrap: null,
+      concept: null,
+    });
+
+    const fileToolsStart = prompt.indexOf("## File Tools");
+    const nextSection = prompt.indexOf("## History Compaction");
+    const fileToolsSection = nextSection > -1
+      ? prompt.substring(fileToolsStart, nextSection)
+      : prompt.substring(fileToolsStart);
+
+    // Two-layer structure description
+    expect(fileToolsSection).toContain("two-layer structure");
+
+    // Bootstrap files section
+    expect(fileToolsSection).toContain("Bootstrap files");
+    expect(fileToolsSection).toContain("character.md");
+    expect(fileToolsSection).toContain("summary of the player character");
+    expect(fileToolsSection).toContain("world.md");
+    expect(fileToolsSection).toContain("index of the world");
+
+    // Reference files section
+    expect(fileToolsSection).toContain("Reference files");
+    expect(fileToolsSection).toContain("typed subdirectories");
+    expect(fileToolsSection).toContain("<type>/<name>.md");
+    expect(fileToolsSection).toContain("characters/sister-marne.md");
+    expect(fileToolsSection).toContain("locations/crossroads-inn.md");
+
+    // Read-on-demand guidance
+    expect(fileToolsSection).toContain("Read reference files when you need detail");
+
+    // Dual-update rules
+    expect(fileToolsSection).toContain("When state changes");
+    expect(fileToolsSection).toContain("Update `world.md`");
+
+    // New element rules
+    expect(fileToolsSection).toContain("When introducing new elements");
+    expect(fileToolsSection).toContain("Add an index entry to `world.md`");
+
+    // System file protection
+    expect(fileToolsSection).toContain("Do not modify `adventure.md` or `history.md`");
+  });
+
+  test("prompt from mature adventure contains bootstrap content, not full reference data (REQ-AFS-1)", () => {
+    // Simulate the-golden-age adventure structure:
+    // Bootstrap character.md with pointer to full sheet
+    const bootstrapCharacter =
+      "# Dwig Ironfoot\n\n" +
+      "A dwarf ranger with a sharp eye and sharper tongue.\n\n" +
+      "Full character sheet: characters/dwig.md";
+
+    // Bootstrap world.md with index, not full content
+    const bootstrapWorld =
+      "# The Golden Age\n\n" +
+      "The prosperous kingdom of Valdris, where ancient magic flows through the land.\n\n" +
+      "## Active Threats\n" +
+      "- Shadow creatures emerging from the Deep Woods\n" +
+      "- Political tension between the merchant houses\n\n" +
+      "## Index\n" +
+      "- characters/dwig.md -- The player character\n" +
+      "- characters/sister-marne.md -- A mysterious cleric\n" +
+      "- locations/crossroads-inn.md -- A neutral meeting ground\n" +
+      "- locations/deep-woods.md -- Source of the shadows\n" +
+      "- quests/shadow-investigation.md -- The immediate hook\n";
+
+    const prompt = assembleSystemPrompt({
+      character: bootstrapCharacter,
+      world: bootstrapWorld,
+      history: null,
+      systemBootstrap: null,
+      concept: null,
+    });
+
+    // Assert bootstrap content is present
+    expect(prompt).toContain("Dwig Ironfoot");
+    expect(prompt).toContain("Full character sheet: characters/dwig.md");
+    expect(prompt).toContain("The Golden Age");
+    expect(prompt).toContain("Active Threats");
+
+    // Assert detailed NPC/location content is NOT present
+    // (these would only appear in reference files, not the bootstrap)
+    expect(prompt).not.toContain("sister-marne's background");
+    expect(prompt).not.toContain("The inn keeper's secret");
+
+    // Assert the prompt contains index directory structure
+    expect(prompt).toContain("characters/sister-marne.md");
+    expect(prompt).toContain("locations/crossroads-inn.md");
+    expect(prompt).toContain("quests/shadow-investigation.md");
   });
 });

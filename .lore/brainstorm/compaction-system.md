@@ -4,7 +4,7 @@ date: 2026-03-31
 status: resolved
 tags: [compaction, history, context-management, narrative, haiku, tools]
 modules: [backend]
-related: [.lore/brainstorm/conversation-history.md, .lore/specs/mvp.md, .lore/issues/recap-and-history-compaction.md, .lore/_archive/adventure-engine-v1-spec.md]
+related: [.lore/specs/compaction-system.md, .lore/brainstorm/conversation-history.md, .lore/specs/mvp.md, .lore/issues/recap-and-history-compaction.md, .lore/_archive/adventure-engine-v1-spec.md]
 ---
 
 # Brainstorm: Compaction System Design

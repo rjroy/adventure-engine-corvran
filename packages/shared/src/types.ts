@@ -18,6 +18,8 @@ import type {
   MoodEventSchema,
   CompactResponseSchema,
   CompactErrorSchema,
+  FileTreeResponseSchema,
+  FileContentResponseSchema,
 } from "./schemas/adventures";
 
 export type AdventureListItem = z.infer<typeof AdventureListItemSchema>;
@@ -38,3 +40,5 @@ export type MoodState = z.infer<typeof MoodStateSchema>;
 export type MoodEvent = z.infer<typeof MoodEventSchema>;
 export type CompactResponse = z.infer<typeof CompactResponseSchema>;
 export type CompactError = z.infer<typeof CompactErrorSchema>;
+export type FileTreeResponse = z.infer<typeof FileTreeResponseSchema>;
+export type FileContentResponse = z.infer<typeof FileContentResponseSchema>;

@@ -41,10 +41,10 @@ function createRealFileOps(): FileOps {
         return false;
       }
     },
-    async stat(path: string): Promise<{ mtime: Date } | null> {
+    async stat(path: string): Promise<{ mtime: Date; isDirectory: boolean } | null> {
       try {
         const s = await stat(path);
-        return { mtime: s.mtime };
+        return { mtime: s.mtime, isDirectory: s.isDirectory() };
       } catch {
         return null;
       }
@@ -58,6 +58,13 @@ function createRealFileOps(): FileOps {
     async readFiles(path: string): Promise<string[]> {
       const entries = await readdir(path, { withFileTypes: true });
       return entries.filter((e) => e.isFile()).map((e) => e.name);
+    },
+    async readDirEntries(path: string): Promise<{ name: string; type: "file" | "directory" }[]> {
+      const entries = await readdir(path, { withFileTypes: true });
+      return entries.map((e) => ({
+        name: e.name,
+        type: e.isDirectory() ? "directory" : "file",
+      }));
     },
     resolvePath(...segments: string[]): string {
       return resolve(...segments);

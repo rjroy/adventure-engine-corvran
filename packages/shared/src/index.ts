@@ -17,6 +17,9 @@ export {
   MoodEventSchema,
   CompactResponseSchema,
   CompactErrorSchema,
+  FileTreeNodeSchema,
+  FileTreeResponseSchema,
+  FileContentResponseSchema,
 } from "./schemas/adventures";
 
 export type {
@@ -38,4 +41,8 @@ export type {
   MoodEvent,
   CompactResponse,
   CompactError,
+  FileTreeResponse,
+  FileContentResponse,
 } from "./types";
+
+export type { FileTreeNode } from "./schemas/adventures";

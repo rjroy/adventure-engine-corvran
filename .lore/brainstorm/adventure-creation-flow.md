@@ -4,7 +4,7 @@ date: 2026-03-30
 status: resolved
 tags: [ux, adventure-creation, session-zero, lobby, onboarding]
 modules: [web, backend, shared]
-related: [.lore/specs/adventure-system-integration.md, .lore/research/llm-optimized-rpg-systems.md, .lore/vision.md]
+related: [.lore/specs/adventure-creation-flow.md, .lore/specs/adventure-system-integration.md, .lore/research/llm-optimized-rpg-systems.md, .lore/vision.md]
 ---
 
 # Brainstorm: Adventure Creation Flow

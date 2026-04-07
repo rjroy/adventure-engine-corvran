@@ -54,6 +54,37 @@
   flex-shrink: 0;
 }
 
+/* ── Tab bar ─────────────────────────────────────────────── */
+.tabBar {
+  display: flex;
+  border-bottom: 1px solid var(--accent-border);
+  background: var(--bg-surface);
+  flex-shrink: 0;
+}
+
+.tabBtn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: color 0.15s, border-color 0.15s;
+  margin-bottom: -1px;
+}
+
+.tabBtn:hover {
+  color: var(--text-secondary);
+}
+
+.tabBtnActive {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
 /* ── Conversation ───────────────────────────────────────── */
 .conversation {
   flex: 1;
@@ -390,4 +421,166 @@
   color: var(--text-secondary);
   font-family: var(--font-serif);
   font-size: 16px;
+}
+
+/* ── Files view ─────────────────────────────────────────── */
+.filesView {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Desktop: side-by-side (REQ-VF-26) */
+@media (min-width: 640px) {
+  .filesView {
+    flex-direction: row;
+  }
+
+  .filesTree {
+    width: 240px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--accent-border);
+    overflow-y: auto;
+    padding: 16px 0;
+  }
+
+  .filesContent {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 32px;
+  }
+}
+
+/* Mobile: stacked (REQ-VF-27) */
+@media (max-width: 639px) {
+  .filesView {
+    flex-direction: column;
+  }
+
+  .filesTree {
+    border-bottom: 1px solid var(--accent-border);
+    overflow-y: auto;
+    padding: 12px 0;
+    max-height: 40vh;
+  }
+
+  .filesContent {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+  }
+}
+
+/* Tree elements */
+.treeList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.treeItem {
+  margin: 0;
+}
+
+.treeDirBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 4px 16px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.treeDirBtn:hover {
+  background: var(--bg-elevated);
+}
+
+.treeDirIcon {
+  font-size: 9px;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+/* Children of directory are indented via nested .treeList padding */
+.treeItem .treeList {
+  padding-left: 16px;
+}
+
+.treeFileBtn {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 4px 16px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.treeFileBtn:hover {
+  background: var(--bg-elevated);
+}
+
+.treeFileBtnSelected {
+  background: var(--bg-elevated);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* Content pane */
+.filesEmpty {
+  color: var(--text-tertiary);
+  font-size: 13px;
+  font-style: italic;
+  font-family: var(--font-serif);
+}
+
+.filesError {
+  color: var(--error-text);
+  font-size: 13px;
+}
+
+.filesLoading {
+  color: var(--text-tertiary);
+  font-size: 13px;
+  font-style: italic;
+  font-family: var(--font-serif);
+}
+
+.fileMarkdown {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--text-primary);
+}
+
+.fileMarkdown p {
+  margin-bottom: 1em;
+}
+
+.fileMarkdown p:last-child {
+  margin-bottom: 0;
+}
+
+.fileMarkdown h1,
+.fileMarkdown h2,
+.fileMarkdown h3 {
+  margin-top: 1.2em;
+  margin-bottom: 0.5em;
+  font-weight: normal;
+}
+
+.fileMarkdown ul,
+.fileMarkdown ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
 }

@@ -108,3 +108,33 @@ export const CompactResponseSchema = z.object({
 export const CompactErrorSchema = z.object({
   error: z.string(),
 });
+
+// Recursive file tree node
+export type FileTreeNode = {
+  name: string;
+  path: string;
+  type: "file" | "directory";
+  children?: FileTreeNode[];
+};
+
+export const FileTreeNodeSchema: z.ZodType<FileTreeNode> = z.lazy(() =>
+  z.object({
+    name: z.string(),
+    path: z.string(),
+    type: z.enum(["file", "directory"]),
+    children: z.array(FileTreeNodeSchema).optional(),
+  })
+);
+
+export const FileTreeResponseSchema = z.object({
+  tree: z.array(FileTreeNodeSchema),
+});
+
+export const FileContentResponseSchema = z.object({
+  path: z.string(),
+  content: z.string().nullable(),
+  binary: z.boolean(),
+});
+
+export type FileTreeResponse = z.infer<typeof FileTreeResponseSchema>;
+export type FileContentResponse = z.infer<typeof FileContentResponseSchema>;
