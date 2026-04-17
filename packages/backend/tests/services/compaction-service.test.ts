@@ -48,7 +48,7 @@ function makeDelayingQueryFn(response: string, delayMs: number): QueryFn {
       rewindFiles: async () => ({ canRewind: false }),
       setMcpServers: async () => ({ added: [], removed: [], errors: {} }),
       streamInput: async () => {},
-    }) as ReturnType<QueryFn>;
+    }) as unknown as ReturnType<QueryFn>;
   };
 }
 
@@ -71,7 +71,7 @@ function makeFailingQueryFn(error: Error): QueryFn {
       rewindFiles: async () => ({ canRewind: false }),
       setMcpServers: async () => ({ added: [], removed: [], errors: {} }),
       streamInput: async () => {},
-    }) as ReturnType<QueryFn>;
+    }) as unknown as ReturnType<QueryFn>;
   };
 }
 

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.1.69",
+    "@anthropic-ai/claude-agent-sdk": "^0.2.112",
     "@corvran/shared": "workspace:*",
     "culori": "^4.0.2",
     "hono": "^4.6.0",
@@ -15,7 +15,6 @@
     "lint": "eslint src/"
   },
   "devDependencies": {
-    "@anthropic-ai/sdk": "^0.80.0",
     "@eslint/js": "^9.17.0",
     "@types/pngjs": "^6.0.5",
     "bun-types": "latest",

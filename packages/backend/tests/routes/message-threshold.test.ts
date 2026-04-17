@@ -241,7 +241,7 @@ describe("threshold-triggered compaction", () => {
         rewindFiles: async () => ({ canRewind: false }),
         setMcpServers: async () => ({ added: [], removed: [], errors: {} }),
         streamInput: async () => {},
-      }) as ReturnType<QueryFn>;
+      }) as unknown as ReturnType<QueryFn>;
     };
 
     const sessionQueryFn = createMockQueryFn([
@@ -414,7 +414,7 @@ describe("compacted SSE event emission", () => {
         rewindFiles: async () => ({ canRewind: false }),
         setMcpServers: async () => ({ added: [], removed: [], errors: {} }),
         streamInput: async () => {},
-      }) as ReturnType<QueryFn>;
+      }) as unknown as ReturnType<QueryFn>;
     };
 
     const sessionQueryFn = createMockQueryFn([
