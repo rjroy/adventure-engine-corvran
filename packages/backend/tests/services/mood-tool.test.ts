@@ -327,7 +327,9 @@ describe("createMoodToolDef", () => {
       const result = await toolDef.handler({ description: "dark cavern" }, {});
       expect(emittedPayload).not.toBeNull();
       expect(emittedPayload!.hue).toBe(180);
-      expect(result.content[0].text).toBe("mood set");
+      const first = result.content[0];
+      expect(first.type).toBe("text");
+      if (first.type === "text") expect(first.text).toBe("mood set");
     });
 
     test("still returns success when emitMoodEvent throws", async () => {
@@ -344,7 +346,9 @@ describe("createMoodToolDef", () => {
       );
       const result = await toolDef.handler({ description: "dark cavern" }, {});
       expect(savedMood).not.toBeNull();
-      expect(result.content[0].text).toBe("mood set");
+      const first = result.content[0];
+      expect(first.type).toBe("text");
+      if (first.type === "text") expect(first.text).toBe("mood set");
     });
   });
 });

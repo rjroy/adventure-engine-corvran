@@ -58,7 +58,8 @@ describe("compact-tool", () => {
     });
 
     const result = await toolDef.handler({ _unused: undefined }, {});
-    const text = result.content[0].text;
+    const c = result.content[0];
+    const text = c.type === "text" ? c.text : "";
     expect(text).toBe("History compacted. Scene archived to past/scene-001.md.");
 
     // REQ-COMP-44: emitCompactedEvent called with CompactionResult
@@ -104,7 +105,7 @@ describe("compact-tool", () => {
     });
 
     const result = await toolDef.handler({ _unused: undefined }, {});
-    expect(result.content[0].text).toBe("History is too short to compact.");
+    expect(result.content[0].type === "text" && result.content[0].text).toBe("History is too short to compact.");
     expect(emitCalled).toBe(false);
   });
 
@@ -121,7 +122,8 @@ describe("compact-tool", () => {
     });
 
     const result = await toolDef.handler({ _unused: undefined }, {});
-    const text = result.content[0].text;
+    const c = result.content[0];
+    const text = c.type === "text" ? c.text : "";
     expect(text).toBe("History is too short to compact.");
   });
 
@@ -148,7 +150,7 @@ describe("compact-tool", () => {
         rewindFiles: async () => ({ canRewind: false }),
         setMcpServers: async () => ({ added: [], removed: [], errors: {} }),
         streamInput: async () => {},
-      }) as ReturnType<QueryFn>;
+      }) as unknown as ReturnType<QueryFn>;
     };
 
     const service = makeCompactionService(fileOps, delayingQueryFn);
@@ -165,8 +167,9 @@ describe("compact-tool", () => {
 
     // Tool call while lock is held
     const result = await toolDef.handler({ _unused: undefined }, {});
-    const text = result.content[0].text;
-    expect(text).toBe("Compaction is already in progress.");
+    const item = result.content[0];
+    expect(item.type).toBe("text");
+    if (item.type === "text") expect(item.text).toBe("Compaction is already in progress.");
 
     await first;
   });

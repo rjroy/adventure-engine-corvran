@@ -67,9 +67,10 @@ export function successResult(resultText: string): SDKResultMessage {
     usage: stubUsage,
     modelUsage: {},
     permission_denials: [],
+    stop_reason: "end_turn",
     uuid: crypto.randomUUID(),
     session_id: "test-session",
-  } as SDKResultMessage;
+  } as unknown as SDKResultMessage;
 }
 
 /** Creates an error result message */
@@ -86,9 +87,10 @@ export function errorResult(errors: string[]): SDKResultMessage {
     modelUsage: {},
     permission_denials: [],
     errors,
+    stop_reason: "end_turn",
     uuid: crypto.randomUUID(),
     session_id: "test-session",
-  } as SDKResultMessage;
+  } as unknown as SDKResultMessage;
 }
 
 /** Creates an assistant message with tool_use blocks */
@@ -139,7 +141,7 @@ export function userWithToolResult(
 
 /** Creates a mock queryFn that returns the given messages */
 export function createMockQueryFn(messages: SDKMessage[]): QueryFn {
-  return () => createMockQuery(messages) as ReturnType<QueryFn>;
+  return () => createMockQuery(messages) as unknown as ReturnType<QueryFn>;
 }
 
 /**
@@ -171,6 +173,6 @@ export function createThrowingQueryFn(
       rewindFiles: async () => ({ canRewind: false }),
       setMcpServers: async () => ({ added: [], removed: [], errors: {} }),
       streamInput: async () => {},
-    }) as ReturnType<QueryFn>;
+    }) as unknown as ReturnType<QueryFn>;
   };
 }

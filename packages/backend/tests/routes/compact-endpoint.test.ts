@@ -98,7 +98,7 @@ describe("POST /adventures/:id/compact", () => {
         rewindFiles: async () => ({ canRewind: false }),
         setMcpServers: async () => ({ added: [], removed: [], errors: {} }),
         streamInput: async () => {},
-      }) as ReturnType<QueryFn>;
+      }) as unknown as ReturnType<QueryFn>;
     };
 
     const { app } = buildTestApp(
@@ -142,7 +142,7 @@ describe("POST /adventures/:id/compact", () => {
         rewindFiles: async () => ({ canRewind: false }),
         setMcpServers: async () => ({ added: [], removed: [], errors: {} }),
         streamInput: async () => {},
-      }) as ReturnType<QueryFn>;
+      }) as unknown as ReturnType<QueryFn>;
     };
 
     const { app, fileOps } = buildTestApp(
