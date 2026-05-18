@@ -1,4 +1,3 @@
-import { query } from "@anthropic-ai/claude-agent-sdk";
 import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { resolve } from "node:path";
 import { readdir, readFile, stat } from "node:fs/promises";
@@ -35,7 +34,7 @@ const registryFileOps: FileOps = {
 
 const config = resolveConfig();
 const pluginRegistry = await buildPluginRegistry(config.pluginsDir, registryFileOps);
-const app = createApp({ queryFn: query, pluginRegistry });
+const app = createApp({ pluginRegistry });
 
 // Ensure ~/.corvran/ exists before writing the socket or adventures into it
 mkdirSync(config.corvranHome, { recursive: true });

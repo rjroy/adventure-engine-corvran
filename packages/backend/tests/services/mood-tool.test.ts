@@ -6,6 +6,7 @@ import {
   type MoodEventPayload,
 } from "../../src/services/mood-tool";
 import type { MoodState } from "@corvran/shared";
+import { invokeTool } from "../helpers/invoke-tool";
 
 function createMockDeps(overrides?: Partial<MoodToolDeps>): MoodToolDeps {
   return {
@@ -112,7 +113,7 @@ describe("createMoodToolDef", () => {
   describe("handler with successful image generation", () => {
     test("returns 'mood set' when generateImage returns a URL", async () => {
       const toolDef = createMoodToolDef(createMockDeps());
-      const result = await toolDef.handler({ description: "dark cavern" }, {});
+      const result = await invokeTool(toolDef, { description: "dark cavern" });
       expect(result.content).toEqual([{ type: "text", text: "mood set" }]);
     });
 
@@ -127,7 +128,7 @@ describe("createMoodToolDef", () => {
           },
         }),
       );
-      await toolDef.handler({ description: "dark cavern" }, {});
+      await invokeTool(toolDef, { description: "dark cavern" });
       expect(savedUrl).toBe("https://replicate.delivery/test/image.png");
       expect(savedPath).toBe("/tmp/adventures/test-adventure/mood.png");
     });
@@ -142,7 +143,7 @@ describe("createMoodToolDef", () => {
           },
         }),
       );
-      await toolDef.handler({ description: "dark cavern" }, {});
+      await invokeTool(toolDef, { description: "dark cavern" });
       expect(savedMood).not.toBeNull();
       expect(savedMood!).toEqual({
         hue: 142,
@@ -161,7 +162,7 @@ describe("createMoodToolDef", () => {
           },
         }),
       );
-      await toolDef.handler({ description: "dark cavern" }, {});
+      await invokeTool(toolDef, { description: "dark cavern" });
       expect(emittedPayload).not.toBeNull();
       expect(emittedPayload!).toEqual({
         hue: 142,
@@ -181,7 +182,7 @@ describe("createMoodToolDef", () => {
           },
         }),
       );
-      await toolDef.handler({ description: "dark cavern" }, {});
+      await invokeTool(toolDef, { description: "dark cavern" });
       expect(capturedPrompt).toBe("watercolor fantasy illustration. dark cavern");
     });
 
@@ -196,7 +197,7 @@ describe("createMoodToolDef", () => {
           },
         }),
       );
-      await toolDef.handler({ description: "dark cavern" }, {});
+      await invokeTool(toolDef, { description: "dark cavern" });
       expect(capturedPrompt).toBe("dark cavern");
     });
   });
@@ -206,7 +207,7 @@ describe("createMoodToolDef", () => {
       const toolDef = createMoodToolDef(
         createMockDeps({ generateImage: async () => null }),
       );
-      const result = await toolDef.handler({ description: "dark cavern" }, {});
+      const result = await invokeTool(toolDef, { description: "dark cavern" });
       expect(result.content).toEqual([
         { type: "text", text: "mood set (using fallback hue)" },
       ]);
@@ -222,7 +223,7 @@ describe("createMoodToolDef", () => {
           },
         }),
       );
-      await toolDef.handler({ description: "a dark forest clearing" }, {});
+      await invokeTool(toolDef, { description: "a dark forest clearing" });
       expect(savedMood).not.toBeNull();
       expect(savedMood!).toEqual({
         hue: 142,
@@ -240,7 +241,7 @@ describe("createMoodToolDef", () => {
           },
         }),
       );
-      await toolDef.handler({ description: "a dark forest clearing" }, {});
+      await invokeTool(toolDef, { description: "a dark forest clearing" });
       expect(emittedPayload).not.toBeNull();
       expect(emittedPayload!).toEqual({
         hue: 142,
@@ -258,7 +259,7 @@ describe("createMoodToolDef", () => {
           },
         }),
       );
-      await toolDef.handler({ description: "dark cavern" }, {});
+      await invokeTool(toolDef, { description: "dark cavern" });
       expect(saveImageCalled).toBe(false);
     });
   });
@@ -280,7 +281,7 @@ describe("createMoodToolDef", () => {
           },
         }),
       );
-      const result = await toolDef.handler({ description: "a dark forest clearing" }, {});
+      const result = await invokeTool(toolDef, { description: "a dark forest clearing" });
       // Keyword hue for "forest" is 142, no imagePath since extraction failed
       expect(savedMood).not.toBeNull();
       expect(savedMood!).toEqual({ hue: 142, description: "a dark forest clearing" });
@@ -306,7 +307,7 @@ describe("createMoodToolDef", () => {
           },
         }),
       );
-      await toolDef.handler({ description: "ocean waves" }, {});
+      await invokeTool(toolDef, { description: "ocean waves" });
       expect(extractHueCalled).toBe(false);
       expect(savedMood).not.toBeNull();
       expect(savedMood!).toEqual({ hue: 220, description: "ocean waves" });
@@ -324,7 +325,7 @@ describe("createMoodToolDef", () => {
           },
         }),
       );
-      const result = await toolDef.handler({ description: "dark cavern" }, {});
+      const result = await invokeTool(toolDef, { description: "dark cavern" });
       expect(emittedPayload).not.toBeNull();
       expect(emittedPayload!.hue).toBe(180);
       const first = result.content[0];
@@ -344,7 +345,7 @@ describe("createMoodToolDef", () => {
           },
         }),
       );
-      const result = await toolDef.handler({ description: "dark cavern" }, {});
+      const result = await invokeTool(toolDef, { description: "dark cavern" });
       expect(savedMood).not.toBeNull();
       const first = result.content[0];
       expect(first.type).toBe("text");

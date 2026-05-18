@@ -38,6 +38,7 @@ function buildApp(files: Record<string, string> = {}) {
     fileOps,
     adventuresPath: ADVENTURES_ROOT,
     pluginRegistry: createMockPluginRegistry(),
+    noAi: true,
   });
   return { app, fileOps };
 }

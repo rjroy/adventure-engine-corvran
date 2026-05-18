@@ -5,9 +5,11 @@ Monorepo with three packages: `packages/shared`, `packages/backend`, `packages/w
 ## Architecture
 
 - Daemon-first: the backend is the application, web is just a client
-- All AI interaction uses `@anthropic-ai/claude-agent-sdk` only (no `@anthropic-ai/sdk`, no other LLM libraries)
+- AI interaction goes through `@earendil-works/pi-coding-agent` for the streaming GM loop and `@earendil-works/pi-ai` (`completeSimple`) for out-of-loop Haiku summarization. No direct provider SDK use.
 - Route/service split with DI factories (see `.lore/reference/architecture-pattern.md`)
-- Shared Zod schemas in `@corvran/shared`, imported by both backend and web
+- The `SessionRunner` interface is event-callback shaped (`onTextDelta`/`onToolUse`/`onDone`/`onError`), not iterator-shaped — see `services/session-runner.ts`. Tests inject `createMockSessionRunner(script)`.
+- The compaction service depends on a `SummarizeFn` (text in, text out), not on any agent loop. Tests inject a stub directly.
+- Shared Zod schemas in `@corvran/shared`, imported by both backend and web. Custom tool input schemas live in pi-agent's `typebox`.
 
 ## Testing
 

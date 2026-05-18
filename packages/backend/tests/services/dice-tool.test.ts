@@ -1,8 +1,8 @@
 import { describe, test, expect } from "bun:test";
-import { z } from "zod";
+import { Value } from "typebox/value";
 import {
   rollDice,
-  createDiceTool,
+  createDiceToolDef,
   RollDiceInputSchema,
 } from "../../src/services/dice-tool";
 
@@ -16,9 +16,12 @@ function createSequence(values: number[]): () => number {
   };
 }
 
-/** Parse input through the actual module schema. Throws on invalid input. */
+/** Validate input through the actual typebox schema. Throws on invalid input. */
 function parseInput(input: unknown) {
-  return z.object(RollDiceInputSchema).parse(input);
+  if (!Value.Check(RollDiceInputSchema, input)) {
+    throw new Error("Schema validation failed");
+  }
+  return input;
 }
 
 describe("rollDice", () => {
@@ -226,10 +229,12 @@ describe("input validation (schema)", () => {
   });
 });
 
-describe("createDiceTool", () => {
-  test("returns object with instance property", () => {
-    const result = createDiceTool();
-    expect(result).toBeDefined();
-    expect(result).toHaveProperty("instance");
+describe("createDiceToolDef", () => {
+  test("returns a tool definition with the expected metadata", () => {
+    const def = createDiceToolDef();
+    expect(def.name).toBe("roll_dice");
+    expect(def.label).toBe("Roll Dice");
+    expect(def.parameters).toBe(RollDiceInputSchema);
+    expect(typeof def.execute).toBe("function");
   });
 });
