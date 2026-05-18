@@ -1,5 +1,4 @@
 import type { FileOps } from "../types";
-import type { QueryFn } from "./session-runner";
 
 export class CompactionInProgressError extends Error {
   constructor(adventurePath: string) {
@@ -20,6 +19,15 @@ export interface CompactionResult {
   previousSize: number;
   newSize: number;
 }
+
+/** Summarize a body of text under a system prompt. Abortable so callers can apply timeouts. */
+export interface SummarizeOptions {
+  systemPrompt: string;
+  text: string;
+  signal: AbortSignal;
+}
+
+export type SummarizeFn = (options: SummarizeOptions) => Promise<string>;
 
 const MIN_COMPACTION_LENGTH = 500;
 
@@ -65,27 +73,6 @@ function buildHistorySystemPrompt(context?: { character?: string; world?: string
 }
 
 /**
- * Extracts the final text result from a Query async iterable.
- * Compaction only cares about the final result text, not streaming events.
- *
- * The SDK's message type hierarchy doesn't export narrowed subtypes for
- * discriminated union branches, so we access `.result` and `.errors` via
- * property checks after narrowing on `type` and `subtype`.
- */
-async function extractQueryResult(query: ReturnType<QueryFn>): Promise<string> {
-  for await (const msg of query) {
-    if (msg.type === "result") {
-      if (msg.subtype === "success" && "result" in msg && typeof msg.result === "string") {
-        return msg.result;
-      }
-      const errors = "errors" in msg && Array.isArray(msg.errors) ? msg.errors : ["Unknown error"];
-      throw new Error(`Haiku summarization failed: ${errors.join("; ")}`);
-    }
-  }
-  throw new Error("Haiku summarization returned no result");
-}
-
-/**
  * Scans a directory for files matching a prefix pattern (e.g., "scene-" or "world-")
  * and returns the next sequential number.
  */
@@ -98,7 +85,6 @@ async function getNextSequenceNumber(
   try {
     files = await fileOps.readFiles(pastDir);
   } catch {
-    // Directory doesn't exist yet
     return 1;
   }
 
@@ -122,13 +108,11 @@ function formatSequenceNumber(n: number): string {
 
 export interface CompactionServiceDeps {
   fileOps: FileOps;
-  queryFn: QueryFn;
-  model?: string;
+  summarize: SummarizeFn;
 }
 
 export function createCompactionService(deps: CompactionServiceDeps) {
-  const { fileOps, queryFn } = deps;
-  const model = deps.model ?? "haiku";
+  const { fileOps, summarize } = deps;
   const inFlight = new Set<string>();
 
   async function compactFile(
@@ -168,27 +152,20 @@ export function createCompactionService(deps: CompactionServiceDeps) {
       try {
         await fileOps.deleteFile(filePath);
       } catch (deleteError) {
-        // Rollback archive to prevent two copies on disk
         try { await fileOps.deleteFile(archivePath); } catch { /* best effort */ }
         throw deleteError;
       }
 
-      // Step 2: Summarize via Haiku (REQ-COMP-41: 60-second timeout)
+      // Step 2: Summarize via injected summarizer (REQ-COMP-41: 60-second timeout)
       let summary: string;
       const timeoutController = new AbortController();
       const timeoutId = setTimeout(() => timeoutController.abort(), 60_000);
       try {
-        const query = queryFn({
-          prompt: content,
-          options: {
-            systemPrompt,
-            model,
-            persistSession: false,
-            permissionMode: "dontAsk",
-            abortController: timeoutController,
-          },
+        summary = await summarize({
+          systemPrompt,
+          text: content,
+          signal: timeoutController.signal,
         });
-        summary = await extractQueryResult(query);
       } catch (error) {
         // Reverse the archive: restore original file, remove archive
         await fileOps.writeFile(filePath, content);

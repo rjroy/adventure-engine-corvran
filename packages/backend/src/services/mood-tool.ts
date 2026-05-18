@@ -1,5 +1,5 @@
-import { tool } from "@anthropic-ai/claude-agent-sdk";
-import { z } from "zod";
+import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
+import { Type } from "typebox";
 import type { MoodState } from "@corvran/shared";
 
 export interface MoodEventPayload {
@@ -19,9 +19,9 @@ export interface MoodToolDeps {
   emitMoodEvent: (payload: MoodEventPayload) => Promise<void>;
 }
 
-const SetMoodInputSchema = {
-  description: z.string().min(1).max(500),
-};
+const SetMoodInputSchema = Type.Object({
+  description: Type.String({ minLength: 1, maxLength: 500 }),
+});
 
 // Keyword-to-hue mapping table (REQ-MOOD-17). First match wins.
 const KEYWORD_HUE_TABLE: Array<{ keywords: string[]; hue: number }> = [
@@ -49,12 +49,14 @@ export function keywordHue(description: string): number {
   return 270;
 }
 
-export function createMoodToolDef(deps: MoodToolDeps) {
-  return tool(
-    "set_mood",
-    "Set the visual mood/atmosphere of the adventure. Call this when the scene's emotional tone shifts significantly.",
-    SetMoodInputSchema,
-    async (args) => {
+export function createMoodToolDef(deps: MoodToolDeps): ToolDefinition {
+  return defineTool({
+    name: "set_mood",
+    label: "Set Mood",
+    description:
+      "Set the visual mood/atmosphere of the adventure. Call this when the scene's emotional tone shifts significantly.",
+    parameters: SetMoodInputSchema,
+    async execute(_toolCallId, args) {
       console.log(`[mood-tool] ${deps.adventureId}: invoked with description="${args.description}"`);
 
       const prompt = deps.artStyle
@@ -114,7 +116,10 @@ export function createMoodToolDef(deps: MoodToolDeps) {
       }
 
       const status = imagePath ? "mood set" : "mood set (using fallback hue)";
-      return { content: [{ type: "text", text: status }] };
+      return {
+        content: [{ type: "text", text: status }],
+        details: { hue, description: args.description, imagePath },
+      };
     },
-  );
+  });
 }

@@ -3,15 +3,24 @@ import { cors } from "hono/cors";
 import { resolve } from "node:path";
 import { readdir, readFile as fsReadFile, writeFile as fsWriteFile, appendFile as fsAppendFile, stat, mkdir, unlink } from "node:fs/promises";
 import { dirname } from "node:path";
+import { completeSimple } from "@earendil-works/pi-ai";
 import type { FileOps, RouteModule } from "./types";
 import { createAdventureService } from "./services/adventure-service";
 import { createAdventureRoutes } from "./routes/adventure-routes";
 import { createHealthRoutes } from "./routes/health-routes";
 import { createHelpRoutes } from "./registry";
 import { createHistoryService } from "./services/history-service";
-import { createSessionRunner, type QueryFn, type SessionRunner } from "./services/session-runner";
+import {
+  createSessionRunner,
+  resolveModel,
+  type SessionRunner,
+} from "./services/session-runner";
 import type { PluginRegistry } from "./services/plugin-registry";
-import { createCompactionService } from "./services/compaction-service";
+import {
+  createCompactionService,
+  type CompactionService,
+  type SummarizeFn,
+} from "./services/compaction-service";
 import type { CompactionConfig } from "./routes/adventure-routes";
 import { createSystemRoutes } from "./routes/system-routes";
 
@@ -90,37 +99,69 @@ export function resolveConfig(): AppConfig {
 export interface AppDeps {
   fileOps?: FileOps;
   adventuresPath?: string;
-  queryFn?: QueryFn;
+  /** Pre-built session runner. When omitted, one is built using the production pi-agent path. */
+  sessionRunner?: SessionRunner;
+  /** Pre-built compaction service. When omitted, one is built using pi-ai's completeSimple. */
+  compactionService?: CompactionService;
+  /** Default model alias or "provider/modelId" for the GM agent. */
   model?: string;
+  /** Default model alias or "provider/modelId" for compaction summarization. */
   compactionModel?: string;
+  /** Disable AI integration entirely (no session runner, no compaction). */
+  noAi?: boolean;
   pluginRegistry?: PluginRegistry;
+}
+
+/** Production summarize fn backed by pi-ai's completeSimple. One-shot LLM call. */
+function createSummarizeFn(modelString: string): SummarizeFn {
+  const model = resolveModel(modelString);
+  return async ({ systemPrompt, text, signal }) => {
+    const message = await completeSimple(
+      model,
+      {
+        systemPrompt,
+        messages: [{ role: "user", content: text, timestamp: Date.now() }],
+      },
+      { signal },
+    );
+    const out = message.content
+      .filter((c): c is { type: "text"; text: string } => c.type === "text")
+      .map((c) => c.text)
+      .join("");
+    if (!out) {
+      throw new Error("Summarization returned no text content");
+    }
+    return out;
+  };
 }
 
 export function createApp(deps?: AppDeps): Hono {
   const fileOps = deps?.fileOps ?? createRealFileOps();
-  // Only resolve environment config when deps don't provide the values we need
-  const config = (!deps?.adventuresPath || !deps?.queryFn) ? resolveConfig() : undefined;
+  // Only resolve environment config when deps don't already provide adventuresPath
+  const config = !deps?.adventuresPath ? resolveConfig() : undefined;
   const adventuresPath = deps?.adventuresPath ?? config!.adventuresPath;
 
   const adventureService = createAdventureService({ fileOps, adventuresPath });
   const historyService = createHistoryService({ fileOps });
 
-  // Session runner is only created when a queryFn is provided.
-  // Tests that don't need SDK integration pass their own queryFn.
-  // Production passes the real SDK query function.
-  // Compaction service needs queryFn for Haiku summarization calls (REQ-COMP-9a)
   const compactionModel = deps?.compactionModel ?? process.env.COMPACTION_MODEL ?? "haiku";
-  const compactionService = deps?.queryFn
-    ? createCompactionService({ fileOps, queryFn: deps.queryFn, model: compactionModel })
-    : undefined;
+  const gmModel = deps?.model ?? process.env.MODEL ?? "sonnet";
 
-  let sessionRunner: SessionRunner | undefined;
-  if (deps?.queryFn) {
+  // Production wiring: build compaction + session runner from the pi-agent path.
+  // Tests inject `noAi: true` to skip AI integration entirely, or pass pre-built
+  // sessionRunner/compactionService for narrower integration tests.
+  let compactionService: CompactionService | undefined = deps?.compactionService;
+  if (!compactionService && !deps?.noAi) {
+    compactionService = createCompactionService({
+      fileOps,
+      summarize: createSummarizeFn(compactionModel),
+    });
+  }
+
+  let sessionRunner: SessionRunner | undefined = deps?.sessionRunner;
+  if (!sessionRunner && !deps?.noAi) {
     sessionRunner = createSessionRunner({
-      queryFn: deps.queryFn,
-      config: {
-        model: deps.model ?? process.env.MODEL ?? "sonnet",
-      },
+      config: { model: gmModel },
       fileOps,
       compactionService,
     });

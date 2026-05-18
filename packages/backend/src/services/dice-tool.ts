@@ -1,25 +1,19 @@
-import { createSdkMcpServer, tool } from "@anthropic-ai/claude-agent-sdk";
-import type { McpSdkServerConfigWithInstance } from "@anthropic-ai/claude-agent-sdk";
-import { z } from "zod";
+import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
+import { Type, type Static } from "typebox";
 
-const DiceGroupSchema = z.object({
-  n: z.number().int().min(1).max(100),
-  d: z.number().int().min(2).max(1000),
-  label: z.string().optional(),
+const DiceGroupSchema = Type.Object({
+  n: Type.Integer({ minimum: 1, maximum: 100 }),
+  d: Type.Integer({ minimum: 2, maximum: 1000 }),
+  label: Type.Optional(Type.String()),
 });
 
-/** Exported for validation tests. The tool handler uses this schema via the `tool()` wrapper. */
-export const RollDiceInputSchema = {
-  groups: z.array(DiceGroupSchema).min(1),
-  modifier: z.number().int().optional(),
-  threshold: z.number().optional(),
-};
+export const RollDiceInputSchema = Type.Object({
+  groups: Type.Array(DiceGroupSchema, { minItems: 1 }),
+  modifier: Type.Optional(Type.Integer()),
+  threshold: Type.Optional(Type.Number()),
+});
 
-export interface RollDiceInput {
-  groups: Array<{ n: number; d: number; label?: string }>;
-  modifier?: number;
-  threshold?: number;
-}
+export type RollDiceInput = Static<typeof RollDiceInputSchema>;
 
 export interface RollDiceOutput {
   groups: Array<{ label?: string; rolls: number[] }>;
@@ -31,7 +25,7 @@ export interface RollDiceOutput {
 
 /**
  * Pure roll logic. Accepts validated input, returns structured output.
- * Exported for direct testing without MCP overhead.
+ * Exported for direct testing without tool runtime overhead.
  */
 export function rollDice(
   input: RollDiceInput,
@@ -65,26 +59,22 @@ export function rollDice(
   return result;
 }
 
-export function createDiceToolDef(deps?: { random?: () => number }) {
+export function createDiceToolDef(deps?: { random?: () => number }): ToolDefinition {
   const random = deps?.random ?? Math.random;
 
-  return tool(
-    "roll_dice",
-    "Roll dice for tabletop RPG gameplay. Supports multiple groups of dice with optional labels, a modifier applied to the total, and threshold comparison.",
-    RollDiceInputSchema,
-    // eslint-disable-next-line @typescript-eslint/require-await -- tool() expects async callback but rollDice is synchronous
-    async (args) => {
+  return defineTool({
+    name: "roll_dice",
+    label: "Roll Dice",
+    description:
+      "Roll dice for tabletop RPG gameplay. Supports multiple groups of dice with optional labels, a modifier applied to the total, and threshold comparison.",
+    parameters: RollDiceInputSchema,
+    // eslint-disable-next-line @typescript-eslint/require-await -- pi expects async but rollDice is synchronous
+    async execute(_toolCallId, args) {
       const result = rollDice(args, random);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return {
+        content: [{ type: "text", text: JSON.stringify(result) }],
+        details: result,
+      };
     },
-  );
-}
-
-export function createDiceTool(
-  deps?: { random?: () => number },
-): McpSdkServerConfigWithInstance {
-  return createSdkMcpServer({
-    name: "corvran",
-    tools: [createDiceToolDef(deps)],
   });
 }

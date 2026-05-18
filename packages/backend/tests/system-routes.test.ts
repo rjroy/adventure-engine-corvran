@@ -10,6 +10,7 @@ function buildApp(registry: PluginRegistry) {
     fileOps: createMockFileOps(),
     adventuresPath: ADVENTURES_ROOT,
     pluginRegistry: registry,
+    noAi: true,
   });
 }
 

@@ -55,12 +55,6 @@ function isValidId(id: string): boolean {
   return !id.includes("/") && !id.includes("..");
 }
 
-/** Check if an SDK error string indicates context/token overflow */
-function isContextOverflowError(error: string): boolean {
-  const lower = error.toLowerCase();
-  return lower.includes("context") || lower.includes("token") || lower.includes("too long");
-}
-
 export function createAdventureRoutes(deps: {
   adventureService: AdventureService;
   historyService?: HistoryService;
@@ -299,8 +293,6 @@ export function createAdventureRoutes(deps: {
       // Re-bind inside callback so TS narrows after the null guard above
       let currentAdventure = adventure;
       let accumulatedText = "";
-      // Track pending tool invocations so we can pair them with results
-      const pendingTools = new Map<string, string>();
 
       const abortController = new AbortController();
       stream.onAbort(() => {
@@ -365,8 +357,9 @@ export function createAdventureRoutes(deps: {
         compactionEnabled: !!compactionService,
       });
 
-      // Run the SDK query with per-adventure plugin paths (REQ-SYS-18)
-      const queryResult = sessionRunner.runQuery({
+      // Run the agent loop. runQuery resolves after the agent stops calling
+      // tools and emits final done/error via the callbacks below.
+      await sessionRunner.runQuery({
         systemPrompt,
         playerMessage: message,
         adventureId: id,
@@ -379,90 +372,24 @@ export function createAdventureRoutes(deps: {
           stream.writeSSE({ event: "mood", data: JSON.stringify(payload) }),
         emitCompactedEvent: (result) =>
           stream.writeSSE({ event: "compacted", data: JSON.stringify(result) }),
+        onTextDelta: async (text) => {
+          accumulatedText += text;
+          await stream.writeSSE({ event: "text", data: JSON.stringify({ text }) });
+        },
+        onToolUse: (event) =>
+          stream.writeSSE({ event: "tool_use", data: JSON.stringify(event) }),
+        onDone: async (fullResponse) => {
+          await historyService.appendGMResponse(adventurePath, fullResponse);
+          await stream.writeSSE({ event: "done", data: JSON.stringify({ fullResponse }) });
+        },
+        onError: (error) =>
+          stream.writeSSE({ event: "error", data: JSON.stringify({ error }) }),
       });
 
-      try {
-        for await (const msg of queryResult) {
-          if (msg.type === "stream_event") {
-            // Text deltas from streaming
-            const event = msg.event;
-            if (
-              event.type === "content_block_delta" &&
-              "delta" in event &&
-              event.delta.type === "text_delta"
-            ) {
-              const text = event.delta.text;
-              accumulatedText += text;
-              await stream.writeSSE({ event: "text", data: JSON.stringify({ text }) });
-            }
-          } else if (msg.type === "assistant") {
-            // Collect tool invocations; defer emission until we have results
-            for (const block of msg.message.content) {
-              if (block.type === "tool_use") {
-                pendingTools.set(block.id, block.name);
-              }
-            }
-          } else if (msg.type === "user") {
-            // Pair tool results with their invocations and emit
-            if (Array.isArray(msg.message.content)) {
-              for (const block of msg.message.content) {
-                if (block.type === "tool_result") {
-                  const toolName = pendingTools.get(block.tool_use_id) ?? "tool";
-                  pendingTools.delete(block.tool_use_id);
-                  // Suppress set_mood and compact_history from tool_use SSE events.
-                  // These tools have dedicated SSE event channels (mood, compacted).
-                  // MCP tools are prefixed as mcp__{server}__{tool} by the SDK.
-                  if (toolName === "set_mood" || toolName === "mcp__corvran__set_mood") continue;
-                  if (toolName === "compact_history" || toolName === "mcp__corvran__compact_history") continue;
-                  const result = typeof block.content === "string"
-                    ? block.content
-                    : JSON.stringify(block.content);
-                  await stream.writeSSE({
-                    event: "tool_use",
-                    data: JSON.stringify({ name: toolName, result }),
-                  });
-                }
-              }
-            }
-          } else if (msg.type === "result") {
-            if (msg.subtype === "success") {
-              // Use the result field for the full response (more reliable than accumulated text)
-              const fullResponse = msg.result;
-              await historyService.appendGMResponse(adventurePath, fullResponse);
-              await stream.writeSSE({
-                event: "done",
-                data: JSON.stringify({ fullResponse }),
-              });
-            } else {
-              // Error result
-              const errors = msg.errors;
-              const overflowError = errors.find(isContextOverflowError);
-              const errorMessage = overflowError
-                ? "Adventure history is too long. Edit history.md to shorten it."
-                : errors.join("; ");
-              await stream.writeSSE({
-                event: "error",
-                data: JSON.stringify({ error: errorMessage }),
-              });
-            }
-          }
-        }
-      } catch (err: unknown) {
-        // Handle AbortError (client disconnect)
-        if (err instanceof Error && err.name === "AbortError") {
-          // Append partial response to history
-          if (accumulatedText) {
-            await historyService.appendGMResponse(adventurePath, accumulatedText);
-          }
-          return;
-        }
-
-        // Handle other errors
-        const errorMessage = err instanceof Error ? err.message : "Unknown error";
-        await stream.writeSSE({
-          event: "error",
-          data: JSON.stringify({ error: errorMessage }),
-        });
+      // Client disconnect: persist whatever the GM had streamed so far.
+      // runQuery returns without emitting done/error when aborted.
+      if (abortController.signal.aborted && accumulatedText) {
+        await historyService.appendGMResponse(adventurePath, accumulatedText);
       }
     });
   });

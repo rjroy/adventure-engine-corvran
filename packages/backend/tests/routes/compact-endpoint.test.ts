@@ -2,10 +2,11 @@ import { describe, test, expect } from "bun:test";
 import { Hono } from "hono";
 import { createAdventureService } from "../../src/services/adventure-service";
 import { createAdventureRoutes } from "../../src/routes/adventure-routes";
-import { createCompactionService } from "../../src/services/compaction-service";
+import {
+  createCompactionService,
+  type SummarizeFn,
+} from "../../src/services/compaction-service";
 import { createMockFileOps } from "../helpers/mock-file-ops";
-import { createMockQueryFn, successResult } from "../helpers/mock-query";
-import type { QueryFn } from "../../src/services/session-runner";
 
 const ADVENTURES_ROOT = "/test/adventures";
 const ADV_ID = "test-adventure";
@@ -16,13 +17,13 @@ const SUMMARY_TEXT = "The adventurer explored a vast dungeon chamber.";
 
 function buildTestApp(
   files: Record<string, string>,
-  queryFn?: QueryFn,
+  summarize?: SummarizeFn,
 ) {
   const fileOps = createMockFileOps(files);
   const adventureService = createAdventureService({ fileOps, adventuresPath: ADVENTURES_ROOT });
 
-  const effectiveQueryFn = queryFn ?? createMockQueryFn([successResult(SUMMARY_TEXT)]);
-  const compactionService = createCompactionService({ fileOps, queryFn: effectiveQueryFn });
+  const effectiveSummarize: SummarizeFn = summarize ?? (async () => SUMMARY_TEXT);
+  const compactionService = createCompactionService({ fileOps, summarize: effectiveSummarize });
 
   const adventureModule = createAdventureRoutes({
     adventureService,
@@ -49,10 +50,8 @@ describe("POST /adventures/:id/compact", () => {
     expect(body.previousSize).toBe(LONG_HISTORY.length);
     expect(body.newSize).toBe(SUMMARY_TEXT.length);
 
-    // Verify archived file exists with original content
     const store = fileOps.getStore();
     expect(store.get(`${ADV_PATH}/past/scene-001.md`)).toBe(LONG_HISTORY);
-    // Verify new history is the summary
     expect(store.get(`${ADV_PATH}/history.md`)).toBe(SUMMARY_TEXT);
   });
 
@@ -79,75 +78,38 @@ describe("POST /adventures/:id/compact", () => {
   });
 
   test("returns 409 when compaction is already in progress", async () => {
-    // Use a delaying queryFn so the first compaction holds the lock
-    const delayingQueryFn: QueryFn = () => {
-      async function* generator() {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        yield successResult(SUMMARY_TEXT);
-      }
-      const gen = generator();
-      return Object.assign(gen, {
-        interrupt: async () => {},
-        setPermissionMode: async () => {},
-        setModel: async () => {},
-        setMaxThinkingTokens: async () => {},
-        supportedCommands: async () => [],
-        supportedModels: async () => [],
-        mcpServerStatus: async () => [],
-        accountInfo: async () => ({ email: "test@test.com" }),
-        rewindFiles: async () => ({ canRewind: false }),
-        setMcpServers: async () => ({ added: [], removed: [], errors: {} }),
-        streamInput: async () => {},
-      }) as unknown as ReturnType<QueryFn>;
+    const delayingSummarize: SummarizeFn = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      return SUMMARY_TEXT;
     };
 
     const { app } = buildTestApp(
       { [`${ADV_PATH}/history.md`]: LONG_HISTORY },
-      delayingQueryFn,
+      delayingSummarize,
     );
 
-    // Start first compaction (don't await)
     const first = app.request(`/adventures/${ADV_ID}/compact`, { method: "POST" });
 
-    // Give the first request time to acquire the lock
     await new Promise((r) => setTimeout(r, 50));
 
-    // Second attempt should get 409
     const second = await app.request(`/adventures/${ADV_ID}/compact`, { method: "POST" });
     expect(second.status).toBe(409);
 
     const body = await second.json();
     expect(body.error).toBe("Compaction is already running for this adventure.");
 
-    // Let the first one finish cleanly
     const firstRes = await first;
     expect(firstRes.status).toBe(200);
   });
 
-  test("returns 500 when Haiku call fails", async () => {
-    const failingQueryFn: QueryFn = () => {
-      async function* generator() {
-        throw new Error("Haiku API timeout");
-      }
-      const gen = generator();
-      return Object.assign(gen, {
-        interrupt: async () => {},
-        setPermissionMode: async () => {},
-        setModel: async () => {},
-        setMaxThinkingTokens: async () => {},
-        supportedCommands: async () => [],
-        supportedModels: async () => [],
-        mcpServerStatus: async () => [],
-        accountInfo: async () => ({ email: "test@test.com" }),
-        rewindFiles: async () => ({ canRewind: false }),
-        setMcpServers: async () => ({ added: [], removed: [], errors: {} }),
-        streamInput: async () => {},
-      }) as unknown as ReturnType<QueryFn>;
+  test("returns 500 when summarizer fails", async () => {
+    const failingSummarize: SummarizeFn = async () => {
+      throw new Error("Haiku API timeout");
     };
 
     const { app, fileOps } = buildTestApp(
       { [`${ADV_PATH}/history.md`]: LONG_HISTORY },
-      failingQueryFn,
+      failingSummarize,
     );
 
     const res = await app.request(`/adventures/${ADV_ID}/compact`, { method: "POST" });
@@ -156,7 +118,6 @@ describe("POST /adventures/:id/compact", () => {
     const body = await res.json();
     expect(body.error).toContain("Compaction failed:");
 
-    // Verify history was restored (archive reversal)
     const store = fileOps.getStore();
     expect(store.get(`${ADV_PATH}/history.md`)).toBe(LONG_HISTORY);
   });
