@@ -5,10 +5,9 @@ const tailscaleHostname =
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@corvran/shared"],
-  allowedDevOrigins: [
-    `http://${tailscaleHostname}:3030`,
-    `https://${tailscaleHostname}`,
-  ],
+  // allowedDevOrigins takes bare hostnames (no scheme, no port). Next checks
+  // the request Host header against this list before serving dev resources.
+  allowedDevOrigins: [tailscaleHostname],
 };
 
 export default nextConfig;
