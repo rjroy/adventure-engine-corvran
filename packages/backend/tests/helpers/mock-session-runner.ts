@@ -95,7 +95,6 @@ export function createMockSessionRunner(
 
   return {
     runQuery,
-    model: { provider: "mock", id: "mock", api: "mock" } as unknown as SessionRunner["model"],
     get calls() {
       return calls;
     },

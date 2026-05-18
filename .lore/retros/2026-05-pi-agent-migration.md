@@ -37,3 +37,7 @@ User-driven move toward the pi tooling family. Pi gives us provider flexibility 
 - `tests/helpers/mock-session-runner.ts` — script-based SessionRunner stub
 - `tests/helpers/invoke-tool.ts` — invokes pi `ToolDefinition.execute` for unit tests
 - Removed `tests/helpers/mock-query.ts` (SDK-coupled)
+
+## Addendum 2026-05-18: alias scheme reverted
+
+The `MODEL_ALIASES` table and the eager `getModel("anthropic", ...)` call in the session runner have been removed, along with the standalone `completeSimple` call in the compaction summarize fn. Both paths bypassed the very abstraction pi exists to provide: extension-registered providers like `pi-fallback-provider` live in the session's `modelRegistry` after `bindExtensions()`, not in the compile-time-known type parameters that `getModel` is generic over. Standalone `completeSimple` skips extension hooks entirely. Both are now resolved via `session.modelRegistry.find` on a bound session post-`bindExtensions`, mirroring the oracle-keep pattern. Fix per `.lore/plans/pi-agent-model-resolution-fix.md`. Risk 3 is closed by the fix; risk 1 is addressed by the fix but closure requires live smoke (plan Step 7) — the GM runner's loader still uses `noExtensions: true`, and only a live run with `defaultProvider: "fallback"` confirms that extension provider registration still survives that flag. Risks 2 (skill bloat) and 4 (plugin paths) remain open.
