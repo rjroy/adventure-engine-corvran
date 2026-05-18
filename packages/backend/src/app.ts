@@ -3,7 +3,12 @@ import { cors } from "hono/cors";
 import { resolve } from "node:path";
 import { readdir, readFile as fsReadFile, writeFile as fsWriteFile, appendFile as fsAppendFile, stat, mkdir, unlink } from "node:fs/promises";
 import { dirname } from "node:path";
-import { completeSimple } from "@earendil-works/pi-ai";
+import {
+  DefaultResourceLoader,
+  SessionManager,
+  createAgentSession,
+  getAgentDir,
+} from "@earendil-works/pi-coding-agent";
 import type { FileOps, RouteModule } from "./types";
 import { createAdventureService } from "./services/adventure-service";
 import { createAdventureRoutes } from "./routes/adventure-routes";
@@ -12,7 +17,7 @@ import { createHelpRoutes } from "./registry";
 import { createHistoryService } from "./services/history-service";
 import {
   createSessionRunner,
-  resolveModel,
+  parseModelString,
   type SessionRunner,
 } from "./services/session-runner";
 import type { PluginRegistry } from "./services/plugin-registry";
@@ -101,37 +106,104 @@ export interface AppDeps {
   adventuresPath?: string;
   /** Pre-built session runner. When omitted, one is built using the production pi-agent path. */
   sessionRunner?: SessionRunner;
-  /** Pre-built compaction service. When omitted, one is built using pi-ai's completeSimple. */
+  /** Pre-built compaction service. When omitted, one is built using a per-call bound pi-agent session. */
   compactionService?: CompactionService;
-  /** Default model alias or "provider/modelId" for the GM agent. */
+  /** Optional "provider/modelId" for the GM agent. When omitted, pi's settings default is used. */
   model?: string;
-  /** Default model alias or "provider/modelId" for compaction summarization. */
+  /** Optional "provider/modelId" for compaction summarization. When omitted, pi's settings default is used. */
   compactionModel?: string;
   /** Disable AI integration entirely (no session runner, no compaction). */
   noAi?: boolean;
   pluginRegistry?: PluginRegistry;
 }
 
-/** Production summarize fn backed by pi-ai's completeSimple. One-shot LLM call. */
-function createSummarizeFn(modelString: string): SummarizeFn {
-  const model = resolveModel(modelString);
+/**
+ * Production summarize fn backed by a fresh bound pi-agent session per call.
+ *
+ * Building a session (rather than calling pi-ai's `completeSimple` directly)
+ * routes the call through `bindExtensions`, so extension-registered providers
+ * such as `pi-fallback-provider`'s `streamSimple` hook actually fire. Model
+ * resolution is deferred to post-`bindExtensions` against the live registry,
+ * matching the GM session-runner. When `modelString` is undefined, the session
+ * uses pi's registry-default model from `~/.pi/agent/settings.json`.
+ */
+function createSummarizeFn(
+  modelString: string | undefined,
+  cwd: string,
+): SummarizeFn {
   return async ({ systemPrompt, text, signal }) => {
-    const message = await completeSimple(
-      model,
-      {
-        systemPrompt,
-        messages: [{ role: "user", content: text, timestamp: Date.now() }],
-      },
-      { signal },
-    );
-    const out = message.content
-      .filter((c): c is { type: "text"; text: string } => c.type === "text")
-      .map((c) => c.text)
-      .join("");
-    if (!out) {
-      throw new Error("Summarization returned no text content");
+    const manager = SessionManager.inMemory(cwd);
+    const loader = new DefaultResourceLoader({
+      cwd,
+      agentDir: getAgentDir(),
+      systemPrompt,
+      noExtensions: false,
+      noSkills: true,
+      noPromptTemplates: true,
+      noThemes: true,
+      noContextFiles: true,
+    });
+    await loader.reload();
+
+    const { session } = await createAgentSession({
+      cwd,
+      resourceLoader: loader,
+      sessionManager: manager,
+      noTools: "all",
+    });
+
+    let onAbort: (() => void) | undefined;
+    try {
+      await session.bindExtensions({});
+
+      const parsed = parseModelString(modelString);
+      if (parsed) {
+        const model = session.modelRegistry.find(parsed.provider, parsed.modelId);
+        if (model) {
+          await session.setModel(model);
+        } else {
+          console.warn(
+            `[summarize] model "${modelString}" not found in registry, using session default`,
+          );
+        }
+      } else if (modelString) {
+        console.warn(
+          `[summarize] model "${modelString}" is malformed (expected "provider/modelId"), using session default`,
+        );
+      }
+
+      onAbort = () => {
+        void session.abort();
+      };
+      signal.addEventListener("abort", onAbort);
+      if (signal.aborted) {
+        void session.abort();
+      }
+
+      await session.prompt(text);
+
+      const assistantMessages = session.messages.filter((m) => m.role === "assistant");
+      const last = assistantMessages[assistantMessages.length - 1];
+      if (!last) {
+        throw new Error("Summarization produced no assistant message");
+      }
+      const textBlocks = last.content.filter(
+        (c): c is { type: "text"; text: string } => c.type === "text",
+      );
+      if (textBlocks.length === 0) {
+        throw new Error("Summarization response contained no text content");
+      }
+      const out = textBlocks.map((c) => c.text).join("");
+      if (out === "") {
+        throw new Error("Summarization returned empty text");
+      }
+      return out;
+    } finally {
+      if (onAbort) {
+        signal.removeEventListener("abort", onAbort);
+      }
+      session.dispose();
     }
-    return out;
   };
 }
 
@@ -144,8 +216,8 @@ export function createApp(deps?: AppDeps): Hono {
   const adventureService = createAdventureService({ fileOps, adventuresPath });
   const historyService = createHistoryService({ fileOps });
 
-  const compactionModel = deps?.compactionModel ?? process.env.COMPACTION_MODEL ?? "haiku";
-  const gmModel = deps?.model ?? process.env.MODEL ?? "sonnet";
+  const compactionModel: string | undefined = deps?.compactionModel ?? process.env.COMPACTION_MODEL;
+  const gmModel: string | undefined = deps?.model ?? process.env.MODEL;
 
   // Production wiring: build compaction + session runner from the pi-agent path.
   // Tests inject `noAi: true` to skip AI integration entirely, or pass pre-built
@@ -154,7 +226,7 @@ export function createApp(deps?: AppDeps): Hono {
   if (!compactionService && !deps?.noAi) {
     compactionService = createCompactionService({
       fileOps,
-      summarize: createSummarizeFn(compactionModel),
+      summarize: createSummarizeFn(compactionModel, process.cwd()),
     });
   }
 

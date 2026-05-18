@@ -11,10 +11,7 @@ import {
   type Skill,
   type ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
-import { getModel, type ImageContent, type Model, type TextContent } from "@earendil-works/pi-ai";
-
-/** Any pi-ai Model — the api type parameter is irrelevant to this codebase. */
-type AnyModel = Model<never>;
+import type { ImageContent, TextContent } from "@earendil-works/pi-ai";
 import type { MoodState } from "@corvran/shared";
 import { createDiceToolDef } from "./dice-tool";
 import { createMoodToolDef, type MoodEventPayload } from "./mood-tool";
@@ -27,44 +24,20 @@ import { extractDominantHue } from "./color-extract";
 /** Built-in pi tools the GM agent is allowed to call. */
 const ALLOWED_BUILTIN_TOOLS = ["bash", "read", "write", "edit", "grep", "find", "ls"];
 
-/** Map terse model aliases to pi-ai provider+modelId pairs. */
-const MODEL_ALIASES: Record<string, { provider: string; modelId: string }> = {
-  sonnet: { provider: "anthropic", modelId: "claude-sonnet-4-6" },
-  haiku: { provider: "anthropic", modelId: "claude-haiku-4-5" },
-  opus: { provider: "anthropic", modelId: "claude-opus-4-7" },
-};
-
-// getModel is generic over compile-time-known provider/model keys. We accept
-// dynamic strings at runtime, so cast through these aliases at the call site.
-type ProviderKey = Parameters<typeof getModel>[0];
-type ModelIdKey<P extends ProviderKey> = Parameters<typeof getModel<P, never>>[1];
-
-export function resolveModel(modelString: string): AnyModel {
-  // Accept either an alias ("sonnet") or "provider/modelId" form.
-  const alias = MODEL_ALIASES[modelString];
-  if (alias) {
-    return getModel(
-      alias.provider as ProviderKey,
-      alias.modelId as ModelIdKey<ProviderKey>,
-    ) as AnyModel;
-  }
-  const slash = modelString.indexOf("/");
-  if (slash === -1) {
-    throw new Error(
-      `Unknown model "${modelString}". Use an alias (sonnet, haiku, opus) or "provider/modelId".`,
-    );
-  }
-  const provider = modelString.slice(0, slash);
-  const modelId = modelString.slice(slash + 1);
-  return getModel(
-    provider as ProviderKey,
-    modelId as ModelIdKey<ProviderKey>,
-  ) as AnyModel;
+/**
+ * Parse a "provider/modelId" string. Exported because the compaction wiring in
+ * app.ts needs the same parsing logic for its bound-session summarize fn.
+ */
+export function parseModelString(s: string | undefined): { provider: string; modelId: string } | null {
+  if (!s) return null;
+  const slash = s.indexOf("/");
+  if (slash === -1) return null;
+  return { provider: s.slice(0, slash), modelId: s.slice(slash + 1) };
 }
 
 export interface SessionRunnerConfig {
-  /** Model alias ("sonnet"/"haiku"/"opus") or "provider/modelId". */
-  model: string;
+  /** Optional "provider/modelId" string. When omitted, the session uses pi's settings default. */
+  model?: string;
 }
 
 export interface RunQueryCallbacks {
@@ -101,6 +74,13 @@ async function downloadImage(url: string, destPath: string): Promise<void> {
 function isContextOverflowError(error: string): boolean {
   const lower = error.toLowerCase();
   return lower.includes("context") || lower.includes("token") || lower.includes("too long");
+}
+
+/** Surface context-overflow errors as a user-actionable message; pass others through. */
+function toFriendlyError(message: string): string {
+  return isContextOverflowError(message)
+    ? "Adventure history is too long. Edit history.md to shorten it."
+    : message;
 }
 
 /**
@@ -149,11 +129,8 @@ export function createSessionRunner(deps: {
   config: SessionRunnerConfig;
   fileOps?: FileOps;
   compactionService?: CompactionService;
-  /** Optional model override; primarily for tests. */
-  modelOverride?: AnyModel;
 }) {
   const { config, fileOps, compactionService } = deps;
-  const model = deps.modelOverride ?? resolveModel(config.model);
 
   async function runQuery(params: RunQueryParams): Promise<void> {
     const { systemPrompt, playerMessage, adventurePath, abortController } = params;
@@ -204,7 +181,7 @@ export function createSessionRunner(deps: {
       cwd: adventurePath,
       agentDir: getAgentDir(),
       systemPrompt: fullSystemPrompt,
-      noExtensions: true,
+      noExtensions: false,
       noSkills: true,
       noPromptTemplates: true,
       noThemes: true,
@@ -221,11 +198,27 @@ export function createSessionRunner(deps: {
       customTools,
     });
 
-    // bindExtensions runs queued extension hooks. We have no extensions of our
-    // own but still call it so any contributed providers/models on the global
-    // registry are wired in. See pi-agent-migration.md gotcha #4.
+    // bindExtensions runs queued extension hooks so extension-registered
+    // providers/models become visible on session.modelRegistry. Model selection
+    // must happen after this; with no model configured, the session falls back
+    // to pi's settings default (defaultProvider/defaultModel).
     await session.bindExtensions({});
-    await session.setModel(model);
+
+    const parsed = parseModelString(config.model);
+    if (parsed) {
+      const model = session.modelRegistry.find(parsed.provider, parsed.modelId);
+      if (model) {
+        await session.setModel(model);
+      } else {
+        console.warn(
+          `[session-runner] model "${config.model}" not found in registry, using session default`,
+        );
+      }
+    } else if (config.model) {
+      console.warn(
+        `[session-runner] model "${config.model}" is malformed (expected "provider/modelId"), using session default`,
+      );
+    }
 
     let accumulatedText = "";
     let aborted = false;
@@ -274,10 +267,7 @@ export function createSessionRunner(deps: {
       }
 
       if (errorMessage) {
-        const friendly = isContextOverflowError(errorMessage)
-          ? "Adventure history is too long. Edit history.md to shorten it."
-          : errorMessage;
-        await params.onError(friendly);
+        await params.onError(toFriendlyError(errorMessage));
         return;
       }
 
@@ -285,10 +275,7 @@ export function createSessionRunner(deps: {
     } catch (err: unknown) {
       if (aborted) return;
       const message = err instanceof Error ? err.message : String(err);
-      const friendly = isContextOverflowError(message)
-        ? "Adventure history is too long. Edit history.md to shorten it."
-        : message;
-      await params.onError(friendly);
+      await params.onError(toFriendlyError(message));
     } finally {
       unsubscribe();
       abortController.signal.removeEventListener("abort", onAbort);
@@ -296,7 +283,7 @@ export function createSessionRunner(deps: {
     }
   }
 
-  return { runQuery, model };
+  return { runQuery };
 }
 
 export type SessionRunner = ReturnType<typeof createSessionRunner>;

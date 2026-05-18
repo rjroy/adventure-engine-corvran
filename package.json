@@ -4,9 +4,9 @@
   "workspaces": ["packages/*"],
   "scripts": {
     "daemon": "bun run packages/backend/src/index.ts",
-    "dev": "concurrently -n daemon,web -c blue,green \"bun run daemon\" \"bun run --filter '@corvran/web' dev\"",
+    "dev": "concurrently --raw -n daemon,web -c blue,green \"bun run daemon\" \"cd packages/web && bun run dev\"",
     "build": "bun run typecheck && bun run --filter '@corvran/web' build",
-    "start": "concurrently -n daemon,web -c blue,green \"bun run daemon\" \"bun run --filter '@corvran/web' start\"",
+    "start": "concurrently --raw -n daemon,web -c blue,green \"bun run daemon\" \"cd packages/web && bun run start\"",
     "postinstall": "bunx tsc --build",
     "typecheck": "bunx tsc --build",
     "lint": "bun run --filter '@corvran/shared' lint && bun run --filter '@corvran/backend' lint && bun run --filter '@corvran/web' lint"
