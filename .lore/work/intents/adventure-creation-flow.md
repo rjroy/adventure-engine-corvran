@@ -7,7 +7,6 @@ modules: [web, backend, shared]
 related: [.lore/local/plans/adventure-creation-flow.md, .lore/work/intents/adventure-system-integration.md, .lore/work/brainstorm/adventure-creation-flow.md, .lore/vision.md]
 req-prefix: ACF
 supersedes: []
-legacy_source_type: spec
 ---
 
 # Spec: Adventure Creation Flow

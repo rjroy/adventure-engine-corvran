@@ -6,7 +6,6 @@ tags: [compaction, history, context-management, narrative, haiku, scene-boundari
 modules: [backend, shared, web]
 related: [.lore/local/plans/compaction-system.md, .lore/local/plans/compaction-notification.md, .lore/work/intents/mvp.md, .lore/work/brainstorm/compaction-system.md, .lore/work/brainstorm/conversation-history.md, .lore/work/research/scene-boundaries.md, .lore/vision.md]
 req-prefix: COMP
-legacy_source_type: spec
 ---
 
 # Spec: Compaction System

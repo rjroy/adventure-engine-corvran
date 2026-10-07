@@ -6,7 +6,6 @@ tags: [rpg-systems, keyword, game-design, plugins, hallucination-resistant, apoc
 modules: [plugins]
 related: [.lore/work/research/llm-optimized-rpg-systems.md, .lore/work/research/llm-integration-notes-daggerheart.md, .lore/work/intents/adventure-system-integration.md, .lore/work/intents/engine-dice-tool.md]
 req-prefix: KW
-legacy_source_type: spec
 ---
 
 # Spec: Apocrypha

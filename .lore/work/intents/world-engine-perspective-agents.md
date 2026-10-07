@@ -14,7 +14,6 @@ related:
   - .lore/work/brainstorm/conversation-history.md
   - .lore/work/research/scene-boundaries.md
   - .lore/vision.md
-legacy_source_type: spec
 ---
 
 # Spec: World Engine and Perspective Agents

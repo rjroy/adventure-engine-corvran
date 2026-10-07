@@ -10,7 +10,6 @@ related:
   - .lore/work/intents/adventure-system-integration.md
   - .lore/work/intents/adventure-creation-flow.md
   - .lore/specs/compaction-system-spec.md
-legacy_source_type: spec
 ---
 
 # Spec: Adventure File Structure

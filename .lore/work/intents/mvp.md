@@ -6,7 +6,6 @@ tags: [mvp, daemon, agent-sdk, web-client, adventure, greenfield]
 modules: [backend, web, shared]
 related: [.lore/vision.md, .lore/reference/architecture-pattern.md, .lore/work/brainstorm/mvp-scope.md, .lore/work/brainstorm/conversation-history.md]
 req-prefix: MVP
-legacy_source_type: spec
 ---
 
 # Spec: Adventure Engine MVP

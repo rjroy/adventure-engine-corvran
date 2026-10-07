@@ -6,7 +6,6 @@ tags: [plugins, game-systems, bootstrap-prompts, adventure-config, prompt-servic
 modules: [backend, shared]
 related: [.lore/local/plans/adventure-system-integration.md, .lore/vision.md, .lore/work/intents/mvp.md, .lore/work/brainstorm/rpg-system-loading.md]
 req-prefix: SYS
-legacy_source_type: spec
 ---
 
 # Spec: Adventure System Integration

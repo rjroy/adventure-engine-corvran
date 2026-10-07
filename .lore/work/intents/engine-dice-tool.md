@@ -6,7 +6,6 @@ tags: [dice, mcp, engine-tool, session-runner, agent-sdk]
 modules: [backend]
 related: [.lore/local/plans/engine-dice-tool.md, .lore/work/brainstorm/rpg-system-loading.md, .lore/work/intents/mvp.md]
 req-prefix: DICE
-legacy_source_type: spec
 ---
 
 # Spec: Engine Dice Tool
