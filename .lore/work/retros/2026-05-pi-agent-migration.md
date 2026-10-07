@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # Migration: claude-agent-sdk → pi-coding-agent
 
 Date: 2026-05-18

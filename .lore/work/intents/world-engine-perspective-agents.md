@@ -1,9 +1,9 @@
 ---
 title: World Engine and Perspective Agents
 date: 2026-07-26
-status: draft
-tags: [architecture, knowledge-boundaries, agents, narrator, npc, future-architecture]
-modules: [backend]
+status: completed
+tags: [ architecture, knowledge-boundaries, agents, narrator, npc, future-architecture ]
+modules: [ backend ]
 req-prefix: WEPA
 related:
   - .lore/work/brainstorm/world-engine-perspective-agents.md
