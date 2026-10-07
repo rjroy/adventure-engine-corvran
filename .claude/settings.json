@@ -2,19 +2,28 @@
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "*",
         "hooks": [
           {
-            "type": "command",
             "command": "bun install",
-            "timeout": 30
+            "timeout": 30,
+            "type": "command"
           },
           {
-            "type": "command",
             "command": "git submodule update --init --recursive",
-            "timeout": 30
+            "timeout": 30,
+            "type": "command"
           }
-        ]
+        ],
+        "matcher": "*"
+      },
+      {
+        "hooks": [
+          {
+            "command": "bd prime --hook-json",
+            "type": "command"
+          }
+        ],
+        "matcher": ""
       }
     ]
   }

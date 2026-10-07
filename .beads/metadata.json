@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "adventure_engine_corvran",
+  "project_id": "6fed1d4e-fe31-478e-8415-0fa238e06c32"
+}
