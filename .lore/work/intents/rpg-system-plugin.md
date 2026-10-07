@@ -4,8 +4,9 @@ date: 2026-04-04
 status: implemented
 tags: [plugins, game-systems, skills, bootstrap-prompts, claude-plugin]
 modules: [backend]
-related: [.lore/specs/adventure-system-integration.md, .lore/specs/engine-dice-tool.md]
+related: [.lore/work/intents/adventure-system-integration.md, .lore/work/intents/engine-dice-tool.md]
 req-prefix: PLG
+legacy_source_type: spec
 ---
 
 # Spec: RPG System Plugin

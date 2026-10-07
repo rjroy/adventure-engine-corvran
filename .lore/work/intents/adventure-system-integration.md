@@ -4,8 +4,9 @@ date: 2026-03-29
 status: implemented
 tags: [plugins, game-systems, bootstrap-prompts, adventure-config, prompt-service, api]
 modules: [backend, shared]
-related: [.lore/plans/adventure-system-integration.md, .lore/vision.md, .lore/specs/mvp.md, .lore/brainstorm/rpg-system-loading.md]
+related: [.lore/local/plans/adventure-system-integration.md, .lore/vision.md, .lore/work/intents/mvp.md, .lore/work/brainstorm/rpg-system-loading.md]
 req-prefix: SYS
+legacy_source_type: spec
 ---
 
 # Spec: Adventure System Integration

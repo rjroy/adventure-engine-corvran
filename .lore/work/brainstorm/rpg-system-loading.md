@@ -4,7 +4,7 @@ date: 2026-03-29
 status: resolved
 tags: [plugins, game-systems, bootstrap-prompts, adventure-config, architecture]
 modules: [backend, session-runner, prompt-service, adventure-service, dice-tool]
-related: [.lore/vision.md, .lore/brainstorm/mvp-scope.md]
+related: [.lore/vision.md, .lore/work/brainstorm/mvp-scope.md]
 ---
 
 # Brainstorm: RPG System Loading and Selection

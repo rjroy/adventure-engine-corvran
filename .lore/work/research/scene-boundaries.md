@@ -3,7 +3,7 @@ title: Scene Boundaries in TTRPGs, Interactive Fiction, and AI Narrative Systems
 date: 2026-03-31
 status: resolved
 tags: [research, scene-boundaries, conversation-history, context-management, narrative-structure]
-related: [.lore/brainstorm/conversation-history.md, .lore/research/llm-optimized-rpg-systems.md]
+related: [.lore/work/brainstorm/conversation-history.md, .lore/work/research/llm-optimized-rpg-systems.md]
 ---
 
 # Scene Boundaries

@@ -4,9 +4,10 @@ date: 2026-03-30
 status: implemented
 tags: [ux, adventure-creation, lobby, onboarding, plugin-manifest, api]
 modules: [web, backend, shared]
-related: [.lore/plans/adventure-creation-flow.md, .lore/specs/adventure-system-integration.md, .lore/brainstorm/adventure-creation-flow.md, .lore/vision.md]
+related: [.lore/local/plans/adventure-creation-flow.md, .lore/work/intents/adventure-system-integration.md, .lore/work/brainstorm/adventure-creation-flow.md, .lore/vision.md]
 req-prefix: ACF
 supersedes: []
+legacy_source_type: spec
 ---
 
 # Spec: Adventure Creation Flow

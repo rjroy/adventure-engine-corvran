@@ -6,10 +6,11 @@ tags: [adventure, file-structure, gm-behavior, prompt-assembly]
 modules: [prompt-service, adventure-service]
 req-prefix: AFS
 related:
-  - .lore/specs/mvp.md
-  - .lore/specs/adventure-system-integration.md
-  - .lore/specs/adventure-creation-flow.md
+  - .lore/work/intents/mvp.md
+  - .lore/work/intents/adventure-system-integration.md
+  - .lore/work/intents/adventure-creation-flow.md
   - .lore/specs/compaction-system-spec.md
+legacy_source_type: spec
 ---
 
 # Spec: Adventure File Structure

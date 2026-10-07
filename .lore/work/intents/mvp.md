@@ -4,8 +4,9 @@ date: 2026-03-28
 status: implemented 
 tags: [mvp, daemon, agent-sdk, web-client, adventure, greenfield]
 modules: [backend, web, shared]
-related: [.lore/vision.md, .lore/reference/architecture-pattern.md, .lore/brainstorm/mvp-scope.md, .lore/brainstorm/conversation-history.md]
+related: [.lore/vision.md, .lore/reference/architecture-pattern.md, .lore/work/brainstorm/mvp-scope.md, .lore/work/brainstorm/conversation-history.md]
 req-prefix: MVP
+legacy_source_type: spec
 ---
 
 # Spec: Adventure Engine MVP

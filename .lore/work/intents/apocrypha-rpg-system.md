@@ -4,8 +4,9 @@ date: 2026-04-03
 status: implemented
 tags: [rpg-systems, keyword, game-design, plugins, hallucination-resistant, apocrypha]
 modules: [plugins]
-related: [.lore/research/llm-optimized-rpg-systems.md, .lore/research/llm-integration-notes-daggerheart.md, .lore/specs/adventure-system-integration.md, .lore/specs/engine-dice-tool.md]
+related: [.lore/work/research/llm-optimized-rpg-systems.md, .lore/work/research/llm-integration-notes-daggerheart.md, .lore/work/intents/adventure-system-integration.md, .lore/work/intents/engine-dice-tool.md]
 req-prefix: KW
+legacy_source_type: spec
 ---
 
 # Spec: Apocrypha

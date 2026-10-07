@@ -6,10 +6,11 @@ tags: [ux, file-browser, adventure-view, markdown]
 modules: [backend, web, shared]
 req-prefix: VF
 related:
-  - .lore/issues/view-files.md
-  - .lore/specs/adventure-file-structure.md
-  - .lore/specs/mvp.md
+  - .lore/work/issues/view-files.md
+  - .lore/work/intents/adventure-file-structure.md
+  - .lore/work/intents/mvp.md
   - .lore/reference/architecture-pattern.md
+legacy_source_type: spec
 ---
 
 # Spec: View Files

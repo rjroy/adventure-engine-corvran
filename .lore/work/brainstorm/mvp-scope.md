@@ -3,7 +3,7 @@ title: MVP Scope for Greenfield Rewrite
 date: 2026-03-28
 status: resolved 
 tags: [mvp, scope, greenfield, architecture]
-related: [.lore/vision.md, .lore/reference/architecture-pattern.md, .lore/brainstorm/conversation-history.md]
+related: [.lore/vision.md, .lore/reference/architecture-pattern.md, .lore/work/brainstorm/conversation-history.md]
 ---
 
 # Brainstorm: MVP Scope for Greenfield Rewrite

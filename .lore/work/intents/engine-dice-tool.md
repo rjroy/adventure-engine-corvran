@@ -4,8 +4,9 @@ date: 2026-03-29
 status: implemented
 tags: [dice, mcp, engine-tool, session-runner, agent-sdk]
 modules: [backend]
-related: [.lore/plans/engine-dice-tool.md, .lore/brainstorm/rpg-system-loading.md, .lore/specs/mvp.md]
+related: [.lore/local/plans/engine-dice-tool.md, .lore/work/brainstorm/rpg-system-loading.md, .lore/work/intents/mvp.md]
 req-prefix: DICE
+legacy_source_type: spec
 ---
 
 # Spec: Engine Dice Tool

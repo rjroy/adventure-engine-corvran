@@ -6,14 +6,15 @@ tags: [architecture, knowledge-boundaries, agents, narrator, npc, future-archite
 modules: [backend]
 req-prefix: WEPA
 related:
-  - .lore/brainstorm/world-engine-perspective-agents.md
+  - .lore/work/brainstorm/world-engine-perspective-agents.md
   - .lore/reference/architecture-pattern.md
-  - .lore/specs/mvp.md
-  - .lore/specs/adventure-file-structure.md
-  - .lore/specs/compaction-system.md
-  - .lore/brainstorm/conversation-history.md
-  - .lore/research/scene-boundaries.md
+  - .lore/work/intents/mvp.md
+  - .lore/work/intents/adventure-file-structure.md
+  - .lore/work/intents/compaction-system.md
+  - .lore/work/brainstorm/conversation-history.md
+  - .lore/work/research/scene-boundaries.md
   - .lore/vision.md
+legacy_source_type: spec
 ---
 
 # Spec: World Engine and Perspective Agents
